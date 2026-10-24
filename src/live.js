@@ -292,6 +292,10 @@ function authView(){
       <label class="field"><span>Type it again</span><input type="password" id="np-pass2" name="password2" autocomplete="new-password" required></label>${showPw("np-show")}${err}
       <button class="btn" type="submit">Save password</button></form>`);
   if(m==="agent"||m==="vendor")return signupView(m);
+  if(m==="join")return card("Join Orbyt","How will you use Orbyt?",`<p class="small" style="margin:0">Pick one to get started. Every match is made by a real person.</p>
+    <div class="demolist"><button class="demoacct" data-act="authmode" data-m="agent"><span class="strong">I'm an agent</span><span class="small">The right team for every listing</span></button>
+      <button class="demoacct" data-act="authmode" data-m="vendor"><span class="strong">I'm a vendor partner</span><span class="small">More of the work you're good at, less chasing it</span></button></div>
+    <p class="small" style="margin:0">Already have an account? <button class="linkbtn" data-act="authmode" data-m="signin">Sign in</button></p>`);
   return `<section class="auth"><div class="authcard"><div class="eyebrow">Welcome back</div><h1>Sign in to Orbyt</h1>
       <form class="authform" data-proto="signin" novalidate>
         <label class="field"><span>Email</span><input type="email" id="si-email" name="email" autocomplete="email" required placeholder="you@brokerage.com"></label>
@@ -439,7 +443,7 @@ async function liveBoot(){
   const q=new URLSearchParams(location.search);
   if(q.get("quotes")){S.authReady=true;await renderClientPage(q.get("quotes"));return}
   // links from orbytconnect.com: ?join=agent or ?join=vendor opens that sign-up form
-  const join=q.get("join");if(join==="agent"||join==="vendor")S.authMode=join;
+  const join=q.get("join");if(join==="agent"||join==="vendor")S.authMode=join;else if(q.has("join"))S.authMode="join";
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.authReady=true;S.session=null;render()}});
   const{data:{session}}=await sb.auth.getSession();
   if(session&&S.authMode!=="newpass")await enter(session.user);else{S.authReady=true;render()}

@@ -521,6 +521,8 @@ function timingBlock(p,mine){
     :`<p class="small" style="margin:8px 0 0">Typical order for this home. Book the early steps first so later vendors aren't waiting${p.targetDate&&!p.listed?`, and keep everything ahead of ${esc(fmtDate(p.targetDate))}`:""}.</p>`}</div>`;
 }
 const CATS=["Staging","Cleaning","Photography","Landscaping","Painting","Handyman","General contractor / remodeling","Plumbing","Electric","HVAC","Window cleaning","Pool services","Moving"];
+// common extras vendors offer beyond the core categories (suggestions only; anything can be typed)
+const MORE_SERVICES=["Pressure washing","Junk removal","Roofing","Gutter cleaning","Flooring","Carpet cleaning","Pest control","Fencing","Concrete","Tree service","Organizing","Home inspection","Appliance repair","Garage doors","Drywall","Solar panel cleaning","Furniture rental","Signage"];
 const ALIAS={"contractor":"General contractor / remodeling","general contractor":"General contractor / remodeling","remodeling":"General contractor / remodeling","pool cleaning":"Pool services","pool care":"Pool services","pool service":"Pool services","deep cleaning":"Cleaning","electrical":"Electric","electrician":"Electric","window washing":"Window cleaning"};
 const canon=x=>{x=String(x).trim();const k=x.toLowerCase();return ALIAS[k]||CATS.find(c=>c.toLowerCase()===k)||x.charAt(0).toUpperCase()+x.slice(1)};
 const YEARS=["1-3","4-9","10+"],TEAM=["Just me","2-5","6-9","10-15","16+"],
@@ -1028,7 +1030,7 @@ function vendorPricingCard(v){
       <label class="field"><span>How would you describe your prices?</span><select id="pr-tier" name="tier"><option value="">Choose one</option>
         ${TIERS.map(t=>`<option value="${t}" ${pr.tier===t?"selected":""}>${esc({budget:"Budget-friendly: among the most affordable in my area",mid:"Mid-range: about what most pros charge",premium:"Premium: higher-end work and finishes"}[t])}</option>`).join("")}</select></label>
       <label class="field" style="max-width:320px"><span>Job minimum (leave blank if none)</span><input type="text" id="pr-min" name="minimum" value="${esc(pr.minimum||"")}" placeholder="For example, $500"></label>
-      <datalist id="pr-svcs">${[...new Set([...svcs,...CATS])].map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
+      <datalist id="pr-svcs">${[...new Set([...svcs,...CATS,...MORE_SERVICES])].map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
       <div class="pricerows">${rows.map((x,i)=>`<div class="grid pricerow">
         <label class="field"><span>Service</span><input type="text" id="pr-svc-${i}" name="svc-${i}" list="pr-svcs" value="${esc(x.service||"")}" placeholder="${i<2?esc(ex(i)[0]):"Another service"}"></label>
         <label class="field"><span>What it covers</span><input type="text" id="pr-what-${i}" name="what-${i}" value="${esc(x.what||"")}" placeholder="${i<2?esc(ex(i)[1]):""}"></label>
@@ -3010,7 +3012,9 @@ function signupView(m){
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone"></label>
         ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage"></label>`:`<label class="field"><span>Website</span><input type="text" id="su-web" name="web"></label>`}</div>
-      ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}</div>`:""}
+      ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}</div>
+        <label class="field"><span>Other services (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" list="su-moresvc" placeholder="Pressure washing, junk removal, roof repair"></label>
+        <datalist id="su-moresvc">${MORE_SERVICES.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>`:""}
       <div class="field"><span>${m==="agent"?"Where do you list homes?":"Where do you work?"}</span>${ck("area",AREAS)}</div>
       ${m==="vendor"?`<div class="grid">${sel("years","Years in business",YEARS)}${sel("team","Team size",TEAM)}${sel("lead","Typical lead time",LEAD)}</div>
         <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="su-refs" name="references"></textarea></label>
@@ -3110,9 +3114,10 @@ document.addEventListener("submit",async e=>{
       return done(error?friendlyAuthError(error):"","If that email has an account, a reset link is on its way.")}
     if(kindOf==="newpass"){if(pass.length<8)return done("Use a password with at least 8 characters.");if(pass!==pass2)return done("Those passwords don't match. Type them again.");
       const{data,error}=await sb.auth.updateUser({password:pass});if(error)return done(friendlyAuthError(error));toast("Password saved");S.authMode="signin";await enter(data.user);return}
-    if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),svcs=fd.getAll("svc"),areas=fd.getAll("area");
+    if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
+      const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
       const err=!first||!last?"Add your first and last name.":!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)?"Enter a valid email.":m==="vendor"&&!String(fd.get("company")||"").trim()?"Add your company name."
-        :m==="vendor"&&!svcs.length?"Pick at least one service you offer.":pass.length<8?"Use a password with at least 8 characters.":pass!==pass2?"Those passwords don't match. Type them again.":"";
+        :m==="vendor"&&!svcs.length?"Pick or type at least one service you offer.":pass.length<8?"Use a password with at least 8 characters.":pass!==pass2?"Those passwords don't match. Type them again.":"";
       if(err)return done(err);
       const meta={role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();

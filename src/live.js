@@ -316,7 +316,9 @@ function signupView(m){
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone"></label>
         ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage"></label>`:`<label class="field"><span>Website</span><input type="text" id="su-web" name="web"></label>`}</div>
-      ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}</div>`:""}
+      ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}</div>
+        <label class="field"><span>Other services (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" list="su-moresvc" placeholder="Pressure washing, junk removal, roof repair"></label>
+        <datalist id="su-moresvc">${MORE_SERVICES.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>`:""}
       <div class="field"><span>${m==="agent"?"Where do you list homes?":"Where do you work?"}</span>${ck("area",AREAS)}</div>
       ${m==="vendor"?`<div class="grid">${sel("years","Years in business",YEARS)}${sel("team","Team size",TEAM)}${sel("lead","Typical lead time",LEAD)}</div>
         <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="su-refs" name="references"></textarea></label>
@@ -416,9 +418,10 @@ document.addEventListener("submit",async e=>{
       return done(error?friendlyAuthError(error):"","If that email has an account, a reset link is on its way.")}
     if(kindOf==="newpass"){if(pass.length<8)return done("Use a password with at least 8 characters.");if(pass!==pass2)return done("Those passwords don't match. Type them again.");
       const{data,error}=await sb.auth.updateUser({password:pass});if(error)return done(friendlyAuthError(error));toast("Password saved");S.authMode="signin";await enter(data.user);return}
-    if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),svcs=fd.getAll("svc"),areas=fd.getAll("area");
+    if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
+      const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
       const err=!first||!last?"Add your first and last name.":!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)?"Enter a valid email.":m==="vendor"&&!String(fd.get("company")||"").trim()?"Add your company name."
-        :m==="vendor"&&!svcs.length?"Pick at least one service you offer.":pass.length<8?"Use a password with at least 8 characters.":pass!==pass2?"Those passwords don't match. Type them again.":"";
+        :m==="vendor"&&!svcs.length?"Pick or type at least one service you offer.":pass.length<8?"Use a password with at least 8 characters.":pass!==pass2?"Those passwords don't match. Type them again.":"";
       if(err)return done(err);
       const meta={role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();

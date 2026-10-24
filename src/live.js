@@ -38,7 +38,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
       photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
-      references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||""}})}
+      pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||""}})}
 function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D.project_admin,"project_id");
   return(D.projects||[]).map(p=>{const pp=PP[p.id]||{},pa=PA[p.id]||{};
     return{id:p.id,agent:p.agent_name,agentId:p.agent_id,agentEmail:p.agent_email||"",agentPhone:p.agent_phone||"",brokerage:p.brokerage||"",
@@ -126,7 +126,7 @@ const pick=(d,map)=>{const o={};for(const[k,col]of Object.entries(map))if(k in d
 const VENDOR_MAP={name:"name",contactName:"contact_name",email:"email",phone:"phone",web:"website",services:"services",areas:"areas",areaNote:"area_note",
   years:"years_in_business",team:"team_size",leadTime:"lead_time",worksWithAgents:"works_with_agents",portfolioUrl:"portfolio_url",available:"available",source:"source"};
 const VADMIN_MAP={approved:"approved",featured:"featured",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
-const VPRIV_MAP={references:"references_text",heard:"heard_about",signupNotes:"signup_notes",promoInterest:"promo_interest",coiUrl:"coi_url"};
+const VPRIV_MAP={pricing:"pricing",references:"references_text",heard:"heard_about",signupNotes:"signup_notes",promoInterest:"promo_interest",coiUrl:"coi_url"};
 const PROJ_MAP={agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
   targetDate:"target_date",categories:"categories",notes:"notes",addedServices:"added_services",listed:"listed",listedAt:"listed_at",source:"source",createdBy:"created_by"};
 const PPRIV_MAP={client:"client_name",budget:"budget",pmInterest:"pm_interest",optionRequests:"option_requests"};
@@ -188,7 +188,7 @@ async function write(c,id,op,d){
       fail((await sb.from("vendor_admin").upsert({vendor_id:vid,...adm})).error,"vendor");fail((await sb.from("vendor_private").upsert({vendor_id:vid,...priv})).error,"vendor")}
     else{if(Object.keys(main).length)fail((await sb.from("vendors").update(main).eq("id",vid)).error,"vendor");
       if(Object.keys(adm).length)fail((await sb.from("vendor_admin").upsert({vendor_id:vid,...adm})).error,"vendor");
-      if(Object.keys(priv).length)fail((await sb.from("vendor_private").upsert({vendor_id:vid,...priv})).error,"vendor");
+      if(Object.keys(priv).length)fail((kind()==="vendor"?await sb.from("vendor_private").update(priv).eq("vendor_id",vid):await sb.from("vendor_private").upsert({vendor_id:vid,...priv})).error,"vendor");
       const v=(D.vendors||[]).find(x=>x.id===vid);
       if(d.approved===true&&v&&v.user_id)fail((await sb.rpc("admin_set_user_status",{p_user:v.user_id,p_status:"active"})).error,"approve")}
     const cois=[...(d.coiIds||[]),...(d.coiId?[d.coiId]:[])],photos=d.photoIds||[];
@@ -435,6 +435,8 @@ async function liveBoot(){
   sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   const q=new URLSearchParams(location.search);
   if(q.get("quotes")){S.authReady=true;await renderClientPage(q.get("quotes"));return}
+  // links from orbytconnect.com: ?join=agent or ?join=vendor opens that sign-up form
+  const join=q.get("join");if(join==="agent"||join==="vendor")S.authMode=join;
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.authReady=true;S.session=null;render()}});
   const{data:{session}}=await sb.auth.getSession();
   if(session&&S.authMode!=="newpass")await enter(session.user);else{S.authReady=true;render()}

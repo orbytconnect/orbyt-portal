@@ -286,6 +286,7 @@ form.inline input{width:110px;padding:6px 8px}
 .pickfoot .field{flex:1 1 240px}
 .pill.fav{border-color:var(--ink-2);color:var(--ink)}
 .pill.price{border-color:var(--ink-2);color:var(--ink-2);text-transform:none;letter-spacing:.02em}
+.pricecard{border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;background:var(--surface)}.pricerows{display:grid;gap:4px}.pricerow{padding-top:8px;border-top:1px dashed var(--line)}
 .intronote{font-size:14px;color:var(--ink-2);margin-top:6px;white-space:normal;max-width:300px}
 table.mini{min-width:0}
 .vcard .tablewrap{margin-top:4px}
@@ -624,6 +625,12 @@ function priceStats(vid){
     won:mine.filter(b=>ONTEAM.includes(b.status)).length,decided:mine.filter(b=>["chosen","selected","passed"].includes(b.status)).length};
 }
 const pctText=r=>{const d=Math.round((r-1)*100);return d===0?"right in line with other bids":Math.abs(d)+"% "+(d<0?"below":"above")+" other bids"};
+const PRICE_UNITS=["per job","per hour","per sq ft","per room","per visit","per month","per linear ft","per item"];
+const vPricing=v=>(v&&v.pricing)||{};
+const statedTier=v=>TIERS.includes(vPricing(v).tier)?vPricing(v).tier:"";
+const statedPill=v=>statedTier(v)?`<span class="pill price" title="From the pricing they shared">${TIER_LABEL[statedTier(v)]}</span>`:"";
+const priceItems=(v,cat)=>(vPricing(v).items||[]).filter(x=>x&&x.price&&(!cat||!x.service||x.service===cat));
+const priceItemText=x=>[x.what,[x.price,x.unit&&x.unit!=="per job"?x.unit:""].filter(Boolean).join(" ")].filter(Boolean).join(": ");
 const tierPill=st=>st&&st.tier?`<span class="pill price" title="Usually ${pctText(st.ratio)} on the same job">${TIER_LABEL[st.tier]}</span>`:"";
 function matchesFor(p,cat,exclude=[],n=3){
   return S.vendors.filter(v=>v.approved!==false&&vsv(v).includes(cat)&&!exclude.includes(v.id)).map(v=>{
@@ -634,8 +641,9 @@ function matchesFor(p,cat,exclude=[],n=3){
     const r=rating(v.id);if(r){score+=(r.avg-3)*.8;why.push(r.avg.toFixed(1)+" stars from agents")}
     if(v.repeatJobs){score+=Math.min(v.repeatJobs,6)*.25;if(!r)why.push(v.repeatJobs+" repeat calls from agents")}
     const st=priceStats(v.id);
-    if(p.budget&&st&&st.tier){const gap=Math.abs(TIERS.indexOf(st.tier)-TIERS.indexOf(p.budget));
-      if(gap===0){score+=1.5;top.push("Prices fit a "+BUDGETS[p.budget].toLowerCase()+" budget")}else if(gap===2)score-=1.5}
+    const tier=(st&&st.tier)||statedTier(v),own=!(st&&st.tier);
+    if(p.budget&&tier){const gap=Math.abs(TIERS.indexOf(tier)-TIERS.indexOf(p.budget));
+      if(gap===0){score+=own?1:1.5;top.push("Prices fit a "+BUDGETS[p.budget].toLowerCase()+" budget"+(own?" (their own estimate)":""))}else if(gap===2)score-=own?1:1.5}
     if(p.agent&&favIds(p.agent).includes(v.id)){score+=2.5;top.unshift("One of "+firstName(p.agent)+"'s favorites")}
     if(v.featured)score+=.5;
     let warn="";const ld=leadDays(v),dl=daysTo(p.targetDate);
@@ -852,7 +860,12 @@ function profileBlock(v){
 }
 function pricingBlock(v){
   const st=priceStats(v.id);const hist=pricedBids().filter(b=>b.vendorId===v.id).sort((a,b)=>String(b.submittedAt).localeCompare(String(a.submittedAt))).slice(0,6);
-  return `<div><span class="eyebrow">Pricing · only you see this</span>
+  const pr=vPricing(v),its=priceItems(v);
+  const shared=`<div style="margin:0 0 10px"><span class="small strong">What they shared</span>${statedTier(v)||its.length||pr.note?`
+    ${statedTier(v)?`<div class="small">Describes their prices as ${esc(TIER_LABEL[statedTier(v)].replace(/^\$+ /,"").toLowerCase())}</div>`:""}
+    ${its.length?`<ul class="why" style="margin:4px 0">${its.map(x=>`<li>${x.service?`<span class="strong">${esc(x.service)}</span> · `:""}${esc(priceItemText(x))}</li>`).join("")}</ul>`:""}
+    ${pr.note?`<div class="small">“${esc(pr.note)}”</div>`:""}${pr.updatedAt?`<div class="small">Updated ${esc(fmtStamp(pr.updatedAt))}</div>`:""}`:`<div class="small">Nothing yet. They're asked to add it on their dashboard.</div>`}</div>`;
+  return `<div><span class="eyebrow">Pricing · only you see this</span>${shared}
     <p style="margin:6px 0 8px">${st&&st.tier?`${tierPill(st)} Usually ${pctText(st.ratio)} on the same job.`:`<span class="small">${st?"Not enough competing bids to compare yet.":"No bids yet."}</span>`}</p>
     ${hist.length?`<div class="tablewrap"><table class="mini"><thead><tr><th>Project</th><th>Bid</th><th>Vs. others</th><th>Outcome</th></tr></thead><tbody>${hist.map(b=>{const p=projById(b.projectId)||{};const m=jobMedian(b.projectId,b.category);
       return `<tr><td>${esc(p.address||"")}<div class="small">${esc(b.category)}</div></td><td class="money">${money(b.amount)}</td><td class="small">${m?pctText(b.amount/m).replace(" other bids",""):"Only bid"}</td><td class="small">${esc(STATUS_LABEL[b.status]||b.status)}</td></tr>`}).join("")}</tbody></table></div>`:""}</div>`;
@@ -975,6 +988,7 @@ function vendorView(){
     <div>${ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
   h+=vendorStats(v,mine);
+  h+=vendorPricingCard(v);
   h+=statStrip([
     {key:"requested",label:"Bids requested",list:req,render:l=>bidTable(l,"vendor"),empty:"No open requests right now."},
     {key:"overdue",label:"Overdue",list:req.filter(b=>b.status==="requested"&&ageDays(b.requestedAt)>=REMIND_DAYS),render:l=>bidTable(l,"vendor"),empty:"Nothing overdue. Nice work."},
@@ -996,6 +1010,35 @@ function vendorView(){
       <td>${b.status==="requested"?`<button class="btn sm" data-act="vopen" data-id="${esc(b.id)}">View request</button>`+(late?` <span class="pill late">Overdue</span>`:""):b.status==="changes"?`<button class="btn sm" data-act="vopen" data-id="${esc(b.id)}">Update bid</button>`:b.status==="chosen"?`<button class="btn sm" data-act="vopen" data-id="${esc(b.id)}">Confirm job</button>`:statusPill(b)}</td></tr>`}).join("")}
   </tbody></table></div>`;
 }
+function vendorPricingCard(v){
+  if(kind()!=="vendor")return"";
+  const pr=vPricing(v),its=priceItems(v),has=statedTier(v)||its.length;
+  if(S.openForm==="pricing"){const svcs=vsv(v),rows=[...(pr.items||[])];while(rows.length<4)rows.push({});
+    const sel=(n,val,opts,blank)=>`<select id="pr-${n}" name="${n}">${blank?`<option value="">${blank}</option>`:""}${opts.map(o=>`<option ${o===val?"selected":""}>${esc(o)}</option>`).join("")}</select>`;
+    return `<form class="form" data-form="pricing" style="margin-bottom:20px"><h2>Your typical pricing</h2>
+      <p class="small" style="margin:0">A rough idea is plenty. It helps me introduce you to homes and budgets that fit. Only Orbyt sees this. Agents see your bids, not this list.</p>
+      <label class="field"><span>How would you describe your prices?</span><select id="pr-tier" name="tier"><option value="">Choose one</option>
+        ${TIERS.map(t=>`<option value="${t}" ${pr.tier===t?"selected":""}>${esc({budget:"Budget-friendly: among the most affordable in my area",mid:"Mid-range: about what most pros charge",premium:"Premium: higher-end work and finishes"}[t])}</option>`).join("")}</select></label>
+      <div class="pricerows">${rows.map((x,i)=>`<div class="grid pricerow">
+        <label class="field"><span>Service</span>${sel("svc-"+i,x.service||"",svcs,svcs.length>1?"Any":"")}</label>
+        <label class="field"><span>What it covers</span><input type="text" id="pr-what-${i}" name="what-${i}" value="${esc(x.what||"")}" placeholder="${i?"Cabinet painting, kitchen":"Interior repaint, 3-bed home"}"></label>
+        <label class="field"><span>Typical price</span><input type="text" id="pr-price-${i}" name="price-${i}" value="${esc(x.price||"")}" placeholder="${i?"$1,800 to $2,500":"From $3,200"}"></label>
+        <label class="field"><span>Priced</span>${sel("unit-"+i,x.unit||"per job",PRICE_UNITS)}</label></div>`).join("")}</div>
+      <label class="field"><span>Anything else? (optional)</span><textarea id="pr-note" name="note" rows="2" placeholder="Minimums, travel fees, rush pricing, seasonal rates">${esc(pr.note||"")}</textarea></label>
+      <div class="actions"><button class="btn" type="submit">Save pricing</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></form>`}
+  if(!has)return `<div class="callout" style="margin-bottom:20px"><p style="margin:0"><span class="strong">Help me match you to the right homes.</span> Share a few of your typical prices, like a 3-bedroom repaint or a standard cleaning. A rough idea is plenty, and only Orbyt sees it.</p>
+    <div class="actions"><button class="btn sm" data-act="form" data-key="pricing">Add my pricing</button></div></div>`;
+  return `<section class="pricecard" style="margin-bottom:20px"><div class="sechead"><div><h2 style="font-size:18px">Your typical pricing</h2><span class="small">Only Orbyt sees this. It helps me match you to homes and budgets that fit.</span></div>
+    <button class="btn ghost sm" data-act="form" data-key="pricing">Edit</button></div>
+    ${statedTier(v)?statedPill(v):""}${its.length?`<ul class="why" style="margin:8px 0 0">${its.map(x=>`<li>${x.service&&vsv(v).length>1?`<span class="strong">${esc(x.service)}</span> · `:""}${esc(priceItemText(x))}</li>`).join("")}</ul>`:""}</section>`;
+}
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="pricing"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const v=vendorById(roleVal());if(!v)return;const fd=new FormData(f),items=[];
+  for(let i=0;i<10;i++){if(!fd.has("price-"+i))break;const price=String(fd.get("price-"+i)||"").trim(),what=String(fd.get("what-"+i)||"").trim();
+    if(price||what)items.push({service:String(fd.get("svc-"+i)||""),what,price,unit:String(fd.get("unit-"+i)||"per job")})}
+  if(items.some(x=>x.what&&!x.price)){toast("Add a typical price for each line, or clear it.");return}
+  const tier=String(fd.get("tier")||"");if(!tier&&!items.length){toast("Pick how you'd describe your prices, or add at least one price.");return}
+  S.openForm=null;guard(()=>col("vendors").doc(v.id).update({pricing:{tier,items,note:String(fd.get("note")||"").trim(),updatedAt:now()}}),"Saved. Thanks, this helps me send you the right jobs.")},true);
 function vendorStats(v,mine){
   const med=a=>{if(!a.length)return null;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
   const sent=mine.filter(b=>b.submittedAt&&b.requestedAt),resp=med(sent.map(b=>(Date.parse(b.submittedAt)-Date.parse(b.requestedAt))/36e5).filter(x=>x>=0));
@@ -1927,7 +1970,8 @@ function pickForm(p,c,bids){
     const mm=ms.find(m=>m.v.id===id)||matchesFor(p,vsv(v).includes(c)?c:vsv(v)[0],[],99).find(m=>m.v.id===id)||{why:[],warn:""};const w=mm.why;
     return `<div class="cand ${val("sel-"+id)?"on":""}">
       <label class="pickrow"><input type="checkbox" data-pick data-vid="${esc(id)}" name="sel-${esc(id)}" id="pk-${ib}-${vk}" ${val("sel-"+id)?"checked":""}><span class="strong">${esc(v.name)}</span></label>
-      <div class="pills">${sug?`<span class="pill fav">Suggested by ${esc(ag)}</span>`:fav?`<span class="pill fav">♥ ${esc(ag)}'s favorite</span>`:""}${v.featured?'<span class="pill featured">Featured</span>':""}${tierPill(st)}${!vsv(v).includes(c)?`<span class="pill">${esc(vsv(v).join(", "))}</span>`:""}</div>
+      <div class="pills">${sug?`<span class="pill fav">Suggested by ${esc(ag)}</span>`:fav?`<span class="pill fav">♥ ${esc(ag)}'s favorite</span>`:""}${v.featured?'<span class="pill featured">Featured</span>':""}${tierPill(st)||statedPill(v)}${!vsv(v).includes(c)?`<span class="pill">${esc(vsv(v).join(", "))}</span>`:""}</div>
+      ${priceItems(v,c).length?`<div class="small">Typical: ${esc(priceItems(v,c).slice(0,2).map(priceItemText).join(" · "))}</div>`:""}
       ${w.length?`<ul class="why">${w.slice(0,4).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${mm.warn?`<div class="small warntext">${esc(mm.warn)}</div>`:""}
       ${vnotes(id)[0]?`<div class="candnote"><span class="strong">Your note:</span> ${esc(vnotes(id)[0].text.length>110?vnotes(id)[0].text.slice(0,110)+"…":vnotes(id)[0].text)}</div>`:""}
       <button class="linkbtn" type="button" data-act="vcard" data-id="${esc(id)}">Details, pricing and notes</button>
@@ -2678,7 +2722,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
       photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
-      references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||""}})}
+      pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||""}})}
 function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D.project_admin,"project_id");
   return(D.projects||[]).map(p=>{const pp=PP[p.id]||{},pa=PA[p.id]||{};
     return{id:p.id,agent:p.agent_name,agentId:p.agent_id,agentEmail:p.agent_email||"",agentPhone:p.agent_phone||"",brokerage:p.brokerage||"",
@@ -2766,7 +2810,7 @@ const pick=(d,map)=>{const o={};for(const[k,col]of Object.entries(map))if(k in d
 const VENDOR_MAP={name:"name",contactName:"contact_name",email:"email",phone:"phone",web:"website",services:"services",areas:"areas",areaNote:"area_note",
   years:"years_in_business",team:"team_size",leadTime:"lead_time",worksWithAgents:"works_with_agents",portfolioUrl:"portfolio_url",available:"available",source:"source"};
 const VADMIN_MAP={approved:"approved",featured:"featured",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
-const VPRIV_MAP={references:"references_text",heard:"heard_about",signupNotes:"signup_notes",promoInterest:"promo_interest",coiUrl:"coi_url"};
+const VPRIV_MAP={pricing:"pricing",references:"references_text",heard:"heard_about",signupNotes:"signup_notes",promoInterest:"promo_interest",coiUrl:"coi_url"};
 const PROJ_MAP={agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
   targetDate:"target_date",categories:"categories",notes:"notes",addedServices:"added_services",listed:"listed",listedAt:"listed_at",source:"source",createdBy:"created_by"};
 const PPRIV_MAP={client:"client_name",budget:"budget",pmInterest:"pm_interest",optionRequests:"option_requests"};
@@ -2828,7 +2872,7 @@ async function write(c,id,op,d){
       fail((await sb.from("vendor_admin").upsert({vendor_id:vid,...adm})).error,"vendor");fail((await sb.from("vendor_private").upsert({vendor_id:vid,...priv})).error,"vendor")}
     else{if(Object.keys(main).length)fail((await sb.from("vendors").update(main).eq("id",vid)).error,"vendor");
       if(Object.keys(adm).length)fail((await sb.from("vendor_admin").upsert({vendor_id:vid,...adm})).error,"vendor");
-      if(Object.keys(priv).length)fail((await sb.from("vendor_private").upsert({vendor_id:vid,...priv})).error,"vendor");
+      if(Object.keys(priv).length)fail((kind()==="vendor"?await sb.from("vendor_private").update(priv).eq("vendor_id",vid):await sb.from("vendor_private").upsert({vendor_id:vid,...priv})).error,"vendor");
       const v=(D.vendors||[]).find(x=>x.id===vid);
       if(d.approved===true&&v&&v.user_id)fail((await sb.rpc("admin_set_user_status",{p_user:v.user_id,p_status:"active"})).error,"approve")}
     const cois=[...(d.coiIds||[]),...(d.coiId?[d.coiId]:[])],photos=d.photoIds||[];
@@ -3075,6 +3119,8 @@ async function liveBoot(){
   sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   const q=new URLSearchParams(location.search);
   if(q.get("quotes")){S.authReady=true;await renderClientPage(q.get("quotes"));return}
+  // links from orbytconnect.com: ?join=agent or ?join=vendor opens that sign-up form
+  const join=q.get("join");if(join==="agent"||join==="vendor")S.authMode=join;
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.authReady=true;S.session=null;render()}});
   const{data:{session}}=await sb.auth.getSession();
   if(session&&S.authMode!=="newpass")await enter(session.user);else{S.authReady=true;render()}

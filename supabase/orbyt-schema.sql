@@ -369,6 +369,7 @@ alter table public.contacts       add column if not exists area         text;
 alter table public.spend          add column if not exists side         text;
 alter table public.spend          add column if not exists channel      text;
 alter table public.bids           add column if not exists available_from date;
+alter table public.vendor_private add column if not exists pricing jsonb not null default '{}';
 
 -- ---------- indexes ---------------------------------------------------------
 create index if not exists projects_agent_idx       on public.projects (agent_id);

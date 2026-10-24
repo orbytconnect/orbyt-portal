@@ -1032,7 +1032,7 @@ function vendorPricingCard(v){
       <label class="field" style="max-width:320px"><span>Job minimum (leave blank if none)</span><input type="text" id="pr-min" name="minimum" value="${esc(pr.minimum||"")}" placeholder="For example, $500"></label>
       <datalist id="pr-svcs">${[...new Set([...svcs,...CATS,...MORE_SERVICES])].map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
       <div class="pricerows">${rows.map((x,i)=>`<div class="grid pricerow">
-        <label class="field"><span>Service</span><input type="text" id="pr-svc-${i}" name="svc-${i}" list="pr-svcs" value="${esc(x.service||"")}" placeholder="${i<2?esc(ex(i)[0]):"Another service"}"></label>
+        <label class="field"><span>Service</span><input type="text" id="pr-svc-${i}" name="svc-${i}" list="pr-svcs" value="${esc(x.service||"")}" placeholder="Type or select"></label>
         <label class="field"><span>What it covers</span><input type="text" id="pr-what-${i}" name="what-${i}" value="${esc(x.what||"")}" placeholder="${i<2?esc(ex(i)[1]):""}"></label>
         <label class="field"><span>Typical price</span><input type="text" id="pr-price-${i}" name="price-${i}" value="${esc(x.price||"")}" placeholder="${i<2?esc(ex(i)[2]):""}"></label>
         <label class="field"><span>Priced</span>${sel("unit-"+i,x.unit||"per job",PRICE_UNITS)}</label></div>`).join("")}</div>

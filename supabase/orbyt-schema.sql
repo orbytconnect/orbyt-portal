@@ -877,10 +877,10 @@ create extension if not exists pg_net;
 insert into public.settings (key, value, is_public)
 values ('email', jsonb_build_object(
   'enabled', true,
-  'portal_url', 'https://orbyt-portal.netlify.app',
+  'portal_url', 'https://portal.orbytconnect.com',
   'from', 'Orbyt <ashleigh@orbytconnect.com>',
   'admin', 'ashleigh@orbytconnect.com',
-  'logo', 'https://orbyt-portal.netlify.app/orbyt-logo-email.png'), false)
+  'logo', 'https://portal.orbytconnect.com/orbyt-logo-email.png'), false)
 on conflict (key) do nothing;
 
 -- A record of every notification, so you can see what went out (Table Editor, email_log).

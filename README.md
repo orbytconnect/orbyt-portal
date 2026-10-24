@@ -1,6 +1,6 @@
 # Orbyt Portal
 
-The agent and vendor portal for Orbyt, live at https://orbyt-portal.netlify.app (moving to portal.orbytconnect.com).
+The agent and vendor portal for Orbyt, live at https://portal.orbytconnect.com (also reachable at https://orbyt-portal.netlify.app).
 
 ## What's here
 

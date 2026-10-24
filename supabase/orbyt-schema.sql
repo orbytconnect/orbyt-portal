@@ -397,9 +397,14 @@ declare
   invited  boolean;
   v_id     uuid;
 begin
-  invited := r = 'agent' and (
+  -- agents who are already on a project (shared with them, or imported/added by Orbyt under their email)
+  -- and vendors Orbyt already approved skip the approval wait
+  invited := (r = 'agent' and (
     exists (select 1 from public.project_members where lower(email) = em)
-    or exists (select 1 from public.default_shares where lower(email) = em));
+    or exists (select 1 from public.default_shares where lower(email) = em)
+    or exists (select 1 from public.projects where agent_id is null and lower(agent_email) = em)))
+    or (r = 'vendor' and exists (select 1 from public.vendors v join public.vendor_admin a on a.vendor_id = v.id
+                                 where v.user_id is null and lower(v.email) = em and a.approved));
 
   insert into public.profiles (id, role, status, full_name, email, phone, brokerage, areas, approved_at)
   values (new.id, r, case when invited then 'active' else 'pending' end,
@@ -408,6 +413,9 @@ begin
   on conflict (id) do nothing;
 
   update public.project_members set user_id = new.id where user_id is null and lower(email) = em;
+  if r = 'agent' then
+    update public.projects set agent_id = new.id where agent_id is null and lower(agent_email) = em;
+  end if;
 
   if r = 'vendor' then
     select id into v_id from public.vendors where user_id is null and lower(email) = em limit 1;

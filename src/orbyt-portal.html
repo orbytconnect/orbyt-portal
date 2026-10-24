@@ -1610,7 +1610,7 @@ function dashView(){
   const listed=S.projects.filter(p=>p.listed).sort(byDate);
   const pm=active.filter(p=>p.pm);
   let main;
-  if(!S.projects.length)main=(orbytAlerts().length?alertsView():"")+emptyStart();
+  if(!S.projects.length)main=(orbytAlerts().length?alertsView():"")+(S.openForm==="import"?importPanel():emptyStart()+(S.canWrite?`<div class="actions" style="justify-content:center;margin-top:12px"><button class="btn ghost sm" data-act="form" data-key="import">Import website requests</button></div>`:""));
   else{
     const live=b=>projById(b.projectId)&&!projById(b.projectId).listed;
     const needs=active.filter(p=>needsCats(p).length);

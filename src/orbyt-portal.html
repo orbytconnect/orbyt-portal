@@ -513,6 +513,8 @@ const YEARS=["1-3","4-9","10+"],TEAM=["Just me","2-5","6-9","10-15","16+"],
 const leadDays=v=>{const t=String(v.leadTime||"").toLowerCase();if(!t)return 0;if(/3\+|3 or more|month/.test(t))return 21;if(/1-2|1 to 2/.test(t))return 7;return 0};
 const safeUrl=u=>{u=String(u||"").trim();if(!u)return"";if(/^https?:\/\//i.test(u))return u;if(/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(u))return"https://"+u;return""};
 const FULL_PREP=["Staging","Cleaning","Photography","Landscaping","Painting"];
+// Project management is switched off for now (licensing). Flip to true to bring every PM screen back.
+const PM_ON=false;
 const PMI={yes:"Interested in project management",maybe:"Wants to hear about project management",no:"Not interested in project management"};
 const vsv=v=>v.services&&v.services.length?v.services:[v.category];
 const ctLabel=p=>p.clientType==="Buyer"?"Buyer":p.clientType==="Both"?"Client":"Seller";
@@ -1102,7 +1104,7 @@ function orbytView(){
   if(S.tab==="tasks"||!["dash","pipeline","projects","vendors","invoicing","reports"].includes(S.tab))S.tab="dash";
   const pending=S.reviews.filter(r=>!r.approved).length;
   let h=`<section class="hello"><div><h1>Hi Ashleigh</h1>
-    <p>See every project at a glance, including what needs matching, who's bid, who's booked and the ones you're managing. Hand-pick the vendors you introduce for each home, add your own tasks, and book your client's pick.</p></div>
+    <p>See every project at a glance, including what needs matching, who's bid and who's booked. Hand-pick the vendors you introduce for each home, add your own tasks, and book your client's pick.</p></div>
     ${S.canWrite&&!S.dbMissing?`<div class="actions"><button class="btn" data-act="newproject">New project</button></div>`:""}</section>`;
   const tm=S.config.timer;if(tm&&tm.startedAt){const mins=Math.max(0,Math.floor((Date.now()-Date.parse(tm.startedAt))/6e4)),tp=projById(tm.projectId);
     h+=`<div class="timerbar" role="status"><span><span class="dotlive" aria-hidden="true"></span>Timer running${tp?" on "+esc(tp.address):""} · ${esc((LOGTYPES.find(x=>x[0]===tm.type)||[,"Matching"])[1])} · <span class="num">${Math.floor(mins/60)}:${String(mins%60).padStart(2,"0")}</span></span>
@@ -1168,7 +1170,7 @@ function moneyItems(){
     const fees=sub.map(b=>invRow(b).fee).sort((x,y)=>x-y),mid=fees.length%2?fees[fees.length>>1]:(fees[fees.length/2-1]+fees[fees.length/2])/2;
     const fin=p.targetDate&&p.targetDate>today?p.targetDate:addDaysIso(new Date().toISOString(),14);
     items.push({date:in2(fin),stage:"pos",sub:`${sub.length} ${sub.length===1?"bid":"bids"} in, nobody picked yet (middle bid's fee)`,amt:cents(mid),est:true,label:`${p.address} · ${c}`})}
-  for(const p of S.projects.filter(p=>p.pm)){const team=(p.categories||[]).map(c=>teamBid(p.id,c)).filter(Boolean),quoted=team.reduce((a,b)=>a+(b.amount||0),0),fee=Math.max(500,cents(quoted*0.1)),inv=p.pmInvoice||{};
+  for(const p of S.projects.filter(p=>PM_ON&&p.pm)){const team=(p.categories||[]).map(c=>teamBid(p.id,c)).filter(Boolean),quoted=team.reduce((a,b)=>a+(b.amount||0),0),fee=Math.max(500,cents(quoted*0.1)),inv=p.pmInvoice||{};
     if(inv.status==="paid")items.push({date:isoDay(inv.paidAt||today),stage:"paid",sub:"Project management, paid",amt:fee,label:`${p.agent} · ${p.address} · Project management`});
     else items.push({date:inv.status==="invoiced"?later(in2(isoDay(inv.at))):today,stage:"exp",sub:inv.status==="invoiced"?"Project management, invoiced":"Project management, not invoiced yet",amt:fee,est:!inv.status,label:`${p.agent} · ${p.address} · Project management`})}
   return items.sort((a,b)=>a.date.localeCompare(b.date));
@@ -1317,7 +1319,7 @@ function revChart(a,b){
   const W=720,H=200,L=52,Rr=8,T=12,Bt=28,pw=W-L-Rr,ph=H-T-Bt,slot=pw/B.length,bw=Math.max(6,Math.min(44,slot*0.62)),y=v=>T+ph-(v/nice)*ph,every=Math.ceil(B.length/12);
   let g=[0,.5,1].map(f=>`<line x1="${L}" x2="${W-Rr}" y1="${y(f*nice)}" y2="${y(f*nice)}" class="fcgrid"/><text x="${L-8}" y="${y(f*nice)+4}" text-anchor="end" class="fcax">${f*nice>=1000?"$"+(f*nice/1000).toFixed(1).replace(".0","")+"k":"$"+Math.round(f*nice)}</text>`).join("");
   B.forEach((k,i)=>{const x=L+slot*i+(slot-bw)/2,tot=k.paid+k.exp;let base=0;const seg=(v,cls,name,top)=>{if(!v)return"";const y0=y(base),y1=y(base+v);base+=v;return`<rect x="${x}" y="${y1}" width="${bw}" height="${Math.max(1,y0-y1-(top?0:2))}" class="${cls}" rx="${top?3:0}"><title>${esc(k.label)}: ${name} ${money2(v)}</title></rect>`};
-    g+=seg(k.paid,"fcpaid","Vendor fees",!k.exp)+seg(k.exp,"fcexp","Project management",true);if(i%every===0)g+=`<text x="${x+bw/2}" y="${H-8}" text-anchor="middle" class="fcax">${esc(k.label)}</text>`});
+    g+=seg(k.paid,"fcpaid","Vendor fees",!k.exp)+seg(k.exp,"fcexp",PM_ON?"Project management":"Expected fees",true);if(i%every===0)g+=`<text x="${x+bw/2}" y="${H-8}" text-anchor="middle" class="fcax">${esc(k.label)}</text>`});
   return `<div class="fcchart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Net revenue by period">${g}<line x1="${L}" x2="${W-Rr}" y1="${y(0)}" y2="${y(0)}" class="fcbase"/></svg></div>`;
 }
 function rpHeader(a,b,pa,pb){const P=S.rp.period,V=S.rp.view,btn=(v,l)=>`<button data-act="rpperiod" data-v="${v}" aria-pressed="${P===v}">${l}</button>`,vb=(v,l)=>`<button data-act="rpview" data-v="${v}" aria-pressed="${V===v}">${l}</button>`;
@@ -1401,7 +1403,7 @@ function investorView(){
     <h3 class="rphead">Agent retention by starting month</h3>${cohortTable(b)}
     <h3 class="rphead">Engagement and mix</h3><div class="rptiles rp5">
       ${rpTile("Projects per agent",m.ppaq==null?"–":m.ppaq.toFixed(1),`<span class="small">Per quarter</span>`)}
-      ${rpTile("Project management",rpPct(m.pmAttach),`<span class="small">Share of projects that add it</span>`)}
+      ${PM_ON?rpTile("Project management",rpPct(m.pmAttach),`<span class="small">Share of projects that add it</span>`):""}
       ${rpTile("Buy-side",rpPct(m.buySide),`<span class="small">Share of projects for buyers</span>`)}
       ${rpTile("Top 3 agents",rpPct(m.topAgents),`<span class="small">Share of net revenue</span>`,"Under 30 to 40% reads as healthy to most investors")}
       ${rpTile("Top 3 vendors",rpPct(m.topVendors),`<span class="small">Share of vendor fees</span>`)}</div>
@@ -1418,11 +1420,12 @@ function investorView(){
     <div class="actions">${S.downloads?`<button class="btn ghost sm" data-act="invcsvmonthly">Download monthly numbers (CSV)</button>`:""}<span class="small">Every number comes from the projects, bids, invoices, reviews and logs in this desk. Hover a tile for how it's measured.</span></div>
   </section>`;
 }
-const LOGTYPES=[["matching","Matching and intros"],["pm","Project management"],["recruiting","Recruiting vendors"],["admin","Admin and invoicing"]];
+const LOGTYPES=[["matching","Matching and intros"],...(PM_ON?[["pm","Project management"]]:[]),["recruiting","Recruiting vendors"],["admin","Admin and invoicing"]];
 const logType=e=>e.type||"matching";
 function pmFeeFor(p){const team=(p.categories||[]).map(c=>teamBid(p.id,c)).filter(Boolean),quoted=team.reduce((t,x)=>t+(x.amount||0),0),final=team.reduce((t,x)=>t+bidVal(x),0);
   const up=Math.max(500,cents(quoted*0.1)),adj=final-quoted>1000?Math.max(500,cents(final*0.1))-up:0;return{up,adj,total:up+adj}}
 function pmSection(a,b){
+  if(!PM_ON)return"";
   const projs=S.projects.filter(p=>p.createdAt&&inR(dayOf(p.createdAt),a,b)),pmP=projs.filter(p=>p.pm);
   const pmRev=pmP.reduce((t,p)=>t+pmFeeFor(p).total,0),adjRev=pmP.reduce((t,p)=>t+pmFeeFor(p).adj,0);
   const netRev=invRows().filter(r=>inR(dayOf(r.doneAt),a,b)).reduce((t,r)=>t+r.fee,0),total=pmRev+netRev;
@@ -1553,8 +1556,8 @@ function reportsView(){
       ${tile("Collected",money2(m.collected),`<span class="small">Paid in this period</span>`)}
       ${tile("AOV",m.aov==null?"–":money(m.aov),`${dl(m.aov,pm.aov)}<span class="small">Avg booked vendor spend per project (${m.orders})</span>`)}
       ${tile("Revenue per project",m.orders?money2(m.rev/m.orders):"–",`<span class="small">Orbyt fees per booked project</span>`)}</div>
-    <div class="rpcharts"><div><h3>Net revenue</h3><p class="small" style="margin:2px 0 8px"><i class="sw fcpaid"></i>Vendor fees, by job finish date <i class="sw fcexp" style="margin-left:10px"></i>Project management</p>${revChart(a,b)}
-        <p class="small" style="margin:6px 0 0">Vendor fees ${money2(m.vendorRev)} · Project management ${money2(m.pmRev)}${m.waived?` · ${m.waived} ${m.waived===1?"fee":"fees"} waived`:""}</p></div>
+    <div class="rpcharts"><div><h3>Net revenue</h3><p class="small" style="margin:2px 0 8px"><i class="sw fcpaid"></i>Vendor fees, by job finish date ${PM_ON?`<i class="sw fcexp" style="margin-left:10px"></i>Project management`:""}</p>${revChart(a,b)}
+        <p class="small" style="margin:6px 0 0">Vendor fees ${money2(m.vendorRev)}${PM_ON?` · Project management ${money2(m.pmRev)}`:""}${m.waived?` · ${m.waived} ${m.waived===1?"fee":"fees"} waived`:""}</p></div>
       <div><h3>AOV over time</h3><p class="small" style="margin:2px 0 8px">Average booked vendor spend per project. Hover a point for growth vs the one before.</p>${lineChart(aovPts,v=>money(v))}</div></div>
     <h3 class="rphead">Quality and speed</h3><div class="rptiles">
       ${tile("Star rating",m.rating==null?"–":"★ "+m.rating.toFixed(1),`<span class="small">${m.ratingN} approved ${m.ratingN===1?"review":"reviews"} this period</span>`)}
@@ -1604,7 +1607,7 @@ function invoicingView(){
   return h;
 }
 function pmInvoicing(){
-  const ps=S.projects.filter(p=>p.pm);if(!ps.length)return"";
+  if(!PM_ON)return"";const ps=S.projects.filter(p=>p.pm);if(!ps.length)return"";
   return `<section class="section"><h2>Project management (agents)</h2><p class="small" style="margin-top:4px">10% of vendor totals with a $500 minimum, due upfront. If final vendor costs run more than $1,000 over the quotes, the fee adjusts.</p>
     <div class="tablewrap"><table><thead><tr><th>Project</th><th>Quoted vendors</th><th>Upfront fee</th><th>Final vendors</th><th>Adjustment</th><th>Status</th></tr></thead><tbody>${ps.map(p=>{
       const team=(p.categories||[]).map(c=>teamBid(p.id,c)).filter(Boolean),quoted=team.reduce((a,b)=>a+(b.amount||0),0),final=team.reduce((a,b)=>a+(b.finalAmount!=null?b.finalAmount:b.amount||0),0);
@@ -1674,12 +1677,12 @@ function dashView(){
       {key:"active",label:"Active projects",list:active,render:l=>projTable(l,"openmatch")},
       {key:"waiting",label:"Waiting on vendors",list:S.bids.filter(b=>["requested","changes","chosen"].includes(b.status)&&live(b)),render:l=>bidTable(l,"orbyt"),empty:"No vendors owe you a bid right now."},
       {key:"review",label:"Bids to review",list:S.bids.filter(b=>b.status==="submitted"&&live(b)),render:l=>bidTable(l,"orbyt"),empty:"No bids waiting on a decision."},
-      {key:"managing",label:"You're managing",list:pm,render:l=>projTable(l,"openmatch"),empty:"No active projects with project management."}]);
+      ...(PM_ON?[{key:"managing",label:"You're managing",list:pm,render:l=>projTable(l,"openmatch"),empty:"No active projects with project management."}]:[])]);
     main+=`<section class="section"><div class="sechead"><div><h2>Needs matching</h2><span class="small">${matchMode()==="hand"?"You pick every introduction.":"Automatic matching is on. These still need a hand."}</span></div>
       ${S.canWrite&&S.openForm!=="import"?`<button class="btn ghost sm" data-act="form" data-key="import">Import website requests</button>`:""}</div>
       ${S.openForm==="import"?importPanel():""}
       ${needs.length?`<div class="needgrid">${needs.map(needCard).join("")}</div>`:`<p class="small">You're all caught up. New requests from agents show up here.</p>`}</section>`;
-    main+=`<section class="section"><div class="sechead"><h2>Projects you're managing</h2><span class="small">Project management, 10% of vendor totals, $500 minimum</span></div>
+    if(PM_ON)main+=`<section class="section"><div class="sechead"><h2>Projects you're managing</h2><span class="small">Project management, 10% of vendor totals, $500 minimum</span></div>
       ${pm.length?`<div class="pmgrid">${pm.map(pmCard).join("")}</div>`:`<p class="small">No active projects with project management. Turn it on from a project in the Matching tab.</p>`}</section>`;
     main+=`<section class="section"><div class="sechead"><div><h2>All projects</h2><span class="small">${active.length} active${listed.length?", "+listed.length+" listed":""}</span></div>
       <button class="btn ghost sm" data-act="tab" data-tab="pipeline">Open the pipeline</button></div>
@@ -1760,12 +1763,12 @@ function importPanel(){
     <p class="small" style="margin:0">In Wix, open Forms and Submissions for the agent form, export it as a CSV, and choose the file here. Each row becomes a project in Needs matching. Rows already in the desk are skipped.</p>
     <label class="field"><span>Form submissions (CSV)</span><input type="file" id="imp-file" accept=".csv,text/csv"></label>
     ${S.importMsg?`<p class="small warntext" style="margin:0">${esc(S.importMsg)}</p>`:""}
-    ${rows.length?`<div class="tablewrap"><table><thead><tr><th></th><th>Agent</th><th>Property</th><th>Target date</th><th>Services</th><th>Project management</th><th>Status</th></tr></thead><tbody>${rows.map((r,i)=>`<tr>
+    ${rows.length?`<div class="tablewrap"><table><thead><tr><th></th><th>Agent</th><th>Property</th><th>Target date</th><th>Services</th>${PM_ON?"<th>Project management</th>":""}<th>Status</th></tr></thead><tbody>${rows.map((r,i)=>`<tr>
       <td><input type="checkbox" id="imp-r-${i}" data-imp="${i}" aria-label="Import row ${i+1}" ${r.sel?"checked":""} ${r.ok&&!r.dup?"":"disabled"}></td>
       <td><span class="strong">${esc(r.m.agent||"Missing name")}</span><div class="small">${esc([r.m.brokerage,r.m.agentPhone].filter(Boolean).join(" · "))}</div></td>
       <td>${esc(r.m.address||"No address")}<div class="small">${esc(r.m.area||"Area not found")} · ${r.m.clientType==="Buyer"?"Buyer move-in":r.m.clientType==="Both"?"Listing and buyer":"Listing"}</div></td>
       <td class="num">${r.m.targetDate?fmtDate(r.m.targetDate):"–"}</td><td class="small" style="max-width:220px">${esc(r.m.categories.join(", ")||"None picked")}</td>
-      <td class="small">${r.m.pmInterest?esc({yes:"Yes",maybe:"Maybe",no:"Not right now"}[r.m.pmInterest]):"–"}</td>
+      ${PM_ON?`<td class="small">${r.m.pmInterest?esc({yes:"Yes",maybe:"Maybe",no:"Not right now"}[r.m.pmInterest]):"–"}</td>`:""}
       <td class="small">${r.dup?"Already in the desk":!r.ok?"Missing name, address or services":"New"}</td></tr>`).join("")}</tbody></table></div>`:""}
     <div class="actions">${rows.length?`<button class="btn" type="button" data-act="doimport" ${n?"":"disabled"}>Import ${n} ${n===1?"request":"requests"}</button>`:""}<button class="btn ghost" type="button" data-act="cancelimport">Close</button></div></div>`;
 }
@@ -1785,7 +1788,7 @@ function pipeStage(p){const c=p.categories||[];if(p.completed)return"done";
 const SVCLBL=["Not matched","Waiting on bids","Bids in","Picked","Booked","Done"];
 function pipeCard(p){
   const d=daysTo(p.targetDate),late=!p.listed&&d!==null&&d<=DATE_WINDOW,val=bidsFor(p.id).filter(b=>ONTEAM.includes(b.status)).reduce((t,b)=>t+bidVal(b),0);
-  return `<button class="pcard" data-act="openmatch" data-id="${esc(p.id)}"><div class="row"><span class="strong">${esc(p.address)}</span>${p.pm?'<span class="pill comparing">PM</span>':""}</div>
+  return `<button class="pcard" data-act="openmatch" data-id="${esc(p.id)}"><div class="row"><span class="strong">${esc(p.address)}</span>${PM_ON&&p.pm?'<span class="pill comparing">PM</span>':""}</div>
     <div class="small">${esc(p.agent)}${client(p)?" · "+esc(client(p)):""}</div>
     <div class="small ${late?"warntext":""}">${esc(listWhen(p))}${p.clientType==="Buyer"?" · buyer":""}</div>
     <div class="svcchips">${(p.categories||[]).map(c=>{const st=svcStage(p,c);return `<span class="chip s${st}" title="${esc(c)}: ${SVCLBL[st]}">${esc(c)}</span>`}).join("")}</div>
@@ -1813,7 +1816,7 @@ function pipelineView(){
 function needCard(p){
   return `<div class="needcard"><div class="row"><button class="addrbtn" data-act="openmatch" data-id="${esc(p.id)}">${esc(p.address)}</button><span class="small num">${esc(listWhen(p))}</span></div>
     <div class="small">${esc(p.agent)} · ${esc(ctLabel(p))} ${esc(client(p))}${p.budget?" · "+BUDGETS[p.budget]:""}${p.source?" · "+esc(p.source):""}</div>
-    ${!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<div class="small warntext">${esc(PMI[p.pmInterest])}</div>`:""}
+    ${PM_ON&&!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<div class="small warntext">${esc(PMI[p.pmInterest])}</div>`:""}
     <ul class="needlist">${needsCats(p).map(c=>{const r=openOptReq(p,c);const v=r&&r.vendorId&&vendorById(r.vendorId);
       return `<li><span class="strong">${esc(c)}</span> <span class="small">${r?`${esc(firstName(r.by||p.agent))} asked for another option${v?", suggested "+esc(v.name):""}`:(p.addedServices||{})[c]?`Added ${(p.addedServices[c].by==="Ashleigh"?"by you":"by "+esc(firstName(p.addedServices[c].by)))} ${ago(p.addedServices[c].at)}`:"No one introduced yet"}</span></li>`}).join("")}</ul>
     ${S.canWrite?`<div><button class="btn sm" data-act="openmatch" data-id="${esc(p.id)}">Match now</button></div>`:""}</div>`;
@@ -1832,7 +1835,7 @@ function projOverview(p){
   const[st,cls]=projStatus(p);
   return `<article class="ov"><div class="ovhead"><div style="min-width:0"><button class="addrbtn" data-act="openmatch" data-id="${esc(p.id)}">${esc(p.address)}</button>
       <div class="small">${esc(p.agent)} · ${esc(ctLabel(p))} ${esc(client(p))} · ${esc(listWhen(p))}</div></div>
-      <div class="actions">${p.pm?'<span class="pill comparing">Managing</span>':""}<span class="pill ${cls}">${st}</span></div></div>
+      <div class="actions">${PM_ON&&p.pm?'<span class="pill comparing">Managing</span>':""}<span class="pill ${cls}">${st}</span></div></div>
     <div class="svc" role="table" aria-label="Bids for ${esc(p.address)}"><div class="svcrow svchead" role="row"><span role="columnheader">Service</span><span role="columnheader">Bids from</span><span role="columnheader">Booked</span></div>
     ${(p.categories||[]).map(c=>{const bs=bidsFor(p.id,c);const sel=teamBid(p.id,c);
       const got=bs.filter(b=>b.status!=="requested").sort((a,b)=>String(a.submittedAt||"").localeCompare(String(b.submittedAt||"")));const wait=bs.filter(b=>b.status==="requested");
@@ -1895,10 +1898,10 @@ function myTasksView(){
       <div><div class="tt">${esc(t.title)}</div><div class="tm">${p?`<button class="linkbtn" data-act="openmatch" data-id="${esc(p.id)}">${esc(p.address)}</button>`:""}${p&&t.due?" · ":""}${t.due?`<span class="${!t.done&&d!==null&&d<=0?"warntext":""}">${d<0?"Overdue, was due "+fmtDate(t.due):d===0?"Due today":"Due "+fmtDate(t.due)}</span>`:""}</div></div>
       <div class="ta">${t.done&&S.canWrite?`<button class="linkbtn" data-act="myremove" data-id="${esc(t.id)}">Remove</button>`:""}</div></div>`};
   return `<section class="mytasks"><h2>My tasks</h2>
-    ${S.canWrite&&!S.dbMissing?`<form class="addtask" data-form="mytask"><label class="field"><span>New task</span><input type="text" id="mt-title" name="title" required placeholder="Send fixture options to the Lindqvists"></label>
+    ${S.canWrite&&!S.dbMissing?`<form class="addtask" data-form="mytask"><label class="field"><span>New task</span><input type="text" id="mt-title" name="title" required placeholder="Follow up with the Lindqvists' stager"></label>
       <div class="addrow"><label class="field"><span>Project</span><select id="mt-proj" name="projectId"><option value="">None</option>${active.map(p=>`<option value="${esc(p.id)}">${esc(p.address)}</option>`).join("")}</select></label>
       <label class="field"><span>Due</span><input type="date" id="mt-due" name="due"></label></div><button class="btn sm" type="submit">Add task</button></form>`:""}
-    ${open.length?`<div class="tasks">${open.map(row).join("")}</div>`:`<p class="small">Nothing on your list. Add a task above for follow-ups, fixture picks or walkthroughs.</p>`}
+    ${open.length?`<div class="tasks">${open.map(row).join("")}</div>`:`<p class="small">Nothing on your list. Add a task above for follow-ups, calls or walkthroughs.</p>`}
     ${done.length?`<div class="donehead"><h3>Done <span class="small num">(${done.length})</span></h3><button class="linkbtn" data-act="togglemydone">${S.showMyDone?"Hide":"Show"}</button></div>${S.showMyDone?`<div class="tasks">${done.map(row).join("")}</div>`:""}`:""}</section>`;
 }
 
@@ -1988,7 +1991,7 @@ function projectDetail(p,mode){
     <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>
     <div class="facts"><span>Agent <b>${esc(p.agent||"Not set")}</b></span><span>${esc(ctLabel(p))} <b>${esc(client(p)||"Not set")}</b></span>
       ${isOrbyt&&S.canWrite?`<label class="inlinesel"><span>Budget</span><select id="pb-${esc(p.id)}" data-budget="${esc(p.id)}"><option value="">Not sure</option>${TIERS.map(t=>`<option value="${t}" ${p.budget===t?"selected":""}>${BUDGETS[t]}</option>`).join("")}</select></label>`:p.budget?`<span>Budget <b>${BUDGETS[p.budget]}</b></span>`:""}
-      <span class="pill ${cls}">${st}</span>${isOrbyt&&!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<span class="pill comparing">${esc(PMI[p.pmInterest])}</span>`:""}</div>
+      <span class="pill ${cls}">${st}</span>${PM_ON&&isOrbyt&&!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<span class="pill comparing">${esc(PMI[p.pmInterest])}</span>`:""}</div>
       ${isOrbyt&&p.brokerage?`<div class="small" style="margin-top:4px">${esc(p.brokerage)}${p.agentPhone?" · "+esc(p.agentPhone):""}${p.agentEmail?" · "+esc(p.agentEmail):""}</div>`:""}</div>
     <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>`;
   if(p.notes)h+=`<p class="note">${esc(p.notes)}</p>`;
@@ -2035,15 +2038,15 @@ function projectDetail(p,mode){
   if(picks.length){const total=picks.reduce((s,[,b])=>s+(b.amount||0),0);
     h+=`<div class="team"><div class="eyebrow">Who's booked</div><ul>${picks.map(([c,b])=>`<li><span>${esc(c)}: ${vLink(b)}${b.status==="chosen"?' <span class="small">(waiting to confirm)</span>':""}</span><span class="num">${money(b.amount)}</span></li>`).join("")}
       <li class="total"><span>Vendor total, ${picks.filter(([,b])=>b.status==="selected").length} of ${(p.categories||[]).length} booked</span><span class="num">${money(total)}</span></li>
-      ${isOrbyt&&p.pm?`<li><span>Project management (10%, $500 minimum)</span><span class="num">${money(Math.max(500,total*.1))}</span></li>`:""}</ul></div>`}
+      ${PM_ON&&isOrbyt&&p.pm?`<li><span>Project management (10%, $500 minimum)</span><span class="num">${money(Math.max(500,total*.1))}</span></li>`:""}</ul></div>`}
   if(S.canWrite)h+=`<div class="actions" style="margin-top:18px"><button class="btn ghost sm" data-act="listed" data-id="${esc(p.id)}" data-v="${p.listed?0:1}">${p.listed?"Move back to active":"Mark as listed"}</button>
     ${isOrbyt?`<button class="btn ghost sm" data-act="complete" data-id="${esc(p.id)}" data-v="${p.completed?0:1}">${p.completed?"Reopen project":"Mark completed"}</button>`:""}
     ${!p.listed&&S.openForm!=="addsvc:"+p.id?`<button class="btn ghost sm" data-act="form" data-key="addsvc:${esc(p.id)}">Add a service</button>`:""}
-    ${isOrbyt?`<button class="btn ghost sm" data-act="pm" data-id="${esc(p.id)}">${p.pm?"Remove project management":"Add project management"}</button>`:""}</div>`;
+    ${PM_ON&&isOrbyt?`<button class="btn ghost sm" data-act="pm" data-id="${esc(p.id)}">${p.pm?"Remove project management":"Add project management"}</button>`:""}</div>`;
   if(S.openForm==="addsvc:"+p.id)h+=addServiceForm(p,isOrbyt);
   if(isOrbyt&&S.canWrite){const hrs=S.timelog.filter(e=>e.projectId===p.id).reduce((t,e)=>t+(+e.hours||0),0);
     h+=S.openForm==="logtime:"+p.id?`<form class="form" data-form="timelog" data-p="${esc(p.id)}"><div class="grid"><label class="field"><span>Hours on this project</span><input type="number" id="pl-h-${esc(p.id)}" name="hours" min="0.25" step="0.25" required></label>
-      <label class="field"><span>What for?</span><input type="text" id="pl-n-${esc(p.id)}" name="note" placeholder="Fixture shopping, walkthrough"></label></div><input type="hidden" name="date" value="${isoDay(new Date())}"><label class="field" style="max-width:260px"><span>Type</span><select id="pl-t-${esc(p.id)}" name="type">${LOGTYPES.map(([v,l])=>`<option value="${v}" ${(p.pm?"pm":"matching")===v?"selected":""}>${l}</option>`).join("")}</select></label><input type="hidden" name="projectId" value="${esc(p.id)}">
+      <label class="field"><span>What for?</span><input type="text" id="pl-n-${esc(p.id)}" name="note" placeholder="Vendor calls, walkthrough"></label></div><input type="hidden" name="date" value="${isoDay(new Date())}"><label class="field" style="max-width:260px"><span>Type</span><select id="pl-t-${esc(p.id)}" name="type">${LOGTYPES.map(([v,l])=>`<option value="${v}" ${(p.pm?"pm":"matching")===v?"selected":""}>${l}</option>`).join("")}</select></label><input type="hidden" name="projectId" value="${esc(p.id)}">
       <div class="actions"><button class="btn sm" type="submit">Log time</button><button class="btn ghost sm" type="button" data-act="cancel">Cancel</button></div></form>`
       :`<p class="small" style="margin:10px 0 0">${hrs?`You've logged ${hrs} ${hrs===1?"hour":"hours"} here. `:""}${S.config.timer&&S.config.timer.projectId===p.id?`Timer running.`:`<button class="linkbtn" data-act="starttimer" data-id="${esc(p.id)}" data-type="${p.pm?"pm":"matching"}">Start a timer</button> or `}<button class="linkbtn" data-act="form" data-key="logtime:${esc(p.id)}">log time by hand</button></p>`}
   return h+`</article>`;
@@ -2146,7 +2149,7 @@ function newProjectForm(agent){
     <div class="field"><span>Services needed</span><div class="checks">${CATS.map((c,i)=>`<label><input type="checkbox" id="np-cat-${i}" name="cat" value="${c}">${c}</label>`).join("")}</div>
       <div><button class="linkbtn" type="button" data-act="fullprep">Full-service listing prep (checks staging, cleaning, photography, landscaping and painting)</button></div></div>
     <div class="grid"><label class="field"><span>Something else? Separate with commas</span><input type="text" id="np-other" name="otherCats" placeholder="Junk removal, pressure washing"></label>
-    <label class="field"><span>Interested in project management?</span><select id="np-pmi" name="pmInterest"><option value="" selected disabled hidden>Choose one</option><option value="yes">Yes</option><option value="maybe">Maybe, tell me more</option><option value="no">Not right now</option></select></label></div>
+    ${PM_ON?`<label class="field"><span>Interested in project management?</span><select id="np-pmi" name="pmInterest"><option value="" selected disabled hidden>Choose one</option><option value="yes">Yes</option><option value="maybe">Maybe, tell me more</option><option value="no">Not right now</option></select></label>`:""}</div>
     <label class="field"><span>Anything I should know? Vendors see this too</span><textarea id="np-notes" name="notes" placeholder="Gate code, pets, what your client cares about most"></textarea></label>
     ${teamCheckboxForNew(agent)}
     <div class="actions"><button class="btn" type="submit">Save project</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></form>`;

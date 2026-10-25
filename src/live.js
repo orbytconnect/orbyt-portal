@@ -320,9 +320,8 @@ function signupView(m){
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone"></label>
         ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage"></label>`:`<label class="field"><span>Website</span><input type="text" id="su-web" name="web"></label>`}</div>
-      ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}</div>
-        <label class="field"><span>Other services (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" list="su-moresvc" placeholder="Pressure washing, junk removal, roof repair"></label>
-        <datalist id="su-moresvc">${MORE_SERVICES.map(x=>`<option value="${esc(x)}">`).join("")}</datalist>`:""}
+      ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}${moreChecks("svc","su-ms")}</div>
+        <label class="field"><span>Anything else? (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything not listed above"></label>`:""}
       <div class="field"><span>${m==="agent"?"Where do you list homes?":"Where do you work?"}</span>${ck("area",AREAS)}</div>
       ${m==="vendor"?`<div class="grid">${sel("years","Years in business",YEARS)}${sel("team","Team size",TEAM)}${sel("lead","Typical lead time",LEAD)}</div>
         <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="su-refs" name="references"></textarea></label>

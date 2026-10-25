@@ -343,7 +343,8 @@ table.mini{min-width:0}
 .sn{width:24px;height:24px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:12px;color:var(--muted)}
 .seq li.mine .sn{border-color:var(--gold);color:var(--ink);font-weight:500}
 .timingwrap{margin:12px 0 4px;border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;background:var(--surface-2)}
-.timingwrap summary{cursor:pointer;font-weight:500}.timingwrap[open] summary{margin-bottom:8px}
+.timingwrap summary{cursor:pointer;font-weight:500}
+.orow .orowin{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between}.ordbtns{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.orow.joined{border-top:0;padding-top:0}.orow.joined .sn{border-style:dashed}.timingwrap[open] summary{margin-bottom:8px}
 .whoname{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25}
 .protobar{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;justify-content:space-between;margin-top:14px;padding:8px 14px;border:1px dashed var(--line);border-radius:8px;font-size:14px;color:var(--ink-2);background:var(--surface-2)}
 .auth{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;margin-top:28px;align-items:start}
@@ -490,10 +491,40 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 
 <script>
 /* typical order of work before a listing (or a buyer move-in); lower goes first */
-const SEQ={"General contractor / remodeling":1,"Plumbing":2,"Electric":2,"HVAC":2,"Handyman":3,"Painting":4,"Landscaping":5,"Pool services":5,"Window cleaning":6,"Cleaning":7,"Staging":8,"Photography":9};
-const seqOf=(p,c)=>c==="Moving"?(p.clientType==="Buyer"?10:0):(SEQ[c]??5);
+const SEQ={"General contractor / remodeling":1,"Plumbing":2,"Electric":2,"HVAC":2,"Handyman":3,"Painting":4,"Landscaping":5,"Pool services":5,"Window cleaning":6,"Cleaning":7,"Staging":8,"Photography":9,
+  "Home inspection":0,"Junk removal":0,"Organizing":0,"Roofing":1,"Flooring":2,"Drywall":2,"Concrete":2,"Pest control":3,"Appliance repair":3,"Garage doors":3,"Fencing":5,"Tree service":5,"Pressure washing":5,
+  "Gutter cleaning":6,"Solar panel cleaning":6,"Carpet cleaning":7,"Furniture rental":8,"Signage":9};
+const seqOf=(p,c)=>{if(c==="Moving")return p.clientType==="Buyer"?10:0;if(SEQ[c]!==undefined)return SEQ[c];const k=Object.keys(SEQ).find(x=>x.toLowerCase()===String(c).toLowerCase());return k?SEQ[k]:5};
 const capF=t=>t.charAt(0).toUpperCase()+t.slice(1);
-function seqSteps(p){const g={};for(const c of p.categories||[]){const k=seqOf(p,c);(g[k]=g[k]||[]).push(c)}return Object.keys(g).map(Number).sort((a,b)=>a-b).map(k=>g[k])}
+function typicalSteps(p){const g={};for(const c of p.categories||[]){const k=seqOf(p,c);(g[k]=g[k]||[]).push(c)}return Object.keys(g).map(Number).sort((a,b)=>a-b).map(k=>g[k])}
+const hasCustomOrder=p=>Array.isArray(p.workOrder)&&p.workOrder.length>0;
+function seqSteps(p){
+  if(!hasCustomOrder(p))return typicalSteps(p);
+  const cats=p.categories||[],steps=p.workOrder.map(g=>(g||[]).filter(c=>cats.includes(c))).filter(g=>g.length),placed=new Set(steps.flat());
+  for(const c of cats.filter(c=>!placed.has(c))){const r=seqOf(p,c),i=steps.findIndex(g=>Math.min(...g.map(x=>seqOf(p,x)))>r);i<0?steps.push([c]):steps.splice(i,0,[c])}
+  return steps;
+}
+const canReorder=p=>S.canWrite&&(kind()==="orbyt"||(kind()==="agent"&&isOnProject(p,roleVal())));
+function orderEditor(p){
+  const d=S.orderDraft=S.orderDraft&&S.orderDraft.pid===p.id?S.orderDraft:{pid:p.id,items:seqSteps(p).flatMap(g=>g.map((c,j)=>({c,withPrev:j>0})))};
+  return `<div class="ordered"><p class="small" style="margin:0 0 8px">Move services up or down. Check "Same time as above" for work that can happen alongside the step before it. Vendors on this home see the order you set.</p>
+    <ol class="seq">${d.items.map((x,i)=>`<li class="orow ${x.withPrev?"joined":""}"><span class="sn num">${i===0||!x.withPrev?d.items.slice(0,i+1).filter(y=>!y.withPrev||y===d.items[0]).length:"+"}</span>
+      <div class="orowin"><span class="strong">${esc(x.c)}</span>
+        <span class="ordbtns">${i>0?`<label class="inlinecheck small"><input type="checkbox" id="ord-w-${i}" data-ordwith="${i}" ${x.withPrev?"checked":""}> Same time as above</label>`:""}
+          <button class="btn ghost sm" type="button" data-act="ordmove" data-i="${i}" data-d="-1" ${i===0?"disabled":""} aria-label="Move ${esc(x.c)} earlier">↑</button>
+          <button class="btn ghost sm" type="button" data-act="ordmove" data-i="${i}" data-d="1" ${i===d.items.length-1?"disabled":""} aria-label="Move ${esc(x.c)} later">↓</button></span></div></li>`).join("")}</ol>
+    <div class="actions"><button class="btn sm" type="button" data-act="ordsave" data-id="${esc(p.id)}">Save order</button><button class="btn ghost sm" type="button" data-act="ordcancel">Cancel</button>
+      ${hasCustomOrder(p)?`<button class="linkbtn" type="button" data-act="ordreset" data-id="${esc(p.id)}">Go back to the typical order</button>`:""}</div></div>`;
+}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;const a=t.dataset.act;
+  if(a==="ordedit"){S.orderDraft=null;S.openForm="order:"+t.dataset.id;S.openTiming=t.dataset.id;render()}
+  else if(a==="ordcancel"){S.orderDraft=null;S.openForm=null;render()}
+  else if(a==="ordmove"&&S.orderDraft){const it=S.orderDraft.items,i=+t.dataset.i,j=i+(+t.dataset.d);if(j<0||j>=it.length)return;[it[i],it[j]]=[it[j],it[i]];it[i].withPrev=false;it[j].withPrev=false;it[0].withPrev=false;render()}
+  else if(a==="ordsave"&&S.orderDraft){const g=[];for(const x of S.orderDraft.items){if(x.withPrev&&g.length)g[g.length-1].push(x.c);else g.push([x.c])}
+    const pid=t.dataset.id;S.orderDraft=null;S.openForm=null;guard(()=>col("projects").doc(pid).update({workOrder:g}),"Order saved. Vendors on this home see it too.")}
+  else if(a==="ordreset"){const pid=t.dataset.id;S.orderDraft=null;S.openForm=null;guard(()=>col("projects").doc(pid).update({workOrder:null}),"Back to the typical order")}});
+document.addEventListener("change",e=>{const el=e.target;if(el.dataset&&el.dataset.ordwith!==undefined&&S.orderDraft){const x=S.orderDraft.items[+el.dataset.ordwith];if(x){x.withPrev=el.checked;render()}}});
+document.addEventListener("toggle",e=>{const d=e.target;if(d.classList&&d.classList.contains("timingwrap")&&d.dataset.p)S.openTiming=d.open?d.dataset.p:(S.openTiming===d.dataset.p?null:S.openTiming)},true);
 function timingBlock(p,mine){
   const steps=seqSteps(p);if(!steps.length)return"";const buyer=p.clientType==="Buyer",d=daysTo(p.targetDate);
   const st=c=>{if(c===mine)return"";const t=teamBid(p.id,c);if(!t)return`<span class="small">Not booked yet</span>`;
@@ -501,7 +532,7 @@ function timingBlock(p,mine){
   const myIdx=mine?steps.findIndex(g=>g.includes(mine)):-1;
   return `<div class="timing"><ol class="seq">${steps.map((g,i)=>`<li class="${g.includes(mine)?"mine":""}"><span class="sn num">${i+1}</span><div>${g.map(c=>`<div><span class="${c===mine?"strong":""}">${esc(c)}${c===mine?" · you":""}</span> ${st(c)}</div>`).join("")}${g.length>1?`<div class="small">These can usually happen around the same time.</div>`:""}</div></li>`).join("")}</ol>
     ${mine?`<p class="paynote" style="margin:10px 0 0"><b>Plan around the other work.</b> ${steps.length>1?`${myIdx>0?`On most homes, ${esc(steps.slice(0,myIdx).flat().join(", ").toLowerCase())} ${steps.slice(0,myIdx).flat().length===1?"happens":"happen"} before you.`:""} ${myIdx<steps.length-1?`${esc(capF(steps.slice(myIdx+1).flat().join(", ").toLowerCase()))} ${steps.slice(myIdx+1).flat().length===1?"comes":"come"} after, so leave room for ${steps.slice(myIdx+1).flat().length===1?"it":"them"}.`:"Yours is usually the last step, so the home should be ready for you."} `:""}This is the typical order, and ${esc(firstName(p.agent))} sets the final schedule, so confirm your dates with them before you start.${p.targetDate&&!p.listed?` Everything needs to wrap before ${buyer?"move-in":"the list date"} on ${esc(fmtDate(p.targetDate))}${d!==null&&d>=0?` (${d} ${d===1?"day":"days"} away)`:""}.`:""}</p>`
-    :`<p class="small" style="margin:8px 0 0">Typical order for this home. Book the early steps first so later vendors aren't waiting${p.targetDate&&!p.listed?`, and keep everything ahead of ${esc(fmtDate(p.targetDate))}`:""}.</p>`}</div>`;
+    :`<p class="small" style="margin:8px 0 0">${hasCustomOrder(p)?"Order set for this home.":"Typical order for this home."} Book the early steps first so later vendors aren't waiting${p.targetDate&&!p.listed?`, and keep everything ahead of ${esc(fmtDate(p.targetDate))}`:""}.</p>`}</div>`;
 }
 const CATS=["Staging","Cleaning","Photography","Landscaping","Painting","Handyman","General contractor / remodeling","Plumbing","Electric","HVAC","Window cleaning","Pool services","Moving"];
 // common extras vendors offer beyond the core categories (suggestions only; anything can be typed)
@@ -1063,7 +1094,7 @@ function requestDetail(b){
     <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>
     ${p.notes||(p.addedServices||{})[b.category]?.note?`<div class="reqsec"><h3>Notes from the agent</h3>${p.notes?`<p class="note" style="margin-top:8px">${esc(p.notes)}</p>`:""}${(p.addedServices||{})[b.category]?.note?`<p class="note" style="margin-top:8px"><span class="strong">About ${esc(b.category.toLowerCase())}:</span> ${esc(p.addedServices[b.category].note)}</p>`:""}</div>`:""}
     <div class="rgrid"><div class="reqsec"><h3>Timing on this home</h3>
-        <p class="small" style="margin:4px 0 8px">Here's everything ${esc(firstName(p.agent))} needs done, in the usual order. You'll only see your own bid, not the other vendors' names or prices.</p>${timingBlock(p,b.category)}</div>
+        <p class="small" style="margin:4px 0 8px">Here's everything ${esc(firstName(p.agent))} needs done, ${hasCustomOrder(p)?"in the order "+esc(firstName(p.agent))+" set":"in the usual order"}. You'll only see your own bid, not the other vendors' names or prices.</p>${timingBlock(p,b.category)}</div>
       <div class="reqsec"><h3>Agent</h3><div class="strong" style="margin:8px 0">${esc(p.agent)}</div><div class="clines">${cl("Phone",p.agentPhone)}${cl("Email",p.agentEmail)}</div>
         ${!p.agentPhone&&!p.agentEmail?`<p class="small" style="margin:0">This agent's contact info isn't on file yet. Ashleigh can connect you.</p>`:""}
         ${(p.members||[]).length?`<div class="small" style="margin-top:8px"><span class="strong">Shared with:</span> ${(p.members||[]).map(m=>esc(m.name)+" ("+esc(m.role)+(m.email?", "+esc(m.email):"")+")").join("; ")}</div>`:""}</div></div>
@@ -1996,7 +2027,7 @@ function projectDetail(p,mode){
     <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>`;
   if(p.notes)h+=`<p class="note">${esc(p.notes)}</p>`;
   if(mode!=="vendor")h+=teamPanel(p,isOrbyt);
-  if((p.categories||[]).length>1&&!p.listed)h+=`<details class="timingwrap"><summary>Order of work <span class="small">· ${seqSteps(p).map(g=>esc(g.join(" + "))).join(" → ")}</span></summary>${timingBlock(p,null)}</details>`;
+  if((p.categories||[]).length>1&&!p.listed)h+=`<details class="timingwrap" data-p="${esc(p.id)}" ${S.openTiming===p.id?"open":""}><summary>Order of work <span class="small">· ${seqSteps(p).map(g=>esc(g.join(" + "))).join(" → ")}</span></summary>${S.openForm==="order:"+p.id?orderEditor(p):timingBlock(p,null)+(canReorder(p)?`<div class="actions" style="margin-top:8px"><button class="btn ghost sm" data-act="ordedit" data-id="${esc(p.id)}">Change the order</button></div>`:"")}</details>`;
   for(const c of p.categories||[]){
     const bids=bidsFor(p.id,c).sort((a,b)=>(a.status==="requested")-(b.status==="requested")||String(a.submittedAt||"").localeCompare(String(b.submittedAt||"")));
     const priced=bids.filter(b=>b.amount&&b.status!=="requested");

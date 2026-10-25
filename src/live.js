@@ -43,7 +43,7 @@ function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D
   return(D.projects||[]).map(p=>{const pp=PP[p.id]||{},pa=PA[p.id]||{};
     return{id:p.id,agent:p.agent_name,agentId:p.agent_id,agentEmail:p.agent_email||"",agentPhone:p.agent_phone||"",brokerage:p.brokerage||"",
       address:p.address,area:normArea(p.area||""),clientType:p.client_type,targetDate:p.target_date||"",categories:p.categories||[],notes:p.notes||"",
-      addedServices:p.added_services||{},listed:!!p.listed,listedAt:p.listed_at,source:p.source||"",createdBy:p.created_by||"",createdAt:p.created_at,
+      addedServices:p.added_services||{},listed:!!p.listed,listedAt:p.listed_at,workOrder:p.work_order||null,source:p.source||"",createdBy:p.created_by||"",createdAt:p.created_at,
       client:pp.client_name||"",budget:pp.budget||"",pmInterest:pp.pm_interest||"",optionRequests:pp.option_requests||{},
       pm:!!pa.pm,pmInvoice:pa.pm_invoice||null,completed:!!pa.completed,completedAt:pa.completed_at,
       members:(D.project_members||[]).filter(m=>m.project_id===p.id).sort((a,b)=>String(a.added_at).localeCompare(String(b.added_at)))
@@ -128,7 +128,7 @@ const VENDOR_MAP={name:"name",contactName:"contact_name",email:"email",phone:"ph
 const VADMIN_MAP={approved:"approved",featured:"featured",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
 const VPRIV_MAP={pricing:"pricing",references:"references_text",heard:"heard_about",signupNotes:"signup_notes",promoInterest:"promo_interest",coiUrl:"coi_url"};
 const PROJ_MAP={agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
-  targetDate:"target_date",categories:"categories",notes:"notes",addedServices:"added_services",listed:"listed",listedAt:"listed_at",source:"source",createdBy:"created_by"};
+  targetDate:"target_date",categories:"categories",notes:"notes",addedServices:"added_services",listed:"listed",listedAt:"listed_at",workOrder:"work_order",source:"source",createdBy:"created_by"};
 const PPRIV_MAP={client:"client_name",budget:"budget",pmInterest:"pm_interest",optionRequests:"option_requests"};
 const PADMIN_MAP={pm:"pm",pmInvoice:"pm_invoice",completed:"completed",completedAt:"completed_at"};
 const stripStore=p=>String(p||"").replace(/^[a-z-]+:/,"");

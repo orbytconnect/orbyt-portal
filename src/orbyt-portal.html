@@ -270,6 +270,7 @@ form.inline input{width:110px;padding:6px 8px}
 .cand{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .cand.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .pickrow{display:flex;gap:10px;align-items:center;cursor:pointer}
+.candhead{display:flex;justify-content:space-between;align-items:center;gap:8px}.candhead .linkbtn{flex:none;font-size:13px}
 .pickrow input,.availrow input{width:18px;height:18px;margin:0;accent-color:var(--teal-text);flex:none}
 .availrow{display:flex;gap:8px;align-items:center;font-size:14px;cursor:pointer;color:var(--ink-2)}
 .cand .pills{display:flex;flex-wrap:wrap;gap:4px}
@@ -1990,8 +1991,8 @@ function pickForm(p,c,bids){
   if(!S.canWrite)return"";
   const key=p.id+"|"+c,d=S.pick[key]||{extra:[],vals:{}},ib=(p.id+c).replace(/[^a-z0-9]/gi,"");
   const intro=new Set(bids.filter(b=>b.vendorId).map(b=>b.vendorId));
-  const req=openOptReq(p,c);const ms=matchesFor(p,c,[...intro],3);const why=Object.fromEntries(ms.map(m=>[m.v.id,m.why]));
-  const ids=[];const add=id=>{if(id&&!intro.has(id)&&!ids.includes(id)&&vendorById(id))ids.push(id)};
+  const hid=new Set(d.hidden||[]);const req=openOptReq(p,c);const ms=matchesFor(p,c,[...intro,...hid],3);const why=Object.fromEntries(ms.map(m=>[m.v.id,m.why]));
+  const ids=[];const add=id=>{if(id&&!intro.has(id)&&!hid.has(id)&&!ids.includes(id)&&vendorById(id))ids.push(id)};
   if(req)add(req.vendorId);ms.forEach(m=>add(m.v.id));(d.extra||[]).forEach(add);
   const rest=S.vendors.filter(v=>v.approved!==false&&!intro.has(v.id)&&!ids.includes(v.id)).sort((a,b)=>a.name.localeCompare(b.name));
   const same=rest.filter(v=>vsv(v).includes(c)),other=rest.filter(v=>!vsv(v).includes(c));
@@ -2000,7 +2001,8 @@ function pickForm(p,c,bids){
     const fav=p.agent&&favIds(p.agent).includes(id),sug=req&&req.vendorId===id;
     const mm=ms.find(m=>m.v.id===id)||matchesFor(p,vsv(v).includes(c)?c:vsv(v)[0],[],99).find(m=>m.v.id===id)||{why:[],warn:""};const w=mm.why;
     return `<div class="cand ${val("sel-"+id)?"on":""}">
-      <label class="pickrow"><input type="checkbox" data-pick data-vid="${esc(id)}" name="sel-${esc(id)}" id="pk-${ib}-${vk}" ${val("sel-"+id)?"checked":""}><span class="strong">${esc(v.name)}</span></label>
+      <div class="candhead"><label class="pickrow"><input type="checkbox" data-pick data-vid="${esc(id)}" name="sel-${esc(id)}" id="pk-${ib}-${vk}" ${val("sel-"+id)?"checked":""}><span class="strong">${esc(v.name)}</span></label>
+        <button class="linkbtn" type="button" data-act="unpick" data-key="${esc(key)}" data-id="${esc(id)}" aria-label="Remove ${esc(v.name)} from this list">Remove</button></div>
       <div class="pills">${sug?`<span class="pill fav">Suggested by ${esc(ag)}</span>`:fav?`<span class="pill fav">♥ ${esc(ag)}'s favorite</span>`:""}${v.featured?'<span class="pill featured">Featured</span>':""}${tierPill(st)||statedPill(v)}${!vsv(v).includes(c)?`<span class="pill">${esc(vsv(v).join(", "))}</span>`:""}</div>
       ${priceItems(v,c).length||vPricing(v).minimum?`<div class="small">${esc([priceItems(v,c).length?"Typical: "+priceItems(v,c).slice(0,2).map(priceItemText).join(" · "):"",minText(v)].filter(Boolean).join(" · "))}</div>`:""}
       ${w.length?`<ul class="why">${w.slice(0,4).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${mm.warn?`<div class="small warntext">${esc(mm.warn)}</div>`:""}
@@ -2289,10 +2291,14 @@ async function uploadPdf(fd){
 }
 const col=n=>S.db.collection(n);
 
+// take a vendor off the "Pick who to introduce" list (added by mistake, or not right for this home). They stay in the roster dropdown.
+document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest('[data-act="unpick"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  const id=t.dataset.id,d=S.pick[t.dataset.key]=S.pick[t.dataset.key]||{extra:[],vals:{}};
+  d.extra=(d.extra||[]).filter(x=>x!==id);d.hidden=[...new Set([...(d.hidden||[]),id])];for(const k of["sel-","avail-","note-"])delete (d.vals||{})[k+id];render()},true);
 function pickDraft(e,isChange){
   const pf=e.target.closest&&e.target.closest('form[data-form="introduce"]');if(!pf||!e.target.name)return false;
   const key=pf.dataset.p+"|"+pf.dataset.c,d=S.pick[key]=S.pick[key]||{extra:[],vals:{}};
-  if(e.target.name==="add"){if(isChange&&e.target.value){d.extra.push(e.target.value);render()}return true}
+  if(e.target.name==="add"){if(isChange&&e.target.value){d.extra.push(e.target.value);d.hidden=(d.hidden||[]).filter(x=>x!==e.target.value);render()}return true}
   d.vals[e.target.name]=e.target.type==="checkbox"?e.target.checked:e.target.value;
   if(e.target.dataset.pick!==undefined)e.target.closest(".cand")?.classList.toggle("on",e.target.checked);
   pf.dataset.dirty="1";return true;

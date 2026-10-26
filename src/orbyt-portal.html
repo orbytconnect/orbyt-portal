@@ -660,7 +660,7 @@ const minText=v=>vPricing(v).minimum?"Minimum "+vPricing(v).minimum:"";
 const priceItemText=x=>[x.what,[x.price,x.unit&&x.unit!=="per job"?x.unit:""].filter(Boolean).join(" ")].filter(Boolean).join(": ");
 const tierPill=st=>st&&st.tier?`<span class="pill price" title="Usually ${pctText(st.ratio)} on the same job">${TIER_LABEL[st.tier]}</span>`:"";
 function matchesFor(p,cat,exclude=[],n=3){
-  return S.vendors.filter(v=>v.approved!==false&&vsv(v).includes(cat)&&!exclude.includes(v.id)).map(v=>{
+  return S.vendors.filter(v=>v.approved!==false&&vsv(v).includes(cat)&&!exclude.includes(v.id)&&(typeof insOk!=="function"||insOk(v))).map(v=>{
     let score=0;const why=[],top=[];
     if((v.areas||[]).includes(p.area)){score+=3;why.push("Works in "+p.area)}
     if(v.available!==false){score+=2;why.push("Taking new work")}
@@ -1015,7 +1015,7 @@ function vendorView(){
     <div>${ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
   h+=vendorStats(v,mine);
-  h+=vendorPricingCard(v);
+  h+=(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
   h+=statStrip([
     {key:"requested",label:"Bids requested",list:req,render:l=>bidTable(l,"vendor"),empty:"No open requests right now."},
     {key:"overdue",label:"Overdue",list:req.filter(b=>b.status==="requested"&&ageDays(b.requestedAt)>=REMIND_DAYS),render:l=>bidTable(l,"vendor"),empty:"Nothing overdue. Nice work."},
@@ -1686,6 +1686,7 @@ function orbytAlerts(){
     meta:[(su.areas||[]).join(", "),su.email,ago(su.createdAt)].filter(Boolean).join(" · "),when:su.createdAt||"",act:{a:"approveagent",id:su.id,label:"Approve"},auto:su.status==="approved",autoLabel:"Approved"});
   for(const v of S.vendors.filter(v=>v.approved===false))A.push({id:"vrev-"+v.id,cls:"k-ink",label:"Vendor sign-up",title:`${v.name} wants to join (${vsv(v).join(", ")})`,
     meta:[v.areaNote||v.areas?.join(", "),v.source,v.createdAt?ago(v.createdAt):""].filter(Boolean).join(" · "),when:v.createdAt||"",act:{a:"vcard",id:v.id,label:"Review"},auto:false});
+  if(typeof insuranceAlerts==="function")A.push(...insuranceAlerts());
   return A;
 }
 function alertsView(){
@@ -2012,8 +2013,8 @@ function pickForm(p,c,bids){
     <div class="sechead" style="margin:0"><h3>${bids.length?"Introduce more vendors":"Pick who to introduce"}</h3><span class="small">${p.budget?"Budget: "+BUDGETS[p.budget]:"Set a budget above to factor in pricing"}</span></div>
     ${ids.length?`<div class="cands">${ids.map(cand).join("")}</div>`:`<p class="small" style="margin:0">No more ${esc(c.toLowerCase())} vendors to suggest. Add someone from the roster below.</p>`}
     <div class="pickfoot"><label class="field"><span>Add someone else from the roster</span><select name="add" id="pk-add-${ib}"><option value="">Choose a vendor</option>
-      ${same.length?`<optgroup label="${esc(c)}">${same.map(v=>`<option value="${esc(v.id)}">${esc(v.name)}</option>`).join("")}</optgroup>`:""}
-      ${other.length?`<optgroup label="Other services">${other.map(v=>`<option value="${esc(v.id)}">${esc(v.name)} (${esc(vsv(v).join(", "))})</option>`).join("")}</optgroup>`:""}</select></label>
+      ${same.length?`<optgroup label="${esc(c)}">${same.map(v=>`<option value="${esc(v.id)}" ${typeof insOk==="function"&&!insOk(v)?"disabled":""}>${esc(v.name)}${typeof insOk==="function"&&!insOk(v)?" (waiting on insurance)":""}</option>`).join("")}</optgroup>`:""}
+      ${other.length?`<optgroup label="Other services">${other.map(v=>`<option value="${esc(v.id)}" ${typeof insOk==="function"&&!insOk(v)?"disabled":""}>${esc(v.name)} (${esc(vsv(v).join(", "))})${typeof insOk==="function"&&!insOk(v)?" (waiting on insurance)":""}</option>`).join("")}</optgroup>`:""}</select></label>
       <button class="btn" type="submit">Introduce selected</button></div>
     <p class="small" style="margin:0">${esc(ag)} sees who you introduce and your notes. Each vendor gets a bid request labeled "Introduced by Ashleigh."</p></form>`;
 }

@@ -73,11 +73,13 @@ sub("""h+=protoBanner()+(k==="vendor"?vendorView():""", """h+=protoBanner()+(sho
 sub("""  if(S.quoteView&&S.session)h+=quoteViewer();""", """  if(S.quoteView&&S.session)h+=quoteViewer();
   else if(S.agreementView&&S.session)h+=agreementViewer();""")
 sub("""<button class="btn ghost sm" data-act="signout">Sign out</button>`;""", """${myAgreementBtn()}<button class="btn ghost sm" data-act="signout">Sign out</button>`;""")
-sub("""v.insured?"Insurance checked":"Insurance not checked"}</p>""", """v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}""")
+sub("""v.insured?"Insurance checked":"Insurance not checked"}</p>""", """v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}${kind()==="orbyt"?insuranceAdminLine(v):""}""")
 sub("""${v.approved===false?'<span class="pill late">Needs review</span>':""} ${v.featured?'<span class="pill featured">Featured</span>':""} ${v.sample?""", """${v.approved===false?'<span class="pill late">Needs review</span>':""}${agreementPill(v)} ${v.featured?'<span class="pill featured">Featured</span>':""} ${v.sample?""")
 sub("Approved. They can be matched now.", "Approved. Next time they sign in, they'll see the fees, then they're ready for introductions.")
 sub(".vcard.wide{width:min(720px,calc(100% - 32px))}", """.vcard.wide{width:min(720px,calc(100% - 32px))}
 .agbox{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 22px}.agbox.tall{max-height:68vh}
+.insemail{width:100%;font:13px/1.5 inherit;margin:8px 0 4px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);resize:vertical}
+.steps{margin:6px 0 0;padding-left:20px}.steps>li{margin:0 0 14px}.form.inner{margin:8px 0 0;padding:0;border:0;background:none}.insmore summary{cursor:pointer;margin-top:8px}.insnote{margin:0}
 .checkrow.top{align-items:flex-start}.checkrow.top input{margin-top:3px}.tldr{margin:6px 0 10px;padding-left:20px}.tldr li{margin:4px 0}
 .agdoc{font-size:14px;line-height:1.6}.agdoc h2{font-size:20px;font-weight:500;margin:14px 0 8px}.agdoc h3{font-size:16px;font-weight:500;margin:22px 0 6px}.agdoc p{margin:0 0 10px}
 .agtable,.agsig{border-collapse:collapse;width:100%;min-width:0;margin:8px 0 12px;font-size:14px}.agtable th,.agsig th{font-size:14px;text-transform:none;letter-spacing:0;white-space:normal;background:none}.agtable td,.agtable th,.agsig td,.agsig th{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;font-weight:400}

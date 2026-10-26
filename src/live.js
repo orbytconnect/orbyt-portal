@@ -38,7 +38,8 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
       photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
-      pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||""}})}
+      pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
+      insVerifiedPath:a.insurance_verified_path||"",insVerifiedAt:a.insurance_verified_at||"",insExpires:a.insurance_expires||"",insNote:a.insurance_note||"",insNoteAt:a.insurance_note_at||""}})}
 function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D.project_admin,"project_id");
   return(D.projects||[]).map(p=>{const pp=PP[p.id]||{},pa=PA[p.id]||{};
     return{id:p.id,agent:p.agent_name,agentId:p.agent_id,agentEmail:p.agent_email||"",agentPhone:p.agent_phone||"",brokerage:p.brokerage||"",
@@ -321,7 +322,8 @@ function signupView(m){
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone"></label>
         ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage"></label>`:`<label class="field"><span>Website</span><input type="text" id="su-web" name="web"></label>`}</div>
       ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}${moreChecks("svc","su-ms")}</div>
-        <label class="field"><span>Anything else? (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything not listed above"></label>`:""}
+        <label class="field"><span>Anything else? (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything not listed above"></label>
+        <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>`:""}
       <div class="field"><span>${m==="agent"?"Where do you list homes?":"Where do you work?"}</span>${ck("area",AREAS)}</div>
       ${m==="vendor"?`<div class="grid">${sel("years","Years in business",YEARS)}${sel("team","Team size",TEAM)}${sel("lead","Typical lead time",LEAD)}</div>
         <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="su-refs" name="references"></textarea></label>
@@ -526,7 +528,7 @@ function feesSection(){
 const SHORT={
   vendor:["Reply to each introduction within 48 hours: yes, no, or a question. Saying no is always fine.",
     "You contract with and bill the client directly, in your own name, and you're responsible for your work. Add Orbyt's short client notice (Schedule 2) to your quotes.",
-    "Keep your licenses current and carry general liability insurance of at least $1M per occurrence and $2M aggregate, naming Orbyt LLC as an additional insured.",
+    "Keep your licenses current and carry general liability insurance of at least $1M per occurrence and $2M aggregate. Depending on your services, Orbyt also needs to be named as an additional insured (Schedule 3).",
     "Fees follow the agents and clients Orbyt introduces you to for 12 months, however the job is booked, as shown above.",
     "You cover claims about your work, Orbyt's liability is limited, and most disputes go to individual arbitration in San Diego."],
   agent:["Orbyt doesn't charge agents for introductions. Vendors pay Orbyt a fee on work that comes from them.",
@@ -596,3 +598,129 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
   else if(a==="feesok"){markFeesSeen();render();window.scrollTo({top:0})}
   else if(a==="agprint"){const rec=t.dataset.id&&(D.vendor_agreements||[]).find(x=>x.id===t.dataset.id);if(rec)printAgreement(rec.document_html)}},true);
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.agreementView){S.agreementView=null;render()}});
+
+
+/* ---------- Insurance by trade group: vendors upload, Ashleigh verifies with one click ---------- */
+// Keep these lists in step with public.insurance_trades() in the database (orbyt-update-8.sql).
+const INS_GROUPS={
+  high:["general contractor / remodeling","roofing","plumbing","electric","hvac","concrete","flooring","drywall","fencing","garage doors","appliance repair","solar panel cleaning","pest control","tree service"],
+  mid:["handyman","pool services","moving","junk removal","gutter cleaning","pressure washing","window cleaning","staging","landscaping"]};
+const INS_LABEL={high:"Higher risk",mid:"Standard",low:"Lower risk"};
+const insTrades=(svcs,g)=>(svcs||[]).filter(x=>(INS_GROUPS[g]||[]).includes(String(x).trim().toLowerCase()));
+const insGroup=svcs=>insTrades(svcs,"high").length?"high":insTrades(svcs,"mid").length?"mid":"low";
+const andList=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+const todayStr=()=>isoDay(new Date());
+const addDaysTo=(iso,n)=>{const d=new Date(iso);d.setDate(d.getDate()+n);return isoDay(d)};
+const longDate=d=>d?new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}):"";
+function insState(v){
+  const g=insGroup(vsv(v)),cur=v.insurance||{},trades=insTrades(vsv(v),g).map(x=>x.toLowerCase());
+  const fix=!!(v.insNoteAt&&(!cur.uploadedAt||Date.parse(v.insNoteAt)>Date.parse(cur.uploadedAt)));
+  const has=!!cur.path&&!fix,verified=has&&v.insVerifiedPath===cur.path;
+  const exp=verified?(v.insExpires||cur.expires||""):(cur.expires||""),t=todayStr();
+  const expired=!!exp&&exp<t,expiring=verified&&!!exp&&!expired&&daysTo(exp)<=30;
+  const due=v.approvedAt?addDaysTo(v.approvedAt,30):"",pastDue=!!due&&t>due;
+  const good=verified&&!expired;
+  const introsOk=g==="high"?good:g==="mid"?(good||(!pastDue&&!expired)):true;
+  const state=fix?"fix":!cur.path?"needed":expired?"expired":!verified?"checking":expiring?"expiring":"verified";
+  return{g,trades,cur,has,fix,verified,exp,expired,expiring,due,pastDue,introsOk,state,needAI:g!=="low"}}
+// vendors Ashleigh added herself (no portal login) are managed by hand, so they're never held back
+const insOk=v=>!v.userId||insState(v).introsOk;
+function insRequirement(v,st){
+  const t=andList(st.trades);
+  if(st.g==="high")return `Because you offer ${t}, Orbyt needs your certificate of general liability insurance, naming Orbyt LLC as an additional insured, before your first introduction.`;
+  if(st.g==="mid")return `Because you offer ${t}, Orbyt needs your certificate of general liability insurance, naming Orbyt LLC as an additional insured, ${st.pastDue?`by ${longDate(st.due)}. New introductions are paused until it's in.`:`by ${st.due?longDate(st.due):"30 days after you're approved"}. Introductions keep coming until then.`}`;
+  return `Please upload a current certificate of your general liability insurance${st.due?` by ${longDate(st.due)}`:""}. Orbyt doesn't need to be named on it for your services.`}
+function insEmailText(v,st){
+  const who=[v.contactName,v.name].filter(Boolean);
+  return st.needAI?`Hi,
+
+Could you please send me a certificate of insurance for my general liability policy (and my commercial auto policy, if I have one) with this certificate holder and additional insured:
+
+Orbyt LLC
+711 S Nardo Ave, Suite 308
+Solana Beach, CA 92075
+
+Orbyt LLC needs to be an additional insured by endorsement, on a primary and non-contributory basis, with a waiver of subrogation. Please include the endorsement page. If my policy already has a blanket additional insured endorsement, a copy of that page works too.
+
+Thank you!
+${who.join("\n")}`:`Hi,
+
+Could you please send me a current certificate of insurance for my general liability policy, with this certificate holder:
+
+Orbyt LLC
+711 S Nardo Ave, Suite 308
+Solana Beach, CA 92075
+
+Thank you!
+${who.join("\n")}`}
+const INS_PILL={needed:["Certificate needed","late"],fix:["Needs a fix","late"],checking:["Ashleigh is checking it",""],verified:["Confirmed","set"],expiring:["Renews soon","late"],expired:["Expired","late"]};
+function insuranceCard(v){
+  if(!v||v.approved===false)return"";
+  const st=insState(v),[pl,pc]=INS_PILL[st.state],open=!["verified","checking"].includes(st.state);
+  const subj="Certificate of insurance for Orbyt LLC",body=insEmailText(v,st);
+  const form=`<form class="form inner" data-form="insupload" novalidate><div class="grid">
+      <label class="field"><span>Certificate (PDF or photo)</span><input type="file" id="ins-file" name="file" accept="application/pdf,image/*"></label>
+      <label class="field"><span>Policy expiration date</span><input type="date" id="ins-exp" name="expires"></label></div>
+      <p class="small warntext inserr" role="alert" style="margin:0" hidden></p>
+      <div class="actions"><button class="btn" type="submit">Upload certificate</button></div></form>`;
+  if(!open)return `<section class="section"><div class="sechead" style="margin:0"><h2>Insurance <span class="pill ${pc}">${pl}</span></h2>
+      <span class="small">${st.state==="verified"?`Good through ${esc(longDate(st.exp))}. I'll remind you before it expires.`:`Uploaded ${esc(fmtStamp(st.cur.uploadedAt))}. You'll get an email when it's confirmed.`}</span></div>
+      <details class="insmore"><summary class="small">Upload a new certificate</summary>${form}</details></section>`;
+  return `<section class="section inscard"><div class="sechead" style="margin:0"><h2>Insurance <span class="pill ${pc}">${pl}</span></h2></div>
+    <p>${esc(st.state==="expired"?`Your certificate expired on ${longDate(st.exp)}. Please upload the renewed one.${st.g!=="low"?" New introductions are paused until it's in.":""}`:st.state==="expiring"?`Your certificate is good through ${longDate(st.exp)}. Once your policy renews, upload the new one so introductions keep coming.`:insRequirement(v,st))}</p>
+    ${st.fix?`<p class="banner" style="margin:0 0 12px"><b>Ashleigh's note:</b> ${esc(v.insNote)}</p>`:""}
+    <ol class="steps"><li><b>Send this to your insurance agent.</b> Copy it, or open it in your email. Agents can usually send the certificate the same day.
+      <textarea class="insemail" id="ins-email" readonly rows="9" aria-label="Email to your insurance agent">${esc(body)}</textarea>
+      <div class="actions"><button class="btn ghost sm" type="button" data-act="inscopy">Copy email</button><a class="btn ghost sm" href="mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}">Open in email</a></div></li>
+      <li><b>Upload the certificate when it comes back.</b>${form}</li></ol></section>`;
+}
+document.addEventListener("click",async e=>{const t=e.target.closest('[data-act="inscopy"]');if(!t)return;const ta=$("#ins-email");if(!ta)return;
+  try{await navigator.clipboard.writeText(ta.value);toast("Copied. Paste it into an email to your insurance agent.")}catch(_){ta.select();toast("Selected. Copy it with your keyboard.")}});
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="insupload"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),file=fd.get("file"),exp=String(fd.get("expires")||""),el=f.querySelector(".inserr");
+  const err=!(file&&file.size)?"Choose the certificate file to upload.":file.size>15e6?"That file is over 15 MB. Try a PDF or a smaller photo.":!exp?"Add the policy expiration date from the certificate.":exp<todayStr()?"That date has already passed. Upload your current certificate.":"";
+  if(err){if(el){el.textContent=err;el.hidden=false}return}
+  guard(async()=>{const path=await putFile("vendor-files",v.id,file);
+    fail((await sb.from("vendor_private").update({insurance:{path,name:file.name,expires:exp,uploadedAt:new Date().toISOString()},insurance_paths:[...new Set([...(v.insPaths||[]),path])]}).eq("vendor_id",v.id)).error,"insurance");
+    await S.db.reload()},"Uploaded. Ashleigh will check it, usually within a day.")},true);
+// sign-up: say what insurance their services need, as they pick them
+function signupInsNote(){const f=document.querySelector('form[data-proto="signup"][data-kind="vendor"]'),el=$("#su-insnote");if(!f||!el)return;
+  const fd=new FormData(f),svcs=[...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(canon)],g=insGroup(svcs);
+  if(!svcs.length){el.hidden=true;return}const t=andList(insTrades(svcs,g).map(x=>x.toLowerCase()));
+  el.innerHTML=g==="high"?`<b>Insurance:</b> because you offer ${esc(t)}, Orbyt needs to be named as an additional insured on your liability insurance before your first introduction. After you're approved, I'll give you a ready-made email to send your insurance agent.`
+    :g==="mid"?`<b>Insurance:</b> because you offer ${esc(t)}, Orbyt needs to be named as an additional insured on your liability insurance within 30 days of approval. After you're approved, I'll give you a ready-made email to send your insurance agent.`
+    :`<b>Insurance:</b> after you're approved, you'll upload a certificate of your general liability insurance.`;el.hidden=false}
+document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest('form[data-proto="signup"]'))signupInsNote()});
+document.addEventListener("input",e=>{if(e.target.id==="su-othersvc")signupInsNote()});
+
+/* Ashleigh's side: the check on the vendor card, and items on her dashboard */
+function insuranceAdminLine(v){
+  if(!v.userId||v.approved===false&&!(v.insurance||{}).path)return v.userId?`<p class="small" style="margin:6px 0 0"><span class="strong">Insurance group:</span> ${INS_LABEL[insGroup(vsv(v))]}${insGroup(vsv(v))!=="low"?" (Orbyt named as additional insured)":""}</p>`:"";
+  const st=insState(v),[pl0,pc]=INS_PILL[st.state],pl=st.state==="checking"?"Ready to check":st.state==="fix"?"Fix requested":pl0,url=st.cur.path?signedUrl("vendor-files:"+st.cur.path):"";
+  const rule=st.g==="high"?"Orbyt named as additional insured, before introductions":st.g==="mid"?`Orbyt named as additional insured, by ${fmtDate(st.due)||"30 days after approval"}`:"Certificate only";
+  let h=`<div class="inscheck"><p class="small" style="margin:6px 0 0"><span class="strong">Insurance:</span> <span class="pill ${pc}">${pl}</span> ${INS_LABEL[st.g]}${st.trades.length?" ("+esc(andList(st.trades))+")":""} · ${esc(rule)}
+    ${st.exp?` · good through ${esc(fmtDate(st.exp))}`:""}${!st.introsOk?' · <span class="warntext">Introductions paused</span>':""}</p>`;
+  if(st.cur.path)h+=`<p class="small" style="margin:4px 0 0">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">Open certificate</a>`:"Opening certificate..."} · uploaded ${esc(fmtStamp(st.cur.uploadedAt))}</p>`;
+  if(st.has&&!st.verified)h+=`<form class="insverify" data-form="insverify" data-id="${esc(v.id)}">
+      <p class="small" style="margin:6px 0 0">${st.needAI?"Check that Orbyt LLC is listed as an additional insured (with the endorsement page), and the dates.":"Check the dates and that it's general liability coverage."}</p>
+      <div class="actions"><label class="field" style="max-width:190px"><span>Good through</span><input type="date" name="expires" id="iv-exp-${esc(v.id)}" value="${esc(st.cur.expires||"")}"></label>
+      <button class="btn sm" type="submit" name="do" value="ok">Verified</button><button class="linkbtn" type="button" data-act="insfix" data-id="${esc(v.id)}">Something's not right</button></div>
+      ${S.insFix===v.id?`<label class="field"><span>What needs fixing? ${esc(v.name)} gets this in an email.</span><input type="text" name="note" id="iv-note-${esc(v.id)}" placeholder="Orbyt LLC isn't listed as an additional insured"></label>
+        <div class="actions"><button class="btn ghost sm" type="submit" name="do" value="fix">Send to ${esc(firstName(v.contactName||v.name))}</button></div>`:""}</form>`;
+  return h+"</div>"}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="insfix"]');if(!t||kind()!=="orbyt")return;S.insFix=S.insFix===t.dataset.id?null:t.dataset.id;render()});
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="insverify"]');if(!f||kind()!=="orbyt")return;e.preventDefault();e.stopImmediatePropagation();
+  const v=vendorById(f.dataset.id);if(!v)return;const fd=new FormData(f),act=(e.submitter&&e.submitter.value)||"ok",cur=v.insurance||{};
+  if(act==="fix"){const note=String(fd.get("note")||"").trim();if(!note){toast("Add a short note about what needs fixing.");return}
+    guard(async()=>{fail((await sb.from("vendor_admin").update({insurance_note:note,insurance_note_at:new Date().toISOString()}).eq("vendor_id",v.id)).error,"insurance");S.insFix=null;await S.db.reload()},`Sent. ${v.name} will upload a new certificate.`);return}
+  const exp=String(fd.get("expires")||"");if(!exp){toast("Add the date the policy is good through.");return}
+  guard(async()=>{fail((await sb.from("vendor_admin").update({insurance_verified_path:cur.path,insurance_verified_at:new Date().toISOString(),insurance_expires:exp,insured:true}).eq("vendor_id",v.id)).error,"insurance");await S.db.reload()},
+    `Verified. ${v.name} gets a confirmation email.`)},true);
+function insuranceAlerts(){const A=[];
+  for(const v of S.vendors.filter(v=>v.userId&&v.approved!==false)){const st=insState(v);
+    if(st.has&&!st.verified)A.push({id:"ins-"+v.id+"-"+st.cur.path,cls:"k-ink",urgent:st.g==="high",label:"Check insurance",title:`Check ${v.name}'s insurance certificate`,
+      meta:[INS_LABEL[st.g]+(st.needAI?", Orbyt named as additional insured":""),st.cur.expires?"good through "+fmtDate(st.cur.expires):"",ago(st.cur.uploadedAt)].filter(Boolean).join(" · "),
+      when:st.cur.uploadedAt||"",act:{a:"vcard",id:v.id,label:"Check"},auto:false});
+    else if(st.verified&&st.expired&&st.g!=="low")A.push({id:"insexp-"+v.id+"-"+st.exp,cls:"k-warn",urgent:true,label:"Insurance expired",title:`${v.name}'s insurance expired ${fmtDate(st.exp)}`,
+      meta:"Introductions are paused. They've been emailed to upload the renewal.",when:st.exp,act:{a:"vcard",id:v.id,label:"Open"},auto:false})}
+  return A}

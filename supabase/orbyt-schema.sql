@@ -1162,7 +1162,7 @@ begin
     if new.role = 'vendor' then
       perform public.orbyt_email(array[new.email], 'You''re approved for the Orbyt network', 'You''re in, ' || public.first_name(new.full_name),
         public.ep('Thanks for your patience while I checked everything. You''re approved as an Orbyt vendor partner.')
-        || public.ep('When you sign in, you''ll see exactly what Orbyt costs (you only pay when an introduction turns into a paid job). Then you''re ready for your first introduction.'),
+        || public.ep('When you sign in, you''ll see exactly what Orbyt costs (you only pay when an introduction turns into a paid job) and the insurance paperwork your services need.'),
         'Sign in to Orbyt', 'approved');
     elsif new.role = 'agent' then
       perform public.orbyt_email(array[new.email], 'You''re approved for Orbyt', 'You''re in, ' || public.first_name(new.full_name),
@@ -1252,3 +1252,178 @@ revoke execute on function public.agreements_notify() from public, anon, authent
 
 -- Done. Next: sign up in the portal as ashleigh@orbytconnect.com, then run
 -- make-me-admin.sql once to turn that account into the admin account.
+
+-- ---------- Insurance by trade group: vendors upload, Ashleigh verifies, reminders run daily ----------
+-- vendor's current certificate: {path, name, expires, uploadedAt}
+alter table public.vendor_private add column if not exists insurance jsonb not null default '{}';
+-- Ashleigh's check (only she can write vendor_admin)
+alter table public.vendor_admin add column if not exists insurance_verified_path text;
+alter table public.vendor_admin add column if not exists insurance_verified_at   timestamptz;
+alter table public.vendor_admin add column if not exists insurance_expires       date;
+alter table public.vendor_admin add column if not exists insurance_note          text;
+alter table public.vendor_admin add column if not exists insurance_note_at       timestamptz;
+
+create table if not exists public.insurance_reminders (
+  vendor_id  uuid not null references public.vendors (id) on delete cascade,
+  kind       text not null,
+  sent_at    timestamptz not null default now(),
+  primary key (vendor_id, kind)
+);
+alter table public.insurance_reminders enable row level security;
+drop policy if exists insurance_reminders_admin on public.insurance_reminders;
+create policy insurance_reminders_admin on public.insurance_reminders for select to authenticated using (public.is_admin());
+grant select on public.insurance_reminders to authenticated;
+revoke all on public.insurance_reminders from anon;
+
+-- Trade groups. Keep these lists in step with INS_GROUPS in the portal code (src/live.js).
+create or replace function public.insurance_trades(services text[], grp text) returns text[]
+language sql immutable set search_path = '' as $$
+  select coalesce(array_agg(s order by s), '{}') from unnest(coalesce(services, '{}')) s
+  where lower(trim(s)) = any (case grp
+    when 'high' then array['general contractor / remodeling','roofing','plumbing','electric','hvac','concrete','flooring','drywall',
+                           'fencing','garage doors','appliance repair','solar panel cleaning','pest control','tree service']
+    when 'mid'  then array['handyman','pool services','moving','junk removal','gutter cleaning','pressure washing','window cleaning',
+                           'staging','landscaping']
+    else array[]::text[] end)
+$$;
+create or replace function public.insurance_group(services text[]) returns text
+language sql immutable set search_path = '' as $$
+  select case when cardinality(public.insurance_trades(services, 'high')) > 0 then 'high'
+              when cardinality(public.insurance_trades(services, 'mid'))  > 0 then 'mid' else 'low' end
+$$;
+
+-- Emails when a certificate comes in, when Ashleigh asks for a fix, and when she confirms it
+create or replace function public.insurance_upload_notify() returns trigger language plpgsql security definer set search_path = '' as $$
+declare vname text;
+begin
+  if coalesce(new.insurance ->> 'path', '') <> '' and new.insurance ->> 'path' is distinct from old.insurance ->> 'path' then
+    select name into vname from public.vendors where id = new.vendor_id;
+    perform public.orbyt_email(array[public.admin_email()], vname || ' uploaded their insurance', 'Insurance to check',
+      public.ep('<b>' || public.h(vname) || '</b> uploaded a certificate of insurance'
+        || case when coalesce(new.insurance ->> 'expires', '') <> '' then ', good through ' || public.h(to_char((new.insurance ->> 'expires')::date, 'FMMonth FMDD, YYYY')) else '' end || '.')
+      || public.ep('Open it from your dashboard, check that Orbyt LLC is listed, and click Verified.'),
+      'Check it now', 'admin_insurance');
+  end if;
+  return new;
+exception when others then
+  raise warning 'Orbyt insurance email skipped: %', sqlerrm;
+  return new;
+end $$;
+drop trigger if exists insurance_upload_notify on public.vendor_private;
+create trigger insurance_upload_notify after update of insurance on public.vendor_private
+  for each row execute function public.insurance_upload_notify();
+
+create or replace function public.insurance_check_notify() returns trigger language plpgsql security definer set search_path = '' as $$
+declare v public.vendors%rowtype;
+begin
+  select * into v from public.vendors where id = new.vendor_id;
+  if new.insurance_note_at is distinct from old.insurance_note_at and coalesce(new.insurance_note, '') <> '' then
+    perform public.orbyt_email(array[public.vendor_email(v.id)], 'Your insurance certificate needs another look', 'One fix on your insurance',
+      public.ep('Hi ' || public.h(public.first_name(v.contact_name)) || ', thanks for sending your certificate of insurance. It needs one change before I can mark it complete:')
+      || public.ep('<i>' || public.h(new.insurance_note) || '</i>')
+      || public.ep('Sign in to copy a ready-made request for your insurance agent, then upload the new certificate.'),
+      'Upload a new certificate', 'insurance_fix');
+  elsif new.insurance_verified_at is distinct from old.insurance_verified_at and new.insurance_verified_at is not null then
+    perform public.orbyt_email(array[public.vendor_email(v.id)], 'Your insurance is all set', 'Insurance confirmed',
+      public.ep('Hi ' || public.h(public.first_name(v.contact_name)) || ', your certificate of insurance is confirmed'
+        || case when new.insurance_expires is not null then ', good through ' || to_char(new.insurance_expires, 'FMMonth FMDD, YYYY') else '' end
+        || '. I''ll remind you before it expires.'),
+      'Go to Orbyt', 'insurance_ok');
+  end if;
+  return new;
+exception when others then
+  raise warning 'Orbyt insurance email skipped: %', sqlerrm;
+  return new;
+end $$;
+drop trigger if exists insurance_check_notify on public.vendor_admin;
+create trigger insurance_check_notify after update of insurance_note_at, insurance_verified_at on public.vendor_admin
+  for each row execute function public.insurance_check_notify();
+
+-- Daily reminders: missing certificates, expiring soon, expired. Each one goes out once.
+create or replace function public.insurance_reminders_run() returns integer language plpgsql security definer set search_path = '' as $$
+declare
+  r        record;
+  grp      text;
+  trades   text;
+  cur      jsonb;
+  has_file boolean;
+  verified boolean;
+  exp      date;
+  due      date;
+  n_up     integer;
+  last_up  timestamptz;
+  ask      text;
+  sent     integer := 0;
+begin
+  for r in
+    select v.id, v.name, v.services, v.contact_name, a.approved_at, a.insurance_verified_path, a.insurance_expires,
+           a.insurance_note_at, coalesce(p.insurance, '{}'::jsonb) as insurance
+      from public.vendors v
+      join public.vendor_admin a on a.vendor_id = v.id and a.approved
+      left join public.vendor_private p on p.vendor_id = v.id
+      join public.profiles pr on pr.id = v.user_id and pr.status = 'active'
+  loop
+    grp := public.insurance_group(r.services);
+    trades := lower(array_to_string(public.insurance_trades(r.services, grp), ', '));
+    cur := r.insurance;
+    has_file := coalesce(cur ->> 'path', '') <> ''
+                and (r.insurance_note_at is null or r.insurance_note_at < coalesce((cur ->> 'uploadedAt')::timestamptz, '-infinity'));
+    verified := has_file and r.insurance_verified_path = cur ->> 'path';
+    exp := case when verified then r.insurance_expires else nullif(cur ->> 'expires', '')::date end;
+    due := (coalesce(r.approved_at, now()) + interval '30 days')::date;
+
+    if not has_file then
+      -- up to four nudges, a week apart, starting two days after approval
+      select count(*), max(sent_at) into n_up, last_up from public.insurance_reminders where vendor_id = r.id and kind like 'upload:%';
+      if n_up < 4 and coalesce(r.approved_at, now()) < now() - interval '2 days' and (last_up is null or last_up < now() - interval '6 days') then
+        ask := case grp
+          when 'high' then 'Because you offer ' || public.h(trades) || ', Orbyt needs a certificate of insurance that names Orbyt LLC as an additional insured before I can send you introductions.'
+          when 'mid'  then 'Because you offer ' || public.h(trades) || ', Orbyt needs a certificate of insurance that names Orbyt LLC as an additional insured by '
+                           || to_char(due, 'FMMonth FMDD') || '. Introductions keep coming until then.'
+          else 'Orbyt needs a current certificate of your general liability insurance' || ' by ' || to_char(due, 'FMMonth FMDD') || '.' end;
+        perform public.orbyt_email(array[public.vendor_email(r.id)], 'Your Orbyt insurance certificate', 'Quick insurance step',
+          public.ep('Hi ' || public.h(public.first_name(r.contact_name)) || ', ' || ask)
+          || public.ep('Sign in to copy a ready-made email to your insurance agent. They can usually send the certificate the same day. Then upload it on your dashboard.'),
+          'Upload my certificate', 'insurance_upload');
+        insert into public.insurance_reminders (vendor_id, kind) values (r.id, 'upload:' || (n_up + 1)) on conflict do nothing;
+        sent := sent + 1;
+      end if;
+    elsif exp is not null and exp < current_date then
+      if not exists (select 1 from public.insurance_reminders where vendor_id = r.id and kind = 'expired:' || exp) then
+        perform public.orbyt_email(array[public.vendor_email(r.id)], 'Your insurance certificate has expired', 'Time for a new certificate',
+          public.ep('Hi ' || public.h(public.first_name(r.contact_name)) || ', the certificate of insurance on file with Orbyt expired on '
+            || to_char(exp, 'FMMonth FMDD, YYYY') || '.'
+            || case when grp <> 'low' then ' New introductions are paused until the renewed certificate is in.' else '' end)
+          || public.ep('Ask your insurance agent for the renewed certificate (sign in to copy a ready-made request), then upload it on your dashboard.'),
+          'Upload my certificate', 'insurance_expired');
+        perform public.orbyt_email(array[public.admin_email()], r.name || '''s insurance expired', 'Insurance expired',
+          public.ep('<b>' || public.h(r.name) || '</b>''s certificate of insurance expired on ' || to_char(exp, 'FMMonth FMDD, YYYY') || '. They''ve been asked to upload the renewal.'),
+          'See their profile', 'admin_insurance');
+        insert into public.insurance_reminders (vendor_id, kind) values (r.id, 'expired:' || exp) on conflict do nothing;
+        sent := sent + 1;
+      end if;
+    elsif verified and exp is not null and exp <= current_date + 30 then
+      if not exists (select 1 from public.insurance_reminders where vendor_id = r.id and kind = 'expiring:' || exp) then
+        perform public.orbyt_email(array[public.vendor_email(r.id)], 'Your insurance renews soon', 'Insurance renewal coming up',
+          public.ep('Hi ' || public.h(public.first_name(r.contact_name)) || ', the certificate of insurance on file with Orbyt is good through '
+            || to_char(exp, 'FMMonth FMDD, YYYY') || '. Once your policy renews, please upload the new certificate so introductions keep coming.'),
+          'Upload my certificate', 'insurance_expiring');
+        insert into public.insurance_reminders (vendor_id, kind) values (r.id, 'expiring:' || exp) on conflict do nothing;
+        sent := sent + 1;
+      end if;
+    end if;
+  end loop;
+  return sent;
+end $$;
+revoke execute on function public.insurance_reminders_run() from public, anon, authenticated;
+revoke execute on function public.insurance_upload_notify() from public, anon, authenticated;
+revoke execute on function public.insurance_check_notify() from public, anon, authenticated;
+
+-- Run the reminders every morning (9:05am Pacific in summer, 8:05am in winter)
+do $$
+begin
+  create extension if not exists pg_cron;
+  perform cron.schedule('orbyt-insurance-reminders', '5 16 * * *', 'select public.insurance_reminders_run()');
+exception when others then
+  raise warning 'Daily insurance reminders were not scheduled (%). In Supabase, turn on the pg_cron extension under Database, Extensions, then run this script again.', sqlerrm;
+end $$;

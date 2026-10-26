@@ -62,7 +62,7 @@ Vendor agrees to the following for as long as it is in the network.
 >
 > \(c\) workers\' compensation insurance as required by California law, and employer\'s liability insurance of at least \$1,000,000, if Vendor has employees.
 
-**3.4 Additional insured and other policy terms.** Vendor\'s general liability and auto policies will name Orbyt LLC as an additional insured by endorsement, will be primary and non-contributory to any insurance the Orbyt Parties carry, and, with Vendor\'s workers\' compensation policy, will include a waiver of subrogation in favor of the Orbyt Parties. Vendor will send Orbyt a certificate of insurance and the additional insured endorsement before joining, at each renewal, and whenever Orbyt asks. Vendor will tell Orbyt within five (5) business days if any required policy is cancelled, lapses, or is reduced. Orbyt will not make Introductions while required coverage is not in place.
+**3.4 Certificates, additional insured and other policy terms.** Vendor will upload a current certificate of insurance to the Portal within thirty (30) days after Orbyt approves Vendor, at each renewal, and whenever Orbyt asks. Where Schedule 3 requires it for the services Vendor offers, Vendor\'s general liability and auto policies will name Orbyt LLC as an additional insured by endorsement, will be primary and non-contributory to any insurance the Orbyt Parties carry, and, with Vendor\'s workers\' compensation policy, will include a waiver of subrogation in favor of the Orbyt Parties, and Vendor will provide the endorsement with its certificate by the deadline in Schedule 3. If Vendor offers services in more than one group in Schedule 3, the strictest requirement applies. Vendor will tell Orbyt within five (5) business days if any required policy is cancelled, lapses, or is reduced. Orbyt will not make Introductions while required coverage is not in place, and may pause Introductions while a required certificate or endorsement is missing or expired.
 
 **3.5 Insurance does not limit responsibility.** These insurance requirements are minimums. They do not limit Vendor\'s obligations or liability under these Terms. Orbyt does not waive any requirement by failing to request, review, or object to a certificate or policy.
 
@@ -308,7 +308,7 @@ Vendor may choose to run promotions that increase its visibility to Agents, at t
 
 ## 20. General
 
-**20.1 Entire agreement.** These Terms, including Schedules 1 and 2 and any policies referred to in them, are the entire agreement between the parties about the vendor network and replace any earlier discussions about it. If Vendor and Orbyt have signed a separate written agreement about the vendor network, that agreement controls where it conflicts with these Terms. Any confidentiality agreement the parties signed earlier stays in effect for information shared under it.
+**20.1 Entire agreement.** These Terms, including Schedules 1, 2 and 3 and any policies referred to in them, are the entire agreement between the parties about the vendor network and replace any earlier discussions about it. If Vendor and Orbyt have signed a separate written agreement about the vendor network, that agreement controls where it conflicts with these Terms. Any confidentiality agreement the parties signed earlier stays in effect for information shared under it.
 
 **20.2 Notices and electronic communications.** Orbyt may send notices to the email address in Vendor\'s account or through the Portal. Vendor may send notices to Orbyt at ashleigh@orbytconnect.com. Vendor agrees to receive communications from Orbyt electronically, and agrees that electronic agreements, notices, and records satisfy any requirement that they be in writing. If Vendor gives Orbyt a mobile number, Vendor agrees to receive calls and texts from Orbyt about Introductions and its account. Message and data rates may apply, and Vendor may opt out of marketing messages at any time.
 
@@ -351,3 +351,13 @@ Vendor pays fees only on Jobs that come from Introductions, as set out in Sectio
 Vendor will include the following notice, or wording that is substantially the same, in each written quote, estimate, proposal, or contract for a Job (Section 2.3):
 
 > \[Vendor legal name\] is an independent business and is solely responsible for the services described in this \[quote / estimate / contract\], including their quality, timing, pricing, and any warranty. We were introduced to you through the Orbyt vendor network. Orbyt LLC is not a party to this agreement, does not perform, supervise, or guarantee our work, and is not responsible for our services.
+
+## SCHEDULE 3: INSURANCE BY SERVICE
+
+Every Vendor carries the insurance in Section 3.3 and uploads a certificate under Section 3.4. This Schedule sets when Orbyt LLC must also be named as an additional insured, based on the services Vendor offers. If Vendor offers services in more than one group, the strictest requirement applies. Orbyt may update this Schedule under Section 18.2.
+
+| **Group** | **Services** | **Orbyt named as additional insured** |
+|---|---|---|
+| Higher risk | General contractor and remodeling, roofing, plumbing, electrical, HVAC, concrete, flooring, drywall, fencing, garage doors, appliance repair, solar panel cleaning, pest control, and tree service | Required before Vendor\'s first Introduction |
+| Standard | Handyman, landscaping, pool services, moving, junk removal, gutter cleaning, pressure washing, window cleaning, and staging | Required within thirty (30) days after Orbyt approves Vendor |
+| Lower risk | All other services, including cleaning, carpet cleaning, painting, photography, organizing, signage, furniture rental, and home inspection | Not required |

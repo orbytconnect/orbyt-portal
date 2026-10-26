@@ -9,7 +9,7 @@ let sb=null;
 const D={};                       // raw rows, by table
 const TABLES=["profiles","vendors","vendor_admin","vendor_private","vendor_notes","projects","project_private","project_admin",
   "project_members","default_shares","bids","invoices","reviews","favorites","task_checks","client_links","my_tasks","time_logs",
-  "spend","contacts","market_requests","settings","vendor_agreements"];
+  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances"];
 const nz=v=>v===""||v===undefined?null:v;
 const camel=s=>s.replace(/_([a-z])/g,(m,c)=>c.toUpperCase());
 const snake=s=>s.replace(/[A-Z]/g,c=>"_"+c.toLowerCase());
@@ -26,7 +26,7 @@ function friendlyDbError(e){const m=String((e&&e.message)||e||"");
 async function fetchAll(t){
   let out=[],from=0;
   for(;;){const{data,error}=await sb.from(t).select("*").range(from,from+999);
-    if(error){console.error("load "+t,error);return out}
+    if(error){console.error("load "+t,error);return t==="terms_acceptances"?undefined:out} // no terms step until update 8 is in
     out=out.concat(data||[]);if(!data||data.length<1000)return out;from+=1000}
 }
 
@@ -327,7 +327,9 @@ function signupView(m){
         <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="su-refs" name="references"></textarea></label>
         <label class="field"><span>How did you hear about Orbyt?</span><input type="text" id="su-heard" name="heard"></label>`:""}
       <div class="grid"><label class="field"><span>Create a password (8+ characters)</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
-        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}${authMsg()}
+        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}
+      ${m==="vendor"?`<p class="small" style="margin:0"><b>What Orbyt costs:</b> nothing to join and no monthly fee. You only pay when an introduction turns into a paid job, on a sliding scale for the first job with each new agent (12% of the first $1,000, less above that, $600 cap) and 2% on repeat jobs. The full fee schedule is in the terms.</p>`:""}
+      <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}${m==="vendor"?", including the fee schedule":""}.</span></label>${authMsg()}
       <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
     </form></div></section>`;
 }
@@ -337,6 +339,7 @@ async function enter(user){
   S.me=prof||null;S.authReady=true;
   if(!prof||prof.status==="pending"){S.authMode="pending";S.pendingName=prof&&prof.full_name?prof.full_name.split(" ")[0]:"";render();return}
   if(prof.status==="declined"){S.authMode="declined";render();return}
+  if(prof.role==="agent"||prof.role==="vendor")sb.rpc("note_terms_login").then(()=>{},()=>{});
   let role="orbyt";
   if(prof.role==="agent")role="agent:"+(prof.full_name||prof.email);
   if(prof.role==="vendor"){const{data:v}=await sb.from("vendors").select("id").eq("user_id",user.id).maybeSingle();role=v?"vendor:"+v.id:"vendor:none"}
@@ -424,9 +427,10 @@ document.addEventListener("submit",async e=>{
     if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
       const err=!first||!last?"Add your first and last name.":!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)?"Enter a valid email.":m==="vendor"&&!String(fd.get("company")||"").trim()?"Add your company name."
-        :m==="vendor"&&!svcs.length?"Pick or type at least one service you offer.":pass.length<8?"Use a password with at least 8 characters.":pass!==pass2?"Those passwords don't match. Type them again.":"";
+        :m==="vendor"&&!svcs.length?"Pick or type at least one service you offer.":pass.length<8?"Use a password with at least 8 characters.":pass!==pass2?"Those passwords don't match. Type them again."
+        :!fd.get("terms")?`Check the box to agree to the ${TERMS[m].title}.`:"";
       if(err)return done(err);
-      const meta={role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas};
+      const meta={role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();
       else Object.assign(meta,{company:String(fd.get("company")).trim(),website:String(fd.get("web")||"").trim(),services:svcs,years_in_business:String(fd.get("years")||""),
         team_size:String(fd.get("team")||""),lead_time:String(fd.get("lead")||""),references:String(fd.get("references")||"").trim(),heard_about:String(fd.get("heard")||"").trim()});
@@ -471,7 +475,7 @@ function agentsView(){
     <label class="field" style="max-width:360px;margin-bottom:12px"><span>Search</span><input type="text" id="ag-q" value="${esc(S.agQ||"")}" placeholder="Name, email, brokerage or area"></label>
     ${rows.length?`<div class="tablewrap"><table><thead><tr><th>Agent</th><th>Contact</th><th>Areas</th><th class="num">Projects</th><th>Status</th><th></th></tr></thead><tbody>
     ${rows.map(r=>{const live=r.ps.filter(p=>!p.listed).length,last=[...r.ps].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))[0];
-      return `<tr><td><span class="strong">${esc(r.name)}</span>${r.brokerage?`<div class="small">${esc(r.brokerage)}</div>`:""}${r.joined?`<div class="small">Joined ${esc(fmtStamp(r.joined))}</div>`:""}</td>
+      return `<tr><td><span class="strong">${esc(r.name)}</span>${r.brokerage?`<div class="small">${esc(r.brokerage)}</div>`:""}${r.joined?`<div class="small">Joined ${esc(fmtStamp(r.joined))}</div>`:""}${r.id&&r.status==="active"?agentTermsLine(r.id):""}</td>
         <td>${r.email?`<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`:""}${r.phone?`<div class="small"><a href="tel:${esc(r.phone.replace(/[^\d+]/g,""))}">${esc(r.phone)}</a></div>`:""}</td>
         <td class="small">${esc(r.areas.join(", "))}</td>
         <td class="num">${r.ps.length}${r.ps.length?`<div class="small">${live} active</div>`:""}${last?`<div class="small"><button class="linkbtn" data-act="openmatch" data-id="${esc(last.id)}">${esc(last.address)}</button></div>`:""}${r.sh.length?`<div class="small">Shared on ${r.sh.length}: <button class="linkbtn" data-act="openmatch" data-id="${esc(r.sh[0].id)}">${esc(r.sh[0].address)}</button></div>`:""}</td>
@@ -485,111 +489,80 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="agsta
   guard(async()=>{fail((await sb.rpc("admin_set_user_status",{p_user:t.dataset.id,p_status:v})).error,"status");await S.db.reload()},
     v==="active"?"Access is on. They can sign in now.":"Access is off. They can't sign in, and their projects stay in your desk.")});
 
-/* ---------- Vendor Network Agreement: fees up front, sign once approved ---------- */
-const AGREEMENT_VERSION="vendor-v1";
-const ENTITY_TYPES=["Sole proprietorship","Limited liability company","Corporation","Partnership"];
-function vendorAgreementHtml(d){
-  const e=x=>esc(x||""),blank=x=>x?e(x):"<span class=\"agblank\">Not given</span>";
-  const ph=(x,label)=>x?e(x):`<span class="agblank">[${label}]</span>`;
-  const party=`${ph(d.legal,"business legal name")}, a ${ph(d.state,"state")} ${ph(String(d.entity||"").toLowerCase(),"business type")}${d.dba?` doing business as ${e(d.dba)}`:""}, located at ${ph(d.address,"business address")}`;
-  return `<div class="agdoc">
-<h2>Vendor Network Agreement</h2>
-<p>This Vendor Network Agreement (the <b>"Agreement"</b>) is entered into as of ${e(d.date)} (the <b>"Effective Date"</b>) by and between <b>Orbyt LLC</b>, a California limited liability company located at 711 S Nardo Ave, Suite 308, Solana Beach, California 92075 (<b>"Orbyt"</b>), and ${party} (<b>"Vendor"</b>). Orbyt and Vendor are each a <b>"party"</b> and together the <b>"parties."</b></p>
-<p><b>1. How This Works.</b> Orbyt runs an on-demand, trusted vendor network that matches real estate agents with local vendors who can get homes ready to list. When Orbyt introduces Vendor to an agent for a specific listing or project, that is an <b>"Introduction,"</b> and that agent is an <b>"Introduced Agent."</b> The agent or the seller who hires Vendor for a job is the <b>"Client."</b> Orbyt decides which Introductions to make based on what each property needs. Orbyt does not promise any particular number of Introductions or jobs.</p>
-<p><b>2. Vendor Standards.</b> Every vendor in the network is licensed and insured, and checked before they join. Vendor agrees to the following for as long as this Agreement is in effect:</p>
-<p>(a) <b>Licenses.</b> Vendor will hold and keep current every license, registration, and permit required by law for the services it performs (for example, a California contractor's license where the job requires one).</p>
-<p>(b) <b>Insurance.</b> Vendor will carry, at its own cost: commercial general liability insurance of at least $1,000,000 per occurrence and $2,000,000 in aggregate; workers' compensation insurance as required by California law if Vendor has employees; and commercial auto insurance if Vendor uses vehicles for its work. Vendor will send Orbyt a certificate of insurance before joining and any time Orbyt asks, and will tell Orbyt within five (5) business days if any required policy is cancelled, lapses, or is reduced.</p>
-<p>(c) <b>Checks.</b> Orbyt may review Vendor's license status, insurance, references, and reviews before Vendor joins and at any time after.</p>
-<p>(d) <b>Quality of work.</b> Vendor will do its work professionally, safely, and in line with the law; show up when committed; respond to Clients promptly; and follow each Client's instructions for property access and care of the home.</p>
-<p><b>3. Vendor's Work and Its Clients.</b> Vendor quotes, contracts, schedules, invoices, and collects payment for each job directly with the Client, the same way it always does. Orbyt is not a party to Vendor's contract with any Client, does not supervise or direct Vendor's work, and does not guarantee that any Client will pay Vendor. Vendor is solely responsible for its work, its pricing, its warranties, and its employees and subcontractors.</p>
-<p><b>4. Fees.</b> Vendor will pay Orbyt the fees in <b>Exhibit A</b> (the <b>"Fee Schedule"</b>). There is no monthly fee during the launch phase.</p>
-<p>(a) <b>First job fee.</b> Applies to the first paid job Vendor completes for each Introduced Agent, or for a seller that agent represents.</p>
-<p>(b) <b>Repeat fee.</b> Applies to each later job with the same Introduced Agent that is booked or arranged through Orbyt.</p>
-<p>(c) <b>Job value.</b> Fees are calculated on the final amount Vendor bills the Client for the job, not including sales tax.</p>
-<p>(d) <b>Staging extensions.</b> For staging jobs, fees apply to the initial staging contract only. Monthly extensions while the home is still on the market are not subject to any fee.</p>
-<p>(e) <b>Reporting and payment.</b> Within five (5) business days after a job is completed, Vendor will report the final invoice amount to Orbyt. Orbyt may confirm the amount with the Introduced Agent and will then send Vendor an invoice. Payment is due within fifteen (15) days after the job is completed.</p>
-<p>(f) <b>Cancelled or unpaid jobs.</b> No fee is owed on a job that is cancelled before any work is done, or for any amount the Client does not pay Vendor. If Vendor later collects that amount, the fee on it is due within fifteen (15) days of collection.</p>
-<p>(g) <b>Late payment.</b> If a fee is past due, Orbyt may pause new Introductions and any promoted placement until it is paid. Amounts more than thirty (30) days past due accrue a late charge of 1.5% per month, or the maximum allowed by law if less.</p>
-<p>(h) <b>No payments to agents.</b> No part of any fee is paid to or shared with any agent or brokerage.</p>
-<p><b>5. First Job Protection.</b> Each Introduction is tied to a specific property (the "Introduced Property") and its seller. If, within twelve (12) months after an Introduction, Vendor does a job for the Introduced Property or its seller (including another property that seller owns or is selling) without reporting it to Orbyt, the first job fee still applies to that job. Vendor will not ask or encourage anyone it met through an Introduction to book outside of Orbyt to avoid the fee. This section does not apply if the Introduced Agent or seller had already contacted Vendor about the Introduced Property before the Introduction. Vendor must tell Orbyt within five (5) business days of the Introduction and share the earlier message, quote, or booking if Orbyt asks. Having worked with that agent or seller in the past does not, by itself, qualify. Work Vendor wins on its own with the Introduced Agent's other clients, without Orbyt's involvement, belongs to Vendor, and only repeat jobs booked through Orbyt carry the repeat fee.</p>
-<p><b>6. Promoted Placement.</b> Vendor may choose to run promotions that increase its visibility to agents, at $20 per promotion, for the period stated when the promotion is purchased. Promotions are optional, paid in advance, and non-refundable once live. Orbyt does not guarantee any particular result from a promotion and may decline a promotion that is inaccurate or misleading.</p>
-<p><b>7. Profile, Reviews, and Marketing.</b> Vendor will keep the information it gives Orbyt accurate and up to date. Vendor gives Orbyt a non-exclusive, royalty-free right to use Vendor's name, logo, photos of its work, service descriptions, and reviews to build Vendor's profile and to market the Orbyt vendor network, for as long as this Agreement is in effect (and in materials already published when it ends). Vendor confirms it has the right to share any photos or materials it provides, including permission from the homeowner where needed. Orbyt may display reviews from agents and Clients. Vendor will not post, buy, or arrange fake or paid reviews, and Orbyt may remove any review it reasonably believes is not genuine.</p>
-<p><b>8. Confidentiality and Client Information.</b> Through Introductions and jobs, Vendor will receive private information, such as listing details before they go public, seller names and contact details, and property access information like lockbox, gate, and alarm codes (<b>"Client Information"</b>). Vendor will use Client Information only to do the job, keep it private, and share it only with its own team members who need it for the job. Vendor will not post photos, addresses, or details of a Client's home publicly without the Client's permission. Vendor will also keep Orbyt's non-public business information private, including its pricing, agent relationships, and plans. These obligations continue for two (2) years after this Agreement ends, and for property access information, for as long as it could still be used.</p>
-<p><b>9. Independent Businesses.</b> Orbyt and Vendor are independent businesses. Neither is the other's employee, partner, joint venturer, or agent. Vendor is responsible for its own taxes and for the wages, benefits, and insurance of its employees and subcontractors. This Agreement is not exclusive: Vendor is free to work with anyone, and Orbyt is free to introduce other vendors in the same category. Orbyt is not a real estate broker and does not provide real estate, legal, construction, or design services under this Agreement.</p>
-<p><b>10. Term and Ending This Agreement.</b> This Agreement starts on the Effective Date and continues until either party ends it. Either party may end it at any time with fourteen (14) days' written notice (email is fine). Orbyt may pause Introductions or end this Agreement right away if Vendor's required license or insurance lapses, if there is a safety concern or serious Client complaint, or if Vendor breaches this Agreement. After this Agreement ends, Vendor still owes fees for jobs that came from Introductions made before the end date, and Section 5 still applies to those Introductions.</p>
-<p><b>11. Changes to Fees.</b> Orbyt may change the Fee Schedule or introduce subscription plans by giving Vendor at least thirty (30) days' notice by email. Changes apply only to Introductions made after the change takes effect. If Vendor does not agree to a change, Vendor may end this Agreement under Section 10 before the change takes effect.</p>
-<p><b>12. Indemnity.</b> Vendor will defend, indemnify, and hold harmless Orbyt and its owners from any claims, losses, damages, and costs (including reasonable attorneys' fees) arising from Vendor's work, any property damage or injury caused by Vendor or its employees or subcontractors, Vendor's breach of this Agreement, or Vendor's violation of any law.</p>
-<p><b>13. Limitation of Liability.</b> Neither party will be liable to the other for indirect, incidental, or consequential damages, such as lost profits, except for Vendor's obligations under Section 12 (Indemnity) and either party's breach of Section 8 (Confidentiality). Orbyt's total liability under this Agreement will not exceed the fees Vendor paid Orbyt in the twelve (12) months before the claim arose.</p>
-<p><b>14. General.</b> This Agreement is governed by California law, and any dispute will be handled in the state or federal courts located in San Diego County, California. Notices may be sent by email to the addresses in the signature block. This Agreement, including Exhibits A and B, is the entire agreement between the parties about the vendor network and replaces any earlier discussions about it, except that any confidentiality agreement the parties signed before the Effective Date stays in effect for information shared under it. Except for fee changes under Section 11, any changes must be agreed in writing, and email from both parties counts. Vendor may not transfer this Agreement without Orbyt's written consent, except to a buyer of Vendor's business who agrees to its terms. If any part of this Agreement is found unenforceable, the rest stays in effect. Sections 4, 5, 8, 12, 13, and 14 survive after this Agreement ends. This Agreement may be signed electronically and in counterparts, and electronic and PDF signatures count as originals.</p>
-<p>Agreed and accepted by the parties as of the Effective Date.</p>
-<table class="agsig"><thead><tr><th>Orbyt LLC</th><th>${e(d.legal)}</th></tr></thead><tbody>
-<tr><td>By: <span class="agsign">Ashleigh Stumler</span> (signed electronically)</td><td>By: ${d.signer?`<span class="agsign">${e(d.signer)}</span> (signed electronically)`:"<span class=\"agblank\">Signed when you click Agree</span>"}</td></tr>
-<tr><td>Name: Ashleigh Stumler</td><td>Name: ${blank(d.signer)}</td></tr>
-<tr><td>Title: Founder</td><td>Title: ${blank(d.title)}</td></tr>
-<tr><td>Email: ashleigh@orbytconnect.com</td><td>Email: ${blank(d.email)}</td></tr>
-<tr><td>Date: ${e(d.date)}</td><td>Date: ${e(d.date)}</td></tr></tbody></table>
-<h3>Exhibit A: Fee Schedule (Launch Phase)</h3>
-<p>Vendor pays only when an Introduction turns into a job. There is no monthly fee during the launch phase.</p>
-<p><b>First job with a new Introduced Agent.</b> Sliding scale by job value. Each portion of the job is charged at its own rate, like tax brackets, so a bigger job never moves to a higher rate.</p>
-<table class="agtable"><thead><tr><th>Portion of job value</th><th>Rate</th></tr></thead><tbody><tr><td>First $1,000</td><td>12%</td></tr><tr><td>$1,001 to $5,000</td><td>8%</td></tr><tr><td>Above $5,000</td><td>5%</td></tr></tbody></table>
-<p>$25 minimum and $600 cap per job.</p>
-<p><b>Repeat job with the same Introduced Agent, booked through Orbyt.</b> Flat 2% of job value. $15 minimum and $100 cap per job.</p>
-<p><b>Promoted placement (optional).</b> $20 per promotion.</p>
-<p><b>Example.</b> A $3,000 staging as a first job is $120 on the first $1,000 plus $160 on the next $2,000, for a $280 fee. A repeat staging of the same size with the same agent is $60.</p>
-<h3>Exhibit B: Vendor Information</h3>
-<table class="agtable"><tbody>
-<tr><th>Business legal name</th><td>${blank(d.legal)}</td></tr><tr><th>DBA (if any)</th><td>${blank(d.dba)}</td></tr>
-<tr><th>Service category</th><td>${blank(d.services)}</td></tr><tr><th>Service area</th><td>${blank(d.areas)}</td></tr>
-<tr><th>License type and number</th><td>${blank(d.license)}</td></tr><tr><th>General liability carrier and policy number</th><td>${blank(d.carrier)}</td></tr>
-<tr><th>Coverage limits</th><td>${blank(d.limits)}</td></tr><tr><th>Policy expiration date</th><td>${blank(d.expires)}</td></tr>
-<tr><th>Workers' comp (if employees)</th><td>${blank(d.workcomp)}</td></tr><tr><th>Certificate of insurance attached</th><td>${e(d.coi||"No")}</td></tr>
-<tr><th>Listings already discussed with an agent or seller before the Introduction (see Section 5)</th><td>${blank(d.prior)}</td></tr></tbody></table>
-</div>`;
-}
+/* ---------- Terms of Use: a checkbox, no signature. Fees shown up front. ---------- */
+const TERMS={
+  vendor:{version:"vendor-terms-2026-10-25",title:"Orbyt Vendor Terms of Use",path:"terms/vendor.html"},
+  agent:{version:"agent-terms-2026-10-25",title:"Orbyt Agent Terms of Use",path:"terms/agent.html"}};
+const termsUrl=r=>new URL(TERMS[r].path,location.origin+location.pathname).href;
+const termsLink=(r,label)=>`<a href="${esc(termsUrl(r))}" target="_blank" rel="noopener">${esc(label||TERMS[r].title)}</a>`;
+const myRole=()=>kind()==="vendor"?"vendor":kind()==="agent"?"agent":"";
 const myVendorId=()=>kind()==="vendor"?roleVal():"";
-const agreementsFor=vid=>(D.vendor_agreements||[]).filter(a=>a.vendor_id===vid).sort((a,b)=>String(b.signed_at).localeCompare(String(a.signed_at)));
-const currentAgreement=vid=>agreementsFor(vid).find(a=>a.version===AGREEMENT_VERSION);
-function needsAgreement(){const v=vendorById(myVendorId());return !!(v&&v.approved!==false&&S.loaded.vendors&&!currentAgreement(v.id))}
-const todayLong=()=>new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
-function agreementDraft(v){const f=S.agForm||{};
-  return{date:todayLong(),legal:f.legal??v.name,entity:f.entity||"",state:f.state??"California",dba:f.dba||"",address:f.address||"",signer:f.signer||"",title:f.title||"",
-    email:S.me&&S.me.email||vEmail(v),services:vsv(v).join(", "),areas:(v.areas||[]).join(", "),license:f.license||"",carrier:f.carrier||"",limits:f.limits||"",expires:f.expires||"",
-    workcomp:f.workcomp||"",coi:(v.coiIds||[]).length?"Yes, on file with Orbyt":"No, sending separately",prior:f.prior||""}}
+const acceptancesFor=uid=>(D.terms_acceptances||[]).filter(a=>uid&&a.user_id===uid).sort((a,b)=>String(b.accepted_at).localeCompare(String(a.accepted_at)));
+const currentAcceptance=(uid,r)=>acceptancesFor(uid).find(a=>a.version===TERMS[r].version);
+function needsTerms(){const r=myRole();if(!r||!S.uid||!Array.isArray(D.terms_acceptances))return false;
+  if(r==="vendor"){const v=vendorById(myVendorId());if(!v||v.approved===false)return false}
+  return !currentAcceptance(S.uid,r)}
+const feesKey=()=>"orbyt-fees-seen-"+S.uid;
+function feesSeen(){try{return localStorage.getItem(feesKey())==="1"}catch(_){return true}}
+function markFeesSeen(){try{localStorage.setItem(feesKey(),"1")}catch(_){}}
+function showTermsGate(){if(needsTerms())return true;
+  if(myRole()!=="vendor"||!Array.isArray(D.terms_acceptances))return false;
+  const v=vendorById(myVendorId());return !!(v&&v.approved!==false&&!feesSeen())}
 function feeCalc(){const x=Number(S.agCalc||0);
   return `<div class="feecalc"><label class="field"><span>Try a job value ($)</span><input type="number" id="ag-calc" min="0" step="50" value="${esc(S.agCalc||"")}" placeholder="3000"></label>
     <p class="small" id="ag-calc-out" style="margin:0">${x>0?`First job with a new agent: <b>${money2(feeFirst(x))}</b> (${(feeFirst(x)/x*100).toFixed(1)}%). Repeat job with that agent: <b>${money2(feeRepeat(x))}</b>.`:"Enter an amount to see both fees."}</p></div>`}
-function agreementGate(){
-  const v=vendorById(myVendorId()),d=agreementDraft(v),f=S.agForm||{},first=String(v.contactName||"").split(" ")[0]||v.name;
-  const fld=(k,label,opts={})=>`<label class="field"><span>${label}</span><input type="${opts.type||"text"}" id="ag-${k}" name="${k}" value="${esc(f[k]??(k==="legal"?v.name:k==="state"?"California":""))}" ${opts.req?"required":""} ${opts.ph?`placeholder="${esc(opts.ph)}"`:""}></label>`;
-  return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>You're approved, ${esc(first)}</h1>
-    <p>Before your first introduction, here's exactly what Orbyt costs, and the agreement to sign. It takes about five minutes.</p></div></section>
-  <section class="section agfees"><h2>What you pay, and when</h2>
-    <p><b>You only pay when an introduction turns into a paid job.</b> No monthly fee and no sign-up fee during launch. The client pays you directly, the same as always.</p>
+function feesSection(){
+  return `<section class="section agfees"><h2>What you pay, and when</h2>
+    <p><b>You only pay when an introduction turns into a paid job.</b> No monthly fee and no sign-up fee. The client pays you directly, the same as always.</p>
     <div class="feegrid">
       <div class="feecard"><span class="eyebrow">First job with a new agent</span><table class="agtable"><tbody><tr><td>First $1,000</td><td>12%</td></tr><tr><td>$1,001 to $5,000</td><td>8%</td></tr><tr><td>Above $5,000</td><td>5%</td></tr></tbody></table>
         <p class="small" style="margin:0">Each portion is charged at its own rate, like tax brackets. $25 minimum, $600 cap per job.</p></div>
-      <div class="feecard"><span class="eyebrow">Repeat jobs with that agent</span><p class="feebig">2%</p><p class="small" style="margin:0">When they book you again through Orbyt. $15 minimum, $100 cap per job. Work you win on your own with an agent's other clients is all yours.</p></div>
-      <div class="feecard"><span class="eyebrow">Never a fee on</span><p class="small" style="margin:0">Staging extensions while a home is on the market, jobs cancelled before work starts, or anything the client doesn't pay you.</p>
+      <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">On later jobs for that agent, their clients, or the seller you were introduced to, for 12 months after the latest introduction, whether they book through Orbyt or directly. $15 minimum, $100 cap per job.</p></div>
+      <div class="feecard"><span class="eyebrow">Never a fee on</span><p class="small" style="margin:0">Staging extensions while a home is on the market, jobs cancelled before work starts, or anything the client doesn't pay you. Already worked with an agent in the past year? Tell me when you reply to the introduction, and your other work with them stays fee-free.</p>
         <span class="eyebrow" style="margin-top:10px;display:block">Optional</span><p class="small" style="margin:0">Promoted placement, $20 per promotion.</p></div></div>
     <p class="small"><b>Example:</b> a $3,000 first job is $120 on the first $1,000 plus $160 on the next $2,000, for a $280 fee. The same job as a repeat is $60.</p>
     ${feeCalc()}
-    <p class="small" style="margin:0"><b>When it's due:</b> report your final invoice amount within 5 business days of finishing a job (you can do it right on the job in the portal). Orbyt sends an invoice, due 15 days after the job wraps. Fees more than 30 days past due add 1.5% a month, and new introductions pause until they're paid.</p></section>
-  <form class="form" data-form="signagreement" novalidate><h2>Your business details</h2><p class="small" style="margin:0">These fill in the agreement below.</p>
-    <div class="grid">${fld("legal","Business legal name",{req:1})}
-      <label class="field"><span>Business type</span><select id="ag-entity" name="entity" required><option value="">Choose one</option>${ENTITY_TYPES.map(x=>`<option ${f.entity===x?"selected":""}>${x}</option>`).join("")}</select></label>
-      ${fld("state","State where it's registered",{req:1})}${fld("dba","DBA, if any")}</div>
-    ${fld("address","Business address",{req:1,ph:"Street, city, state, ZIP"})}
-    <div class="grid">${fld("license","License type and number",{ph:"For example, C-33 Painting #123456"})}${fld("carrier","Liability insurance carrier and policy number")}
-      ${fld("limits","Coverage limits",{ph:"$1M per occurrence / $2M aggregate"})}${fld("expires","Policy expiration date",{type:"date"})}${fld("workcomp","Workers' comp (if you have employees)",{ph:"Carrier and policy number, or None"})}</div>
-    <label class="field"><span>Any listings you'd already discussed with an agent or seller before Orbyt? (optional)</span><textarea id="ag-prior" name="prior" rows="2">${esc(f.prior||"")}</textarea></label>
-    <h2 style="margin-top:8px">The agreement</h2>
-    <div class="agbox" tabindex="0" aria-label="Vendor Network Agreement">${vendorAgreementHtml(d)}</div>
-    <div class="actions"><button class="linkbtn" type="button" data-act="agprint">Print or save a copy</button></div>
-    <div class="grid">${fld("signer","Your full name (this is your signature)",{req:1})}${fld("title","Your title",{req:1,ph:"Owner"})}</div>
-    <label class="checkrow"><input type="checkbox" id="ag-ok" name="ok"> I've read the Vendor Network Agreement, including the Fee Schedule in Exhibit A, and I agree to it on behalf of the business named above.</label>
-    <p class="small warntext agerr" role="alert" style="margin:0" hidden></p>
-    <div class="actions"><button class="btn" type="submit">Agree and sign</button><button class="btn ghost" type="button" data-act="signout">Sign out</button></div></form>`;
+    <p class="small" style="margin:0"><b>When it's due:</b> report your final invoice amount within 5 business days of finishing a job (you can do it right on the job in the portal). Orbyt sends an invoice, due 15 days after the job wraps. Fees more than 30 days past due add 1.5% a month, and new introductions pause until they're paid.</p></section>`}
+const SHORT={
+  vendor:["Reply to each introduction within 48 hours: yes, no, or a question. Saying no is always fine.",
+    "You contract with and bill the client directly, in your own name, and you're responsible for your work. Add Orbyt's short client notice (Schedule 2) to your quotes.",
+    "Keep your licenses current and carry general liability insurance of at least $1M per occurrence and $2M aggregate, naming Orbyt LLC as an additional insured.",
+    "Fees follow the agents and clients Orbyt introduces you to for 12 months, however the job is booked, as shown above.",
+    "You cover claims about your work, Orbyt's liability is limited, and most disputes go to individual arbitration in San Diego."],
+  agent:["Orbyt doesn't charge agents for introductions. Vendors pay Orbyt a fee on work that comes from them.",
+    "Vendors are independent businesses. You or your client hire and pay them directly, and they're responsible for their work.",
+    "Let your clients know the vendor is independent and Orbyt doesn't guarantee their work. Suggested wording is in Schedule 1.",
+    "You decide who gets access to a property, following your brokerage, MLS and lockbox rules.",
+    "Please don't help a vendor book around Orbyt to avoid their fee.",
+    "Orbyt's liability is limited, and most disputes go to individual arbitration in San Diego."]};
+const shortVersion=r=>`<section class="section"><h2>The short version</h2><ul class="tldr">${SHORT[r].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+  <p class="small" style="margin:0">This is a summary. The full ${termsLink(r,"Terms of Use")} are what count.</p></section>`;
+const termsForm=r=>`<form class="form" data-form="acceptterms" novalidate><h2>${r==="vendor"?"Vendor":"Agent"} Terms of Use</h2>
+    <p class="small" style="margin:0">Read the full ${termsLink(r,"Terms of Use")}. They open in a new tab, where you can print or save a copy.</p>
+    <label class="checkrow top"><input type="checkbox" id="tm-ok" name="ok"> <span>I agree to the ${termsLink(r)}${r==="vendor"?", including the fee schedule, on behalf of my business":""}.</span></label>
+    <p class="small warntext tmerr" role="alert" style="margin:0" hidden></p>
+    <div class="actions"><button class="btn" type="submit">Agree and continue</button><button class="btn ghost" type="button" data-act="signout">Sign out</button></div></form>`;
+function termsGate(){
+  const r=myRole(),done=!!currentAcceptance(S.uid,r);
+  if(r==="vendor"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
+    return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>You're approved, ${esc(first)}</h1>
+      <p>${done?"Before your first introduction, here's exactly what Orbyt costs.":"Before your first introduction, here's exactly what Orbyt costs, and the terms to agree to."}</p></div></section>
+      ${feesSection()}${done?`<div class="actions" style="margin-bottom:28px"><button class="btn" data-act="feesok">Got it, take me to my dashboard</button>
+        <span class="small">You agreed to the ${termsLink("vendor","Vendor Terms of Use")} when you signed up.</span></div>`:shortVersion("vendor")+termsForm("vendor")}`}
+  const first=String((S.me&&S.me.full_name)||"").split(" ")[0];
+  return `<section class="hello"><div><div class="eyebrow">Welcome to Orbyt</div><h1>One quick thing${first?", "+esc(first):""}</h1>
+    <p>Before you start, please read and agree to the Agent Terms of Use.</p></div></section>${shortVersion("agent")}${termsForm("agent")}`;
 }
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="acceptterms"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const r=myRole();if(!r)return;const el=f.querySelector(".tmerr");
+  if(!new FormData(f).get("ok")){if(el){el.textContent=`Check the box to agree to the ${TERMS[r].title}.`;el.hidden=false}return}
+  guard(async()=>{fail((await sb.rpc("accept_terms",{p_version:TERMS[r].version,p_user_agent:navigator.userAgent.slice(0,300)})).error,"terms");
+    markFeesSeen();await S.db.reload();window.scrollTo({top:0})},r==="vendor"?"Thanks! You're all set for introductions.":"Thanks! You're all set.")},true);
+document.addEventListener("input",e=>{if(e.target.id!=="ag-calc")return;S.agCalc=e.target.value;const out=$("#ag-calc-out");if(!out)return;const x=Number(S.agCalc||0);
+  out.innerHTML=x>0?`First job with a new agent: <b>${money2(feeFirst(x))}</b> (${(feeFirst(x)/x*100).toFixed(1)}%). Repeat job with that agent: <b>${money2(feeRepeat(x))}</b>.`:"Enter an amount to see both fees."},true);
+
+/* signed vendor agreements from before the Terms of Use stay on file and viewable */
+const agreementsFor=vid=>(D.vendor_agreements||[]).filter(a=>a.vendor_id===vid).sort((a,b)=>String(b.signed_at).localeCompare(String(a.signed_at)));
 function agreementViewer(){
   const a=(D.vendor_agreements||[]).find(x=>x.id===S.agreementView);if(!a){S.agreementView=null;return""}
   return `<div class="scrim" data-act="agclose"></div><div class="vcard wide" role="dialog" aria-modal="true" aria-labelledby="ag-title">
@@ -598,11 +571,18 @@ function agreementViewer(){
     <div class="actions"><button class="btn ghost sm" data-act="agprint" data-id="${esc(a.id)}">Print or save as PDF</button></div>
     <div class="agbox tall">${a.document_html}</div></div>`;
 }
-function agreementLine(v){if(!v.userId&&!agreementsFor(v.id).length)return"";const a=currentAgreement(v.id)||agreementsFor(v.id)[0];
-  return a?`<p class="small" style="margin:6px 0 0">Agreement signed ${esc(fmtStamp(a.signed_at))} by ${esc(a.signer_name)}${a.signer_title?", "+esc(a.signer_title):""} · <button class="linkbtn" data-act="agview" data-id="${esc(a.id)}">View agreement</button></p>`
-    :`<p class="small warntext" style="margin:6px 0 0">${v.approved===false?"They'll see the fees and sign the agreement right after you approve them.":"Agreement not signed yet. They'll be asked when they next sign in."}</p>`}
-const agreementPill=v=>v.userId&&v.approved!==false&&!currentAgreement(v.id)?' <span class="pill late">Agreement not signed</span>':"";
-const myAgreementBtn=()=>{if(kind()!=="vendor")return"";const a=currentAgreement(myVendorId());return a?`<button class="linkbtn" data-act="agview" data-id="${esc(a.id)}">My agreement</button>`:""};
+const termsWhen=a=>`${esc(fmtStamp(a.accepted_at))}${a.source==="signup"?" at sign-up":" in the portal"}`;
+function agreementLine(v){const t=v.userId&&currentAcceptance(v.userId,"vendor"),old=agreementsFor(v.id)[0];if(!v.userId&&!old)return"";
+  const rows=[];
+  if(t)rows.push(`<p class="small" style="margin:6px 0 0">Agreed to the ${termsLink("vendor","Vendor Terms of Use")} ${termsWhen(t)}</p>`);
+  else if(v.userId)rows.push(`<p class="small warntext" style="margin:6px 0 0">${v.approved===false?"Hasn't agreed to the current Vendor Terms of Use. They'll be asked right after you approve them.":"Hasn't agreed to the current Vendor Terms of Use yet. They'll be asked when they next sign in."}</p>`);
+  if(old)rows.push(`<p class="small" style="margin:6px 0 0">Earlier agreement signed ${esc(fmtStamp(old.signed_at))} by ${esc(old.signer_name)} · <button class="linkbtn" data-act="agview" data-id="${esc(old.id)}">View</button></p>`);
+  return rows.join("")}
+const agreementPill=v=>v.userId&&v.approved!==false&&Array.isArray(D.terms_acceptances)&&!currentAcceptance(v.userId,"vendor")?' <span class="pill late">Terms not accepted</span>':"";
+const agentTermsLine=uid=>{if(!uid)return"";const t=currentAcceptance(uid,"agent");
+  return t?`<div class="small">Agreed to terms ${esc(fmtStamp(t.accepted_at))}</div>`:`<div class="small warntext">Hasn't agreed to terms yet</div>`};
+const myAgreementBtn=()=>{const r=myRole();if(!r)return"";const old=r==="vendor"&&agreementsFor(myVendorId())[0];
+  return `<a class="linkbtn" href="${esc(termsUrl(r))}" target="_blank" rel="noopener">Terms of Use</a>${old?`<button class="linkbtn" data-act="agview" data-id="${esc(old.id)}">Signed agreement</button>`:""}`};
 function printAgreement(html){
   const w=window.open("","_blank");if(!w){toast("Allow pop-ups for this site to print the agreement.");return}
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Orbyt Vendor Network Agreement</title><style>body{font:15px/1.55 Georgia,serif;max-width:760px;margin:40px auto;padding:0 20px;color:#111}
@@ -610,29 +590,9 @@ function printAgreement(html){
     .agsign{font-style:italic;font-size:17px}.agblank{color:#888}<\/style></head><body>${html}</body></html>`);
   w.document.close();w.focus();setTimeout(()=>w.print(),300);
 }
-document.addEventListener("input",e=>{const el=e.target;
-  if(el.id==="ag-calc"){S.agCalc=el.value;const x=Number(el.value||0),out=$("#ag-calc-out");if(out)out.innerHTML=x>0?`First job with a new agent: <b>${money2(feeFirst(x))}</b> (${(feeFirst(x)/x*100).toFixed(1)}%). Repeat job with that agent: <b>${money2(feeRepeat(x))}</b>.`:"Enter an amount to see both fees.";return}
-  const f=el.closest&&el.closest('form[data-form="signagreement"]');if(!f||!el.name||el.name==="ok")return;
-  S.agForm={...(S.agForm||{}),[el.name]:el.value};
-  const box=f.querySelector(".agbox");if(box){const v=vendorById(myVendorId());if(v){const top=box.scrollTop;box.innerHTML=vendorAgreementHtml(agreementDraft(v));box.scrollTop=top}}},true);
-document.addEventListener("change",e=>{const el=e.target;const f=el.closest&&el.closest('form[data-form="signagreement"]');if(!f||el.tagName!=="SELECT")return;
-  S.agForm={...(S.agForm||{}),[el.name]:el.value};const box=f.querySelector(".agbox"),v=vendorById(myVendorId());if(box&&v)box.innerHTML=vendorAgreementHtml(agreementDraft(v))},true);
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;const a=t.dataset.act;
   if(a==="agview"){S.vendorCard=null;S.agreementView=t.dataset.id;render();$("#ag-close")?.focus()}
   else if(a==="agclose"){S.agreementView=null;render()}
-  else if(a==="agprint"){const rec=t.dataset.id&&(D.vendor_agreements||[]).find(x=>x.id===t.dataset.id);
-    if(rec)printAgreement(rec.document_html);else{const v=vendorById(myVendorId());if(v)printAgreement(vendorAgreementHtml(agreementDraft(v)))}}},true);
+  else if(a==="feesok"){markFeesSeen();render();window.scrollTo({top:0})}
+  else if(a==="agprint"){const rec=t.dataset.id&&(D.vendor_agreements||[]).find(x=>x.id===t.dataset.id);if(rec)printAgreement(rec.document_html)}},true);
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.agreementView){S.agreementView=null;render()}});
-document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="signagreement"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
-  const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),g=k=>String(fd.get(k)||"").trim();
-  S.agForm={...(S.agForm||{}),legal:g("legal"),entity:g("entity"),state:g("state"),dba:g("dba"),address:g("address"),license:g("license"),carrier:g("carrier"),limits:g("limits"),
-    expires:g("expires"),workcomp:g("workcomp"),prior:g("prior"),signer:g("signer"),title:g("title")};
-  const err=!g("legal")?"Add your business's legal name.":!g("entity")?"Choose your business type.":!g("state")?"Add the state where your business is registered.":!g("address")?"Add your business address.":
-    g("signer").split(/\s+/).filter(Boolean).length<2?"Type your full first and last name to sign.":!g("title")?"Add your title, like Owner.":!fd.get("ok")?"Check the box to agree to the Vendor Network Agreement.":"";
-  const el=f.querySelector(".agerr");if(err){if(el){el.textContent=err;el.hidden=false;el.scrollIntoView({block:"nearest"})}return}
-  const d=agreementDraft(v);
-  guard(async()=>{
-    const r=await sb.from("vendor_agreements").insert({vendor_id:v.id,version:AGREEMENT_VERSION,signer_name:d.signer,signer_title:d.title,signer_email:d.email,legal_name:d.legal,
-      details:{entity:d.entity,state:d.state,dba:d.dba,address:d.address,license:d.license,carrier:d.carrier,limits:d.limits,expires:d.expires,workcomp:d.workcomp,prior:d.prior},
-      document_html:vendorAgreementHtml(d),user_agent:navigator.userAgent.slice(0,300)});
-    fail(r.error,"agreement");S.agForm=null;await S.db.reload();window.scrollTo({top:0})},"Signed. Welcome to Orbyt! A copy is under My agreement any time.")},true);

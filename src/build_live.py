@@ -69,15 +69,16 @@ sub('''["dash","pipeline","projects","vendors","invoicing","reports"].includes(S
 sub('''  if(S.tab==="vendors")return h+rosterView();''', '''  if(S.tab==="vendors")return h+rosterView();
   if(S.tab==="agents")return h+agentsView();''')
 # Vendor Network Agreement
-sub("""h+=protoBanner()+(k==="vendor"?vendorView():""", """h+=protoBanner()+(k==="vendor"?(needsAgreement()?agreementGate():vendorView()):""")
+sub("""h+=protoBanner()+(k==="vendor"?vendorView():""", """h+=protoBanner()+(showTermsGate()?termsGate():k==="vendor"?vendorView():""")
 sub("""  if(S.quoteView&&S.session)h+=quoteViewer();""", """  if(S.quoteView&&S.session)h+=quoteViewer();
   else if(S.agreementView&&S.session)h+=agreementViewer();""")
 sub("""<button class="btn ghost sm" data-act="signout">Sign out</button>`;""", """${myAgreementBtn()}<button class="btn ghost sm" data-act="signout">Sign out</button>`;""")
 sub("""v.insured?"Insurance checked":"Insurance not checked"}</p>""", """v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}""")
 sub("""${v.approved===false?'<span class="pill late">Needs review</span>':""} ${v.featured?'<span class="pill featured">Featured</span>':""} ${v.sample?""", """${v.approved===false?'<span class="pill late">Needs review</span>':""}${agreementPill(v)} ${v.featured?'<span class="pill featured">Featured</span>':""} ${v.sample?""")
-sub("Approved. They can be matched now.", "Approved. Next time they sign in, they'll see the fees and sign the agreement.")
+sub("Approved. They can be matched now.", "Approved. Next time they sign in, they'll see the fees, then they're ready for introductions.")
 sub(".vcard.wide{width:min(720px,calc(100% - 32px))}", """.vcard.wide{width:min(720px,calc(100% - 32px))}
 .agbox{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 22px}.agbox.tall{max-height:68vh}
+.checkrow.top{align-items:flex-start}.checkrow.top input{margin-top:3px}.tldr{margin:6px 0 10px;padding-left:20px}.tldr li{margin:4px 0}
 .agdoc{font-size:14px;line-height:1.6}.agdoc h2{font-size:20px;font-weight:500;margin:14px 0 8px}.agdoc h3{font-size:16px;font-weight:500;margin:22px 0 6px}.agdoc p{margin:0 0 10px}
 .agtable,.agsig{border-collapse:collapse;width:100%;min-width:0;margin:8px 0 12px;font-size:14px}.agtable th,.agsig th{font-size:14px;text-transform:none;letter-spacing:0;white-space:normal;background:none}.agtable td,.agtable th,.agsig td,.agsig th{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;font-weight:400}
 .agtable th{width:45%;color:var(--ink-2)}.agsig th{font-weight:500}.agsign{font-style:italic;font-size:16px}.agblank{color:var(--muted)}
@@ -100,4 +101,5 @@ for bad in ["makeMockDb", "mockAssets", "seedPrototype", "DEMO_AGENT_EMAILS", "o
 
 d = HERE.parent / "site"; d.mkdir(exist_ok=True)
 (d / "index.html").write_text(out)
+import subprocess; subprocess.run([sys.executable, str(HERE / "build_terms.py")], check=True)
 print("wrote", len(out), "bytes")

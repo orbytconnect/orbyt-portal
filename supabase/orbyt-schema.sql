@@ -390,6 +390,63 @@ create index if not exists client_links_project_idx on public.client_links (proj
 -- People invited to a project skip the approval wait.
 -- Nobody can make themselves an admin from the sign-up form.
 -- =====================================================================
+-- ---------- Terms of Use: agents and vendors agree with a checkbox, no signature ----------
+create table if not exists public.terms_acceptances (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid references auth.users (id) on delete set null,
+  email           text not null,
+  role            text not null check (role in ('agent', 'vendor')),
+  version         text not null,
+  source          text not null default 'portal' check (source in ('signup', 'portal')),
+  accepted_at     timestamptz not null default now(),
+  ip              text,
+  first_login_ip  text,
+  user_agent      text
+);
+create index if not exists terms_acceptances_user_idx on public.terms_acceptances (user_id);
+alter table public.terms_acceptances enable row level security;
+
+drop policy if exists terms_acceptances_read on public.terms_acceptances;
+-- people see their own record; Ashleigh sees everyone's. Records are only written by the functions below.
+create policy terms_acceptances_read on public.terms_acceptances for select to authenticated
+  using (public.is_admin() or user_id = auth.uid());
+grant select on public.terms_acceptances to authenticated;
+revoke all on public.terms_acceptances from anon;
+
+-- the visitor's IP address, as passed along by Supabase's gateway
+create or replace function public.request_ip()
+returns text language sql stable set search_path = '' as $$
+  select nullif(trim(split_part(coalesce(
+    nullif(current_setting('request.headers', true), '')::json ->> 'x-forwarded-for',
+    nullif(current_setting('request.headers', true), '')::json ->> 'x-real-ip', ''), ',', 1)), '')
+$$;
+
+-- agree in the portal (people who joined before the checkbox, or after the terms change)
+create or replace function public.accept_terms(p_version text, p_user_agent text default null)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare r text; em text; new_id uuid;
+begin
+  select role, lower(email) into r, em from public.profiles where id = auth.uid();
+  if r is null or r not in ('agent', 'vendor') then raise exception 'Only agents and vendors accept these terms'; end if;
+  if p_version is null or p_version not like r || '-terms-%' then raise exception 'Those terms are not for this account'; end if;
+  insert into public.terms_acceptances (user_id, email, role, version, source, ip, user_agent)
+  values (auth.uid(), em, r, p_version, 'portal', public.request_ip(), left(p_user_agent, 300))
+  returning id into new_id;
+  return new_id;
+end $$;
+
+-- people who agreed on the sign-up form: note the IP address the first time they sign in
+create or replace function public.note_terms_login()
+returns void language sql security definer set search_path = '' as $$
+  update public.terms_acceptances set first_login_ip = public.request_ip()
+  where user_id = auth.uid() and source = 'signup' and first_login_ip is null
+$$;
+
+revoke execute on function public.accept_terms(text, text) from public, anon;
+revoke execute on function public.note_terms_login() from public, anon;
+grant execute on function public.accept_terms(text, text) to authenticated;
+grant execute on function public.note_terms_login() to authenticated;
+
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare
@@ -442,6 +499,11 @@ begin
       heard_about     = coalesce(excluded.heard_about,     public.vendor_private.heard_about),
       signup_notes    = coalesce(excluded.signup_notes,    public.vendor_private.signup_notes),
       promo_interest  = coalesce(excluded.promo_interest,  public.vendor_private.promo_interest);
+  end if;
+  -- Terms of Use accepted with the checkbox on the sign-up form
+  if (m ->> 'terms_version') like r || '-terms-%' then
+    insert into public.terms_acceptances (user_id, email, role, version, source, user_agent)
+    values (new.id, em, r, m ->> 'terms_version', 'signup', left(m ->> 'user_agent', 300));
   end if;
   return new;
 end $$;
@@ -1100,7 +1162,7 @@ begin
     if new.role = 'vendor' then
       perform public.orbyt_email(array[new.email], 'You''re approved for the Orbyt network', 'You''re in, ' || public.first_name(new.full_name),
         public.ep('Thanks for your patience while I checked everything. You''re approved as an Orbyt vendor partner.')
-        || public.ep('When you sign in, you''ll see exactly what Orbyt costs (you only pay when an introduction turns into a paid job) and the vendor agreement to sign. Then you''re ready for your first introduction.'),
+        || public.ep('When you sign in, you''ll see exactly what Orbyt costs (you only pay when an introduction turns into a paid job). Then you''re ready for your first introduction.'),
         'Sign in to Orbyt', 'approved');
     elsif new.role = 'agent' then
       perform public.orbyt_email(array[new.email], 'You''re approved for Orbyt', 'You''re in, ' || public.first_name(new.full_name),

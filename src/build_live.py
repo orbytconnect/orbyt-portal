@@ -74,7 +74,7 @@ sub("""  if(S.quoteView&&S.session)h+=quoteViewer();""", """  if(S.quoteView&&S.
   else if(S.agreementView&&S.session)h+=agreementViewer();
   else if(S.myDetails&&S.session&&typeof myDetailsView==="function")h+=myDetailsView();""")
 sub("""<button class="btn ghost sm" data-act="signout">Sign out</button>`;""", """${myAgreementBtn()}<button class="btn ghost sm" data-act="signout">Sign out</button>`;""")
-sub("""v.insured?"Insurance checked":"Insurance not checked"}</p>""", """v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}${kind()==="orbyt"?insuranceAdminLine(v):""}""")
+sub("""v.insured?"Insurance checked":"Insurance not checked"}</p>""", """v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}${kind()==="orbyt"?insuranceAdminLine(v)+businessLine(v)+reviewReqLine(v):""}""")
 sub("""${v.approved===false?'<span class="pill late">Needs review</span>':""} ${v.featured?'<span class="pill featured">Featured</span>':""} ${v.sample?""", """${v.approved===false?'<span class="pill late">Needs review</span>':""}${agreementPill(v)} ${v.featured?'<span class="pill featured">Featured</span>':""} ${v.sample?""")
 sub("Approved. They can be matched now.", "Approved. Next time they sign in, they'll see the fees, then they're ready for introductions.")
 sub(".vcard.wide{width:min(720px,calc(100% - 32px))}", """.vcard.wide{width:min(720px,calc(100% - 32px))}
@@ -86,7 +86,21 @@ sub(".vcard.wide{width:min(720px,calc(100% - 32px))}", """.vcard.wide{width:min(
 .agtable,.agsig{border-collapse:collapse;width:100%;min-width:0;margin:8px 0 12px;font-size:14px}.agtable th,.agsig th{font-size:14px;text-transform:none;letter-spacing:0;white-space:normal;background:none}.agtable td,.agtable th,.agsig td,.agsig th{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;font-weight:400}
 .agtable th{width:45%;color:var(--ink-2)}.agsig th{font-weight:500}.agsign{font-style:italic;font-size:16px}.agblank{color:var(--muted)}
 .feegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:12px 0}.feecard{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:14px 16px}
-.feecard .agtable{margin:8px 0}.feebig{font-size:30px;margin:6px 0}.feecalc{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:end;margin:6px 0 12px}.feecalc .field{max-width:200px}""")
+.feecard .agtable{margin:8px 0}.feebig{font-size:30px;margin:6px 0}.feecalc{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:end;margin:6px 0 12px}.feecalc .field{max-width:200px}
+.reviewagree{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:12px}.reviewagree h2{font-size:20px;font-weight:500;margin:6px 0 0}.reviewagree .feegrid{margin:0}.reviewagree .tldr{margin:0}
+.field small{color:var(--muted);font-size:12px;margin-bottom:4px}.rrrows{display:flex;flex-direction:column;gap:8px}.rrcard .tablewrap{margin-top:10px}
+.starpick{display:inline-flex;flex-direction:row-reverse;justify-content:flex-end;gap:6px;margin-top:4px}.starpick input{position:absolute;opacity:0;width:1px;height:1px}
+.starpick label{font-size:32px;line-height:1;color:var(--line);cursor:pointer}.starpick input:checked~label,.starpick label:hover,.starpick label:hover~label{color:var(--star)}
+.starpick input:focus-visible+label{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}""")
+# review requests: invite card on the vendor dashboard, and "Past client" labels wherever reviews show
+sub('h+=(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);',
+    'h+=(typeof insuranceCard==="function"?insuranceCard(v):"")+reviewInviteCard(v)+vendorPricingCard(v);')
+sub('<span class="rating"><b>${"\u2605".repeat(r.rating)}</b><span class="small">${"\u2605".repeat(5-r.rating)}</span></span></div>',
+    '<span class="rating"><b>${"\u2605".repeat(r.rating)}</b><span class="small">${"\u2605".repeat(5-r.rating)}</span></span>${revSource(r)}</div>')
+sub('${esc(r.agent||"Agent")} · ${esc(p?p.address:"")} · ${ago(r.createdAt)}', '${esc(revWho(r))}${p?" · "+esc(p.address):""} · ${ago(r.createdAt)}')
+sub('${esc(r.comment||"")}<div class="small">${esc(r.agent||"Agent")}, ${ago(r.createdAt)}</div></blockquote>',
+    '${esc(r.comment||"")}<div class="small">${esc(revWho(r))}, ${ago(r.createdAt)}${revSource(r)}</div></blockquote>')
+sub('A.push({id:"newrev-"+r.id,cls:"k-bid",label:"New review",', 'A.push({id:"newrev-"+r.id,cls:"k-bid",label:r.source==="past_client"?"Past client review":"New review",')
 # only Orbyt can create introductions in the database, so automatic matching runs from Ashleigh's side
 sub("if(auto)for(const c of cats)", "if(auto&&kind()===\"orbyt\")for(const c of cats)")
 sub("if(auto)for(const c of add)", "if(auto&&kind()===\"orbyt\")for(const c of add)")

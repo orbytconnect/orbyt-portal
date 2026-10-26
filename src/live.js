@@ -9,7 +9,7 @@ let sb=null;
 const D={};                       // raw rows, by table
 const TABLES=["profiles","vendors","vendor_admin","vendor_private","vendor_notes","projects","project_private","project_admin",
   "project_members","default_shares","bids","invoices","reviews","favorites","task_checks","client_links","my_tasks","time_logs",
-  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances"];
+  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests"];
 const nz=v=>v===""||v===undefined?null:v;
 const camel=s=>s.replace(/_([a-z])/g,(m,c)=>c.toUpperCase());
 const snake=s=>s.replace(/[A-Z]/g,c=>"_"+c.toLowerCase());
@@ -24,6 +24,8 @@ function friendlyDbError(e){const m=String((e&&e.message)||e||"");
   return"That didn't save. Check your connection and try again."}
 
 async function fetchAll(t){
+  // review requests come through a function so the private review links never reach the page
+  if(t==="review_requests"){if(!S.uid)return undefined;const{data,error}=await sb.rpc("review_requests_list");return error?undefined:(data||[])}
   let out=[],from=0;
   for(;;){const{data,error}=await sb.from(t).select("*").range(from,from+999);
     if(error){console.error("load "+t,error);return t==="terms_acceptances"?undefined:out} // no terms step until update 8 is in
@@ -39,6 +41,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
       photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
       pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
+      legalName:p.legal_name||"",dba:p.dba||"",businessType:p.business_type||"",signerTitle:p.signer_title||"",marketingOptOut:!!p.marketing_opt_out,
       insVerifiedPath:a.insurance_verified_path||"",insVerifiedAt:a.insurance_verified_at||"",insExpires:a.insurance_expires||"",insNote:a.insurance_note||"",insNoteAt:a.insurance_note_at||""}})}
 function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D.project_admin,"project_id");
   return(D.projects||[]).map(p=>{const pp=PP[p.id]||{},pa=PA[p.id]||{};
@@ -62,7 +65,8 @@ function appBids(){const INV=byKey(D.invoices,"bid_id");
     for(const k of["changeNote","declineNote","declineReason","note","introNote","confirmNote","finalNote"])if(o[k]==null)o[k]="";
     return o})}
 function appReviews(){return(D.reviews||[]).map(r=>({id:r.id,bidId:r.bid_id,vendorId:r.vendor_id,projectId:r.project_id,agent:r.agent_name||"",agentId:r.agent_id,
-  rating:r.rating,comment:r.comment||"",approved:!!r.approved,createdAt:r.created_at}))}
+  rating:r.rating,comment:r.comment||"",approved:!!r.approved,createdAt:r.created_at,source:r.source||"booked",brokerage:r.reviewer_brokerage||"",
+  reviewerEmail:r.reviewer_email||"",workWhen:r.work_when||""}))}
 const settingVal=k=>((D.settings||[]).find(x=>x.key===k)||{}).value;
 function myAgentName(){return S.me?(S.me.full_name||S.me.email):""}
 function appCollection(n){
@@ -330,8 +334,14 @@ function signupView(m){
         <label class="field"><span>How did you hear about Orbyt?</span><input type="text" id="su-heard" name="heard"></label>`:""}
       <div class="grid"><label class="field"><span>Create a password (8+ characters)</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}
-      ${m==="vendor"?`<p class="small" style="margin:0"><b>What Orbyt costs:</b> nothing to join and no monthly fee. You only pay when an introduction turns into a paid job, on a sliding scale for the first job with each new agent (12% of the first $1,000, less above that, $600 cap) and 2% on repeat jobs. The full fee schedule is in the terms.</p>`:""}
-      <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}${m==="vendor"?", including the fee schedule":""}.</span></label>
+      ${m==="vendor"?`<div class="reviewagree"><div class="eyebrow">Review and agree</div>
+        <h2>Your fees</h2><p class="small" style="margin:0">You only pay when an introduction turns into a paid job. The client pays you directly, the same as always.</p>${signupFees()}
+        ${keyHighlights("vendor")}
+        <h2>Your business</h2>${bizFields("su")}
+        <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink("vendor")}, including the fees above.</span></label>
+        ${authorityBox("su")}
+        <label class="checkrow top"><input type="checkbox" id="su-optout" name="optout"> <span>If you'd rather not receive Orbyt updates and announcements, tick this box.</span></label></div>`
+      :`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>`}
       <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",location.origin+location.pathname).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>${authMsg()}
       <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
     </form></div></section>`;
@@ -431,11 +441,13 @@ document.addEventListener("submit",async e=>{
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
       const err=!first||!last?"Add your first and last name.":!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)?"Enter a valid email.":m==="vendor"&&!String(fd.get("company")||"").trim()?"Add your company name."
         :m==="vendor"&&!svcs.length?"Pick or type at least one service you offer.":pass.length<8?"Use a password with at least 8 characters.":pass!==pass2?"Those passwords don't match. Type them again."
-        :!fd.get("terms")?`Check the box to agree to the ${TERMS[m].title}.`:"";
+        :m==="vendor"&&!String(fd.get("legal")||"").trim()?"Add your legal business name.":m==="vendor"&&!fd.get("btype")?"Choose your business type."
+        :m==="vendor"&&!String(fd.get("title")||"").trim()?"Add your title.":!fd.get("terms")?`Check the box to agree to the ${TERMS[m].title}.`
+        :m==="vendor"&&!fd.get("authority")?"Check the box to confirm you have authority to agree for the business.":"";
       if(err)return done(err);
       const meta={role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();
-      else Object.assign(meta,{company:String(fd.get("company")).trim(),website:String(fd.get("web")||"").trim(),services:svcs,years_in_business:String(fd.get("years")||""),
+      else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),website:String(fd.get("web")||"").trim(),services:svcs,years_in_business:String(fd.get("years")||""),
         team_size:String(fd.get("team")||""),lead_time:String(fd.get("lead")||""),references:String(fd.get("references")||"").trim(),heard_about:String(fd.get("heard")||"").trim()});
       const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:location.origin+location.pathname}});
       if(error)return done(friendlyAuthError(error));
@@ -448,6 +460,7 @@ async function liveBoot(){
   sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   const q=new URLSearchParams(location.search);
   if(q.get("quotes")){S.authReady=true;await renderClientPage(q.get("quotes"));return}
+  if(q.get("review")){S.authReady=true;await renderReviewPage(q.get("review"));return}
   // links from orbytconnect.com: ?join=agent or ?join=vendor opens that sign-up form
   const join=q.get("join");if(join==="agent"||join==="vendor")S.authMode=join;else if(q.has("join"))S.authMode="join";
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.authReady=true;S.session=null;render()}});
@@ -531,7 +544,7 @@ function feesSection(){
     ${feeCalc()}
     <p class="small" style="margin:0"><b>When it's due:</b> report your final invoice amount within 5 business days of finishing a job (you can do it right on the job in the portal). Orbyt sends an invoice, due 15 days after the job wraps. Fees more than 30 days past due add 1.5% a month, and new introductions pause until they're paid.</p></section>`}
 const SHORT={
-  vendor:["Reply to each introduction within 48 hours: yes, no, or a question. Saying no is always fine.",
+  vendor:["Reply to each intro within 48 hours with a yes, a no, or a question. Saying no is always fine, and it's much better than no reply. Going quiet on a request means fewer matches down the road.",
     "You contract with and bill the client directly, in your own name, and you're responsible for your work. Add Orbyt's short client notice (Schedule 2) to your quotes.",
     "Keep your licenses current and carry general liability insurance of at least $1M per occurrence and $2M aggregate. Depending on your services, Orbyt also needs to be named as an additional insured (Schedule 3).",
     "You cover claims about your work, Orbyt's liability is limited, and most disputes go to individual arbitration in San Diego."],
@@ -541,14 +554,39 @@ const SHORT={
     "You decide who gets access to a property, following your brokerage, MLS and lockbox rules.",
     "Please don't help a vendor book around Orbyt to avoid their fee.",
     "Orbyt's liability is limited, and most disputes go to individual arbitration in San Diego."]};
-const shortVersion=r=>`<section class="section"><h2>The short version</h2><ul class="tldr">${SHORT[r].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
-  <p class="small" style="margin:0">This is a summary. The full ${termsLink(r,"Terms of Use")} are what count.</p></section>`;
-const termsForm=r=>`<form class="form" data-form="acceptterms" novalidate><h2>${r==="vendor"?"Vendor":"Agent"} Terms of Use</h2>
+const keyHighlights=r=>`<h2>Key Highlights</h2><ul class="tldr">${SHORT[r].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+  <p class="small" style="margin:0">This is a summary. The full ${termsLink(r,"Terms of Use")} are what count.</p>`;
+const shortVersion=r=>`<section class="section">${keyHighlights(r)}</section>`;
+/* ---------- vendor Review & Agree: business details, authority, marketing opt-out ---------- */
+const BIZ_TYPES=["Sole proprietor","LLC","Corporation","Partnership"];
+function bizFields(pre,v){v=v||{};
+  return `<div class="grid"><label class="field"><span>Legal business name</span><input type="text" id="${pre}-legal" name="legal" value="${esc(v.legalName||"")}" data-bizname required>
+      <small class="small">As it appears on your license or insurance</small></label>
+    <label class="field"><span>DBA (optional)</span><input type="text" id="${pre}-dba" name="dba" value="${esc(v.dba||"")}"></label>
+    <label class="field"><span>Business type</span><select id="${pre}-btype" name="btype"><option value="">Choose one</option>${BIZ_TYPES.map(x=>`<option ${v.businessType===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
+    <label class="field"><span>Your title</span><input type="text" id="${pre}-title" name="title" value="${esc(v.signerTitle||"")}" placeholder="Owner, manager, partner"></label></div>`}
+const authorityBox=(pre,name)=>`<label class="checkrow top"><input type="checkbox" id="${pre}-auth" name="authority"> <span>I have authority to agree to these terms on behalf of <b class="bizname">${esc(name||"[Legal business name]")}</b>.</span></label>`;
+function bizErr(fd){return !String(fd.get("legal")||"").trim()?"Add your legal business name.":!fd.get("btype")?"Choose your business type.":!String(fd.get("title")||"").trim()?"Add your title."
+  :!fd.get("authority")?"Check the box to confirm you have authority to agree for the business.":""}
+const bizData=fd=>({legal_name:String(fd.get("legal")||"").trim(),dba:String(fd.get("dba")||"").trim(),business_type:String(fd.get("btype")||""),signer_title:String(fd.get("title")||"").trim(),authority:!!fd.get("authority")});
+function signupFees(){
+  return `<div class="feegrid">
+    <div class="feecard"><span class="eyebrow">First job with a new agent</span><table class="agtable"><tbody><tr><td>First $1,000</td><td>12%</td></tr><tr><td>$1,001 to $5,000</td><td>8%</td></tr><tr><td>Above $5,000</td><td>5%</td></tr></tbody></table>
+      <p class="small" style="margin:0">Each portion at its own rate, like tax brackets. $25 minimum, $600 cap per job.</p></div>
+    <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">Later jobs with that agent or their clients. $15 minimum, $100 cap per job.</p></div>
+    <div class="feecard"><span class="eyebrow">Good to know</span><p class="small" style="margin:0">Nothing to join and no monthly fee. Optional promoted placement is $20 per promotion. Fees more than 30 days past due add 1.5% a month, and new intros pause until they're paid.</p></div></div>`}
+// the business name in the authority line follows what's typed
+document.addEventListener("input",e=>{const el=e.target;if(!el.matches||!el.matches("input[data-bizname]"))return;const f=el.closest("form");
+  f&&f.querySelectorAll(".bizname").forEach(b=>b.textContent=el.value.trim()||"[Legal business name]")},true);
+const termsForm=r=>{const v=r==="vendor"?vendorById(myVendorId()):null;
+  return `<form class="form" data-form="acceptterms" novalidate><h2>${r==="vendor"?"Vendor":"Agent"} Terms of Use</h2>
     <p class="small" style="margin:0">Read the full ${termsLink(r,"Terms of Use")}. They open in a new tab, where you can print or save a copy.</p>
-    <label class="checkrow top"><input type="checkbox" id="tm-ok" name="ok"> <span>I agree to the ${termsLink(r)}${r==="vendor"?", including the fee schedule, on behalf of my business":""}.</span></label>
+    ${r==="vendor"?bizFields("tm",v):""}
+    <label class="checkrow top"><input type="checkbox" id="tm-ok" name="ok"> <span>I've read and agree to the ${termsLink(r)}${r==="vendor"?", including the fees above":""}.</span></label>
+    ${r==="vendor"?authorityBox("tm",v&&v.legalName):""}
     <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",location.origin+location.pathname).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>
     <p class="small warntext tmerr" role="alert" style="margin:0" hidden></p>
-    <div class="actions"><button class="btn" type="submit">Agree and continue</button><button class="btn ghost" type="button" data-act="signout">Sign out</button></div></form>`;
+    <div class="actions"><button class="btn" type="submit">Agree and continue</button><button class="btn ghost" type="button" data-act="signout">Sign out</button></div></form>`};
 function termsGate(){
   const r=myRole(),done=!!currentAcceptance(S.uid,r);
   if(r==="vendor"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
@@ -561,9 +599,14 @@ function termsGate(){
     <p>Before you start, please read and agree to the Agent Terms of Use.</p></div></section>${shortVersion("agent")}${termsForm("agent")}`;
 }
 document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="acceptterms"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
-  const r=myRole();if(!r)return;const el=f.querySelector(".tmerr");
-  if(!new FormData(f).get("ok")){if(el){el.textContent=`Check the box to agree to the ${TERMS[r].title}.`;el.hidden=false}return}
-  guard(async()=>{fail((await sb.rpc("accept_terms",{p_version:TERMS[r].version,p_user_agent:navigator.userAgent.slice(0,300)})).error,"terms");
+  const r=myRole();if(!r)return;const el=f.querySelector(".tmerr"),fd=new FormData(f);
+  const bad=r==="vendor"&&bizErr(fd)?bizErr(fd):!fd.get("ok")?`Check the box to agree to the ${TERMS[r].title}.`:"";
+  if(bad){if(el){el.textContent=bad;el.hidden=false}return}
+  const args={p_version:TERMS[r].version,p_user_agent:navigator.userAgent.slice(0,300)};
+  guard(async()=>{let res=await sb.rpc("accept_terms",r==="vendor"?{...args,p_details:bizData(fd)}:args);
+    // before update 10 is run, the database only knows the two-field version
+    if(res.error&&r==="vendor"&&/function|p_details|schema cache/i.test(res.error.message||""))res=await sb.rpc("accept_terms",args);
+    fail(res.error,"terms");
     markFeesSeen();await S.db.reload();window.scrollTo({top:0})},r==="vendor"?"Thanks! You're all set for introductions.":"Thanks! You're all set.")},true);
 document.addEventListener("input",e=>{if(e.target.id!=="ag-calc")return;S.agCalc=e.target.value;const out=$("#ag-calc-out");if(!out)return;const x=Number(S.agCalc||0);
   out.innerHTML=x>0?`First job with a new agent: <b>${money2(feeFirst(x))}</b> (${(feeFirst(x)/x*100).toFixed(1)}%). Repeat job with that agent: <b>${money2(feeRepeat(x))}</b>.`:"Enter an amount to see both fees."},true);
@@ -821,3 +864,96 @@ document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form=
       row={agent_name:g("name"),agent_email:em,agent_phone:g("phone")||null,brokerage:g("brokerage")||null,agent_id:ex&&ex.role==="agent"?ex.id:null}}
     else{const a=(D.profiles||[]).find(x=>x.id===who);if(!a)return;row={agent_name:a.full_name||a.email,agent_email:a.email,agent_phone:a.phone||null,brokerage:a.brokerage||null,agent_id:a.id}}
     guard(async()=>{fail((await sb.from("projects").update(row).eq("id",pid)).error,"project");S.chAgent=null;S.chAgentNew=false;await S.db.reload()},`Moved to ${row.agent_name}.`)}},true);
+
+/* ---------- review requests: approved vendors invite up to 10 past clients (agents) to review them ---------- */
+// Keep RR_LIMIT in step with public.review_request_limit() in the database (orbyt-update-10.sql).
+const RR_LIMIT=10;
+const rrKey=()=>"orbyt-rr-hidden-"+S.uid;
+function rrHidden(){try{return localStorage.getItem(rrKey())==="1"}catch(_){return false}}
+function rrSetHidden(on){try{on?localStorage.setItem(rrKey(),"1"):localStorage.removeItem(rrKey())}catch(_){}}
+const rrFor=vid=>(D.review_requests||[]).filter(q=>q.vendor_id===vid);
+const rrRow=i=>`<div class="grid rrrow"><label class="field"><span>Agent name</span><input type="text" id="rr-name-${i}" name="rrname" autocomplete="off"></label>
+  <label class="field"><span>Agent email</span><input type="email" id="rr-email-${i}" name="rremail" autocomplete="off"></label></div>`;
+function rrForm(left,first){const n=Math.min(3,left);
+  return `<form class="form inner" data-form="rrsend" novalidate data-left="${left}">
+    <div class="rrrows">${Array.from({length:n},(_,i)=>rrRow(i)).join("")}</div>
+    ${left>n?`<div><button class="linkbtn" type="button" data-act="rradd">Add another agent</button> <span class="small">You can invite ${left} more.</span></div>`:""}
+    <label class="field"><span>A personal note (optional)</span><textarea id="rr-note" name="note" rows="3" maxlength="600" placeholder="Thanks again for having us on the Del Mar listing. A quick review would mean a lot."></textarea></label>
+    <p class="small" style="margin:0">Please don't offer anything in exchange for a review. I check each one before it's posted, and honest reviews are welcome, including critical ones.</p>
+    <p class="small warntext rrerr" role="alert" style="margin:0" hidden></p>
+    <div class="actions"><button class="btn" type="submit">Send review requests</button>${first?`<button class="btn ghost" type="button" data-act="rrhide">Not now</button>`:""}</div></form>`}
+function reviewInviteCard(v){
+  if(!v||v.approved===false||!v.userId||!Array.isArray(D.review_requests))return"";
+  const sent=rrFor(v.id),left=Math.max(0,RR_LIMIT-sent.length),done=sent.filter(q=>q.completed_at).length;
+  if(!sent.length&&rrHidden())return `<section class="section"><div class="sechead" style="margin:0"><div><h2>Reviews from past clients</h2>
+      <span class="small">Invite up to ${RR_LIMIT} agents you've worked with to review you.</span></div><button class="btn ghost sm" data-act="rrshow">Invite agents</button></div></section>`;
+  const status=q=>q.completed_at?`<span class="pill set">Reviewed</span>`:q.reminded_at?`<span class="pill">Reminder sent</span>`:`<span class="pill">Waiting</span>`;
+  const list=sent.length?`<div class="tablewrap"><table><thead><tr><th>Agent</th><th>Invited</th><th>Status</th></tr></thead><tbody>${sent.map(q=>`<tr>
+      <td><span class="strong">${esc(q.agent_name)}</span><div class="small">${esc(q.agent_email)}</div></td><td class="small">${esc(fmtStamp(q.created_at))}</td><td>${status(q)}</td></tr>`).join("")}</tbody></table></div>`:"";
+  if(!sent.length)return `<section class="section rrcard"><div class="sechead" style="margin:0"><h2>Get your first reviews</h2></div>
+    <p>Agents look at reviews before they book someone new. Invite up to ${RR_LIMIT} agents you've worked with, and I'll email each one a private link to review you. They don't need an account, and it takes about two minutes.</p>
+    <p class="small" style="margin:0">Their reviews show on your profile as past client reviews once I've checked them. Anyone who hasn't replied gets one reminder after 5 days.</p>
+    ${rrForm(left,true)}</section>`;
+  return `<section class="section rrcard"><div class="sechead" style="margin:0"><div><h2>Reviews from past clients</h2>
+      <span class="small">${sent.length} invited · ${done} reviewed. Reviews show on your profile once I've checked them.</span></div></div>
+    ${list}${left?`<details class="insmore"${S.rrMore?" open":""}><summary class="small">Invite more agents (${left} left)</summary>${rrForm(left)}</details>`:`<p class="small" style="margin:8px 0 0">You've invited all ${RR_LIMIT} agents. Reviews from jobs booked through Orbyt add up from here.</p>`}</section>`;
+}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;const a=t.dataset.act;
+  if(a==="rrhide"){rrSetHidden(true);render()}
+  else if(a==="rrshow"){rrSetHidden(false);render();$("#rr-name-0")?.focus()}
+  else if(a==="rradd"){const f=t.closest("form"),box=f&&f.querySelector(".rrrows");if(!box)return;const n=box.querySelectorAll(".rrrow").length,left=Number(f.dataset.left||0);
+    if(n>=left)return;box.insertAdjacentHTML("beforeend",rrRow(n));box.querySelector(`#rr-name-${n}`)?.focus();if(n+1>=left)t.parentElement.hidden=true}},true);
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="rrsend"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const er=f.querySelector(".rrerr"),show=m=>{if(er){er.textContent=m;er.hidden=!m}};
+  const names=[...f.querySelectorAll('input[name="rrname"]')].map(x=>x.value.trim()),mails=[...f.querySelectorAll('input[name="rremail"]')].map(x=>x.value.trim().toLowerCase());
+  const inv=[],seen=new Set();
+  for(let i=0;i<names.length;i++){const n=names[i],m=mails[i];if(!n&&!m)continue;
+    if(!n)return show(`Add a name for ${m}.`);if(!okEmail(m))return show(`Check the email for ${n}.`);
+    if(seen.has(m))return show(`${m} is listed twice.`);seen.add(m);inv.push({name:n,email:m})}
+  if(!inv.length)return show("Add at least one agent's name and email.");show("");
+  const note=String(new FormData(f).get("note")||"").trim();
+  guard(async()=>{fail((await sb.rpc("send_review_requests",{p_invites:inv,p_note:note||null})).error,"review requests");S.rrMore=false;await S.db.reload()},
+    `Sent to ${inv.length} ${inv.length===1?"agent":"agents"}. Their reviews show up once I've checked them.`)},true);
+document.addEventListener("toggle",e=>{const d=e.target;if(d.matches&&d.matches(".rrcard details"))S.rrMore=d.open},true);
+
+// for Ashleigh, on the vendor's card
+function businessLine(v){const bits=[v.legalName?"Legal name: "+v.legalName:"",v.dba?"DBA "+v.dba:"",v.businessType,v.signerTitle?`${v.contactName||"Signer"}, ${v.signerTitle}`:""].filter(Boolean);
+  if(!bits.length&&!v.marketingOptOut)return"";
+  return `<p class="small" style="margin:6px 0 0">${esc(bits.join(" · "))}${v.marketingOptOut?`${bits.length?" · ":""}Opted out of Orbyt updates`:""}</p>`}
+function reviewReqLine(v){if(!Array.isArray(D.review_requests))return"";const q=rrFor(v.id);if(!q.length)return"";
+  return `<p class="small" style="margin:6px 0 0">Review requests: ${q.length} sent, ${q.filter(x=>x.completed_at).length} reviewed (${esc(q.map(x=>x.agent_name+(x.completed_at?", reviewed":"")).join("; "))})</p>`}
+// a label on reviews from past clients, so they're never mistaken for jobs booked through Orbyt
+const revSource=r=>r&&r.source==="past_client"?` <span class="pill">Past client</span>`:"";
+const revWho=r=>r&&r.source==="past_client"?[r.agent||"Agent",r.brokerage].filter(Boolean).join(", ")+(r.workWhen?` · work in ${r.workWhen}`:""):(r&&r.agent)||"Agent";
+
+/* ---------- the review page behind a private link (no login) ---------- */
+const reviewCard=(eyebrow,title,body)=>`<section class="auth one"><div class="authcard"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${body}</div></section>`;
+async function renderReviewPage(token){
+  $("#who").innerHTML="";
+  const{data,error}=await sb.rpc("review_request_get",{p_token:token});
+  if(error||!data){$("#app").innerHTML=reviewCard("Review","This review link isn't active",`<p>If you were asked for a review, reply to the email and I'll send a new link.</p><p class="small">Ashleigh at Orbyt</p>`);return}
+  if(data.done){$("#app").innerHTML=reviewCard("Review","Thanks, your review is in",`<p>I'll check it and add it to ${esc(data.vendor)}'s profile.</p><p class="small">Ashleigh at Orbyt</p>`);return}
+  const svc=(data.services||[]).slice(0,3).join(", ");
+  const stars=[5,4,3,2,1].map(n=>`<input type="radio" id="rv-star-${n}" name="rating" value="${n}"><label for="rv-star-${n}" title="${n} ${n===1?"star":"stars"}"><span aria-hidden="true">★</span><span class="sr">${n} ${n===1?"star":"stars"}</span></label>`).join("");
+  $("#app").innerHTML=reviewCard("Review"+(svc?" · "+esc(svc):""),`How was working with ${esc(data.vendor)}?`,`
+    <p class="small" style="margin:0">${esc(data.vendor)} asked for your review. It helps other San Diego agents find good people. No account needed.</p>
+    <form class="authform" data-form="reviewsubmit" data-token="${esc(token)}" novalidate>
+      <fieldset class="field" style="border:0;padding:0;margin:0"><legend class="legend">Your rating</legend><div class="starpick">${stars}</div></fieldset>
+      <label class="field"><span>About the work</span><textarea id="rv-comment" name="comment" rows="5" maxlength="2000" placeholder="What did they do, and how did it go? Quality, communication, timing, anything another agent should know."></textarea></label>
+      <div class="grid"><label class="field"><span>Your name</span><input type="text" id="rv-name" name="name" value="${esc(data.agent_name||"")}" autocomplete="name"></label>
+        <label class="field"><span>Your brokerage</span><input type="text" id="rv-brokerage" name="brokerage" autocomplete="organization"></label></div>
+      <label class="field"><span>About when was the job? (optional)</span><input type="text" id="rv-when" name="when" maxlength="40" placeholder="Spring 2026"></label>
+      <p class="small" style="margin:0">I check every review before it's posted. Your name, brokerage and review show on their Orbyt profile, never your email. Read the <a href="${esc(new URL("privacy.html",location.origin+location.pathname).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+      <p class="small warntext rverr" role="alert" style="margin:0" hidden></p>
+      <button class="btn" type="submit">Send my review</button></form>`);
+}
+document.addEventListener("submit",async e=>{const f=e.target.closest('form[data-form="reviewsubmit"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const fd=new FormData(f),g=k=>String(fd.get(k)||"").trim(),er=f.querySelector(".rverr"),show=m=>{if(er){er.textContent=m;er.hidden=!m;if(m)er.scrollIntoView({block:"nearest"})}};
+  const rating=Number(fd.get("rating")||0);
+  const bad=!rating?"Pick a star rating.":!g("comment")?"Add a few words about the work.":!g("name")?"Add your name.":!g("brokerage")?"Add your brokerage.":"";
+  if(bad)return show(bad);show("");
+  const btn=f.querySelector('button[type="submit"]');if(btn)btn.disabled=true;
+  const{error}=await sb.rpc("review_request_submit",{p_token:f.dataset.token,p_rating:rating,p_comment:g("comment"),p_name:g("name"),p_brokerage:g("brokerage"),p_when:g("when")||null});
+  if(btn)btn.disabled=false;
+  if(error){console.error(error);return show(/already been sent|isn't active|Pick|Add /.test(error.message||"")?String(error.message).replace(/^.*?ERROR:\s*/,""):"That didn't send. Check your connection and try again.")}
+  $("#app").innerHTML=reviewCard("Review","Thank you!",`<p>Your review is in. I'll check it and add it to the profile, usually within a day.</p><p class="small">Ashleigh at Orbyt</p>`);window.scrollTo({top:0})},true);

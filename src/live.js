@@ -591,8 +591,8 @@ function termsGate(){
   const r=myRole(),done=!!currentAcceptance(S.uid,r);
   if(r==="vendor"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
     return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>You're approved, ${esc(first)}</h1>
-      <p>${done?"Before your first introduction, here's exactly what Orbyt costs.":"Before your first introduction, here's exactly what Orbyt costs, and the terms to agree to."}</p></div></section>
-      ${feesSection()}${done?`<div class="actions" style="margin-bottom:28px"><button class="btn" data-act="feesok">Got it, take me to my dashboard</button>
+      <p>${done?"Before your first introduction, here's a quick look at what Orbyt costs and how it works.":"Before your first introduction, here's exactly what Orbyt costs, and the terms to agree to."}</p></div></section>
+      ${feesSection()}${done?`${shortVersion("vendor")}<div class="actions" style="margin-bottom:28px"><button class="btn" data-act="feesok">Sounds good, take me to my dashboard</button>
         <span class="small">You agreed to the ${termsLink("vendor","Vendor Terms of Use")} when you signed up.</span></div>`:shortVersion("vendor")+termsForm("vendor")}`}
   const first=String((S.me&&S.me.full_name)||"").split(" ")[0];
   return `<section class="hello"><div><div class="eyebrow">Welcome to Orbyt</div><h1>One quick thing${first?", "+esc(first):""}</h1>

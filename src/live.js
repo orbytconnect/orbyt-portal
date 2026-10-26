@@ -957,3 +957,14 @@ document.addEventListener("submit",async e=>{const f=e.target.closest('form[data
   if(btn)btn.disabled=false;
   if(error){console.error(error);return show(/already been sent|isn't active|Pick|Add /.test(error.message||"")?String(error.message).replace(/^.*?ERROR:\s*/,""):"That didn't send. Check your connection and try again.")}
   $("#app").innerHTML=reviewCard("Review","Thank you!",`<p>Your review is in. I'll check it and add it to the profile, usually within a day.</p><p class="small">Ashleigh at Orbyt</p>`);window.scrollTo({top:0})},true);
+
+/* ---------- removing a service from a project: one database call, so agents can close open requests too ---------- */
+async function removeService(p,c){
+  const{error}=await sb.rpc("remove_project_service",{p_project:p.id,p_category:c});
+  // before update 11 is run, Ashleigh can still do it the old way
+  if(error&&kind()==="orbyt"&&/function|schema cache/i.test(error.message||"")){
+    for(const b of bidsFor(p.id,c))if(["requested","submitted","changes"].includes(b.status))fail((await sb.from("bids").update({status:"passed"}).eq("id",b.id)).error,"bid");
+    fail((await sb.from("projects").update({categories:(p.categories||[]).filter(x=>x!==c)}).eq("id",p.id)).error,"project")}
+  else fail(error,"remove service");
+  await S.db.reload();
+}

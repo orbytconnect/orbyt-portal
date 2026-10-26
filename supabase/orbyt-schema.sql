@@ -568,7 +568,9 @@ declare
   is_agent  boolean;
 begin
   -- changes made by the database itself (like reopening quotes) are allowed
-  if auth.uid() is null or pg_trigger_depth() > 1 or public.is_admin() then return new; end if;
+  -- remove_project_service() closes open requests for agents too
+  if auth.uid() is null or pg_trigger_depth() > 1 or public.is_admin()
+     or current_setting('orbyt.service_removal', true) = 'on' then return new; end if;
   is_vendor := coalesce(old.vendor_id = public.my_vendor_id(), false);
   is_agent  := coalesce(public.on_project(old.project_id), false);
 
@@ -1920,3 +1922,42 @@ begin
 exception when others then
   raise warning 'Daily review reminders were not scheduled (%). In Supabase, turn on the pg_cron extension under Database, Extensions, then run this script again.', sqlerrm;
 end $$;
+
+-- ---------- Removing a service from a project ----------
+-- Remove a service from a project (the client booked it on their own). Ashleigh or an agent on the project can do it,
+-- as long as nobody is chosen or booked for it and the home isn't listed yet. Open requests close (vendors who already
+-- bid get the usual "went another way" email). When an agent does it, Ashleigh gets an email.
+create or replace function public.remove_project_service(p_project uuid, p_category text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare p public.projects%rowtype; who text; n integer;
+begin
+  select * into p from public.projects where id = p_project for update;
+  if p.id is null or not (public.is_admin() or public.on_project(p.id)) then
+    raise exception 'You can only remove a service from a project you''re on.';
+  end if;
+  if p.listed then raise exception 'You can only remove a service before the home is listed.'; end if;
+  if not (p_category = any (p.categories)) then return; end if;
+  if exists (select 1 from public.bids where project_id = p.id and category = p_category and status in ('chosen', 'selected')) then
+    raise exception 'You can only remove a service that nobody is booked for yet.';
+  end if;
+  perform set_config('orbyt.service_removal', 'on', true);
+  update public.bids set status = 'passed'
+   where project_id = p.id and category = p_category and status in ('requested', 'submitted', 'changes');
+  get diagnostics n = row_count;
+  perform set_config('orbyt.service_removal', 'off', true);
+  update public.projects set categories = array_remove(categories, p_category) where id = p.id;
+  if not public.is_admin() then
+    select coalesce(nullif(full_name, ''), email) into who from public.profiles where id = auth.uid();
+    perform public.orbyt_email(array[public.admin_email()],
+      coalesce(who, 'An agent') || ' removed ' || lower(p_category) || ' from ' || p.address,
+      'A service came off a project',
+      public.ep('<b>' || public.h(coalesce(who, 'An agent')) || '</b> removed <b>' || public.h(lower(p_category)) || '</b> from '
+        || public.h(p.address) || ', so the client is handling it on their own.')
+      || public.ep(case when n = 0 then 'No vendor requests were open for it.'
+                        when n = 1 then '1 open request closed.'
+                        else n || ' open requests closed.' end),
+      'Open your dashboard', 'admin_service_removed');
+  end if;
+end $$;
+revoke execute on function public.remove_project_service(uuid, text) from public, anon;
+grant execute on function public.remove_project_service(uuid, text) to authenticated;

@@ -1514,3 +1514,68 @@ revoke execute on function public.admin_set_email(uuid, text) from public, anon;
 grant execute on function public.admin_set_email(uuid, text) to authenticated;
 revoke execute on function public.profiles_sync() from public, anon, authenticated;
 revoke execute on function public.auth_email_sync() from public, anon, authenticated;
+
+-- ---------- Bid request reminders: a nudge to the vendor after 2 days, and a daily heads-up to Ashleigh ----------
+create table if not exists public.reminders_sent (
+  key      text primary key,
+  sent_at  timestamptz not null default now()
+);
+alter table public.reminders_sent enable row level security;
+drop policy if exists reminders_sent_admin on public.reminders_sent;
+create policy reminders_sent_admin on public.reminders_sent for select to authenticated using (public.is_admin());
+grant select on public.reminders_sent to authenticated;
+revoke all on public.reminders_sent from anon;
+
+create or replace function public.bid_reminders_run() returns integer language plpgsql security definer set search_path = '' as $$
+declare
+  r      record;
+  k      text;
+  lines  text := '';
+  n      integer := 0;
+begin
+  for r in
+    select b.id, b.status, b.category, p.address, p.agent_name, p.target_date, v.id as vid, v.name as vname, v.contact_name,
+           coalesce(case when b.status = 'changes' then b.changes_at end, b.introduced_at, b.requested_at) as since
+      from public.bids b
+      join public.projects p on p.id = b.project_id and not p.listed
+      join public.vendors v on v.id = b.vendor_id
+     where b.status in ('requested', 'changes')
+  loop
+    continue when r.since is null or r.since > now() - interval '2 days';
+    k := 'bid:' || r.id || ':' || r.status || ':' || floor(extract(epoch from r.since))::bigint;
+    continue when exists (select 1 from public.reminders_sent where key = k);
+    perform public.orbyt_email(array[public.vendor_email(r.vid)],
+      'Reminder: ' || r.category || ' bid for ' || r.address,
+      case when r.status = 'changes' then 'A bid update is waiting' else 'A bid request is waiting' end,
+      public.ep('Hi ' || public.h(public.first_name(coalesce(r.contact_name, r.vname))) || ', ' || public.h(r.agent_name)
+        || case when r.status = 'changes' then ' is still waiting on the change to your ' else ' is still waiting on your ' end
+        || public.h(lower(r.category)) || ' bid for <b>' || public.h(r.address) || '</b>'
+        || case when r.target_date is not null then ', with a target date of ' || public.date_text(r.target_date) else '' end || '.')
+      || public.ep('Sign in to send it. If you can''t take this one, let them know there so they can line up someone else.'),
+      'Send my bid', 'bid_reminder');
+    insert into public.reminders_sent (key) values (k) on conflict do nothing;
+    lines := lines || '<li>' || public.h(r.vname) || ': ' || public.h(r.category) || ' at ' || public.h(r.address)
+             || case when r.status = 'changes' then ' (change requested)' else '' end || '</li>';
+    n := n + 1;
+  end loop;
+  if n > 0 then
+    perform public.orbyt_email(array[public.admin_email()],
+      n || case when n = 1 then ' bid request is' else ' bid requests are' end || ' waiting on vendors',
+      'Bids waiting on vendors',
+      public.ep('These have gone 2 days without a bid. Each vendor just got a reminder:')
+      || '<ul style="font-size:15px;line-height:1.6;margin:0 0 16px;padding-left:20px">' || lines || '</ul>'
+      || public.ep('If one stays quiet, you can nudge them from your dashboard or introduce someone else.'),
+      'Open your dashboard', 'admin_bid_reminder');
+  end if;
+  return n;
+end $$;
+revoke execute on function public.bid_reminders_run() from public, anon, authenticated;
+
+-- Run it every morning, alongside the insurance reminders
+do $$
+begin
+  create extension if not exists pg_cron;
+  perform cron.schedule('orbyt-bid-reminders', '10 16 * * *', 'select public.bid_reminders_run()');
+exception when others then
+  raise warning 'Daily bid reminders were not scheduled (%). In Supabase, turn on the pg_cron extension under Database, Extensions, then run this script again.', sqlerrm;
+end $$;

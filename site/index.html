@@ -2069,9 +2069,12 @@ function projectDetail(p,mode){
     const sel=teamBid(p.id,c);const key="bid:"+p.id+":"+c;
     const waiting=bids.filter(b=>b.status==="requested").length;
     h+=`<section class="cat"><div class="cathead"><div><h3>${esc(c)}</h3>${sel?`<span class="booked">${sel.status==="chosen"?"Chosen":"Booked"}: ${vLink(sel)}</span>${sel.status==="chosen"?' <span class="small">waiting to confirm</span>':""}`:`<span class="small">${bids.length?`${bids.length} introduced · ${priced.length} ${priced.length===1?"bid":"bids"} in`:"Not matched yet"}</span>`}</div>
-      <div class="actions">${isOrbyt&&S.canWrite?`<button class="btn ghost sm" data-act="form" data-key="${esc(key)}">Add a bid you received</button>`:""}
+      <div class="actions">${isOrbyt&&S.canWrite?`<button class="btn ghost sm" data-act="form" data-key="${esc(key)}">Add a bid you received</button>`:""}${isOrbyt&&S.canWrite&&!sel&&!p.listed?`<button class="linkbtn" data-act="rmsvc" data-key="${esc(p.id+"|"+c)}">Remove service</button>`:""}
       ${!isOrbyt&&!sel&&priced.length?`<button class="btn ghost sm" data-act="clientshare" data-id="${esc(p.id)}">Send quotes to client</button>`:""}
       ${!isOrbyt&&!sel&&S.canWrite&&!openOptReq(p,c)&&bids.length?`<button class="btn ghost sm" data-act="form" data-key="more:${esc(p.id)}:${esc(c)}">Find me another option</button>`:""}</div></div>`;
+    if(isOrbyt&&!sel&&S.rmSvc===p.id+"|"+c){const open=bids.filter(b=>["requested","submitted","changes"].includes(b.status)),sent=open.filter(b=>b.status!=="requested").length;
+      h+=`<div class="callout"><p style="margin:0"><span class="strong">Remove ${esc(c.toLowerCase())} from this project?</span> Use this when the client books it on their own.${open.length?` ${open.length} open ${open.length===1?"request closes":"requests close"}${sent?`, and ${sent===1?"the vendor who sent a bid gets":"the "+sent+" vendors who sent bids get"} a note that the client went another way this time`:""}.`:""} You can add it back anytime with Add a service.</p>
+        <div class="actions"><button class="btn sm" data-act="rmsvcgo" data-key="${esc(p.id+"|"+c)}">Remove ${esc(c.toLowerCase())}</button><button class="btn ghost sm" data-act="rmsvc" data-key="">Cancel</button></div></div>`}
     if(!sel)h+=optReqCallout(p,c,isOrbyt);
     if(!isOrbyt&&S.openForm==="more:"+p.id+":"+c)h+=moreForm(p,c);
     if(!isOrbyt&&!sel&&!bids.length&&!openOptReq(p,c))h+=`<p class="empty-cat">${matchMode()==="hand"?"Ashleigh is picking":"Orbyt is lining up"} ${esc(c.toLowerCase())} vendors for this home. You'll get a task when they're introduced.</p>`;
@@ -2323,6 +2326,12 @@ const col=n=>S.db.collection(n);
 document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest('[data-act="unpick"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   const id=t.dataset.id,d=S.pick[t.dataset.key]=S.pick[t.dataset.key]||{extra:[],vals:{}};
   d.extra=(d.extra||[]).filter(x=>x!==id);d.hidden=[...new Set([...(d.hidden||[]),id])];for(const k of["sel-","avail-","note-"])delete (d.vals||{})[k+id];render()},true);
+// remove a service from a project (the client booked it elsewhere). Open requests close; vendors who already bid get the usual "went another way" note.
+document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest('[data-act="rmsvc"],[data-act="rmsvcgo"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  if(t.dataset.act==="rmsvc"){S.rmSvc=t.dataset.key||null;render();return}
+  const k=t.dataset.key,i=k.indexOf("|"),p=projById(k.slice(0,i)),c=k.slice(i+1);if(!p)return;
+  guard(async()=>{for(const b of bidsFor(p.id,c))if(["requested","submitted","changes"].includes(b.status))await col("bids").doc(b.id).update({status:"passed"});
+    await col("projects").doc(p.id).update({categories:(p.categories||[]).filter(x=>x!==c)});S.rmSvc=null;delete S.pick[p.id+"|"+c]},`Removed ${c.toLowerCase()} from ${p.address}.`)},true);
 function pickDraft(e,isChange){
   const pf=e.target.closest&&e.target.closest('form[data-form="introduce"]');if(!pf||!e.target.name)return false;
   const key=pf.dataset.p+"|"+pf.dataset.c,d=S.pick[key]=S.pick[key]||{extra:[],vals:{}};

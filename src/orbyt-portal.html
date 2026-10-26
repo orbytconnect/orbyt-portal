@@ -2027,7 +2027,7 @@ function projectDetail(p,mode){
     <div class="facts"><span>Agent <b>${esc(p.agent||"Not set")}</b></span><span>${esc(ctLabel(p))} <b>${esc(client(p)||"Not set")}</b></span>
       ${isOrbyt&&S.canWrite?`<label class="inlinesel"><span>Budget</span><select id="pb-${esc(p.id)}" data-budget="${esc(p.id)}"><option value="">Not sure</option>${TIERS.map(t=>`<option value="${t}" ${p.budget===t?"selected":""}>${BUDGETS[t]}</option>`).join("")}</select></label>`:p.budget?`<span>Budget <b>${BUDGETS[p.budget]}</b></span>`:""}
       <span class="pill ${cls}">${st}</span>${PM_ON&&isOrbyt&&!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<span class="pill comparing">${esc(PMI[p.pmInterest])}</span>`:""}</div>
-      ${isOrbyt&&p.brokerage?`<div class="small" style="margin-top:4px">${esc(p.brokerage)}${p.agentPhone?" · "+esc(p.agentPhone):""}${p.agentEmail?" · "+esc(p.agentEmail):""}</div>`:""}</div>
+      ${isOrbyt&&p.brokerage?`<div class="small" style="margin-top:4px">${esc(p.brokerage)}${p.agentPhone?" · "+esc(p.agentPhone):""}${p.agentEmail?" · "+esc(p.agentEmail):""}</div>`:""}${isOrbyt&&S.canWrite&&typeof changeAgentBlock==="function"?changeAgentBlock(p):""}</div>
     <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>`;
   if(p.notes)h+=`<p class="note">${esc(p.notes)}</p>`;
   if(mode!=="vendor")h+=teamPanel(p,isOrbyt);

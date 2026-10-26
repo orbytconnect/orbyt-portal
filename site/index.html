@@ -338,7 +338,7 @@ table.mini{min-width:0}
 .agbox{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 22px}.agbox.tall{max-height:68vh}
 .insemail{width:100%;font:13px/1.5 inherit;margin:8px 0 4px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);resize:vertical}
 .steps{margin:6px 0 0;padding-left:20px}.steps>li{margin:0 0 14px}.form.inner{margin:8px 0 0;padding:0;border:0;background:none}.insmore summary{cursor:pointer;margin-top:8px}.insnote{margin:0}
-.checkrow.top{align-items:flex-start}.btn.danger{background:var(--warn);border-color:var(--warn);color:#fff}.delrow td{background:var(--surface-2)}.checkrow.top input{margin-top:3px}.tldr{margin:6px 0 10px;padding-left:20px}.tldr li{margin:4px 0}
+.canew[hidden]{display:none!important}.checkrow.top{align-items:flex-start}.btn.danger{background:var(--warn);border-color:var(--warn);color:#fff}.delrow td{background:var(--surface-2)}.checkrow.top input{margin-top:3px}.tldr{margin:6px 0 10px;padding-left:20px}.tldr li{margin:4px 0}
 .agdoc{font-size:14px;line-height:1.6}.agdoc h2{font-size:20px;font-weight:500;margin:14px 0 8px}.agdoc h3{font-size:16px;font-weight:500;margin:22px 0 6px}.agdoc p{margin:0 0 10px}
 .agtable,.agsig{border-collapse:collapse;width:100%;min-width:0;margin:8px 0 12px;font-size:14px}.agtable th,.agsig th{font-size:14px;text-transform:none;letter-spacing:0;white-space:normal;background:none}.agtable td,.agtable th,.agsig td,.agsig th{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;font-weight:400}
 .agtable th{width:45%;color:var(--ink-2)}.agsig th{font-weight:500}.agsign{font-style:italic;font-size:16px}.agblank{color:var(--muted)}
@@ -837,6 +837,7 @@ function render(){
   else{const k=kind();h+=protoBanner()+(showTermsGate()?termsGate():k==="vendor"?vendorView():k==="agent"?agentView():orbytView())}
   if(S.quoteView&&S.session)h+=quoteViewer();
   else if(S.agreementView&&S.session)h+=agreementViewer();
+  else if(S.myDetails&&S.session&&typeof myDetailsView==="function")h+=myDetailsView();
   else if(S.vendorCard)h+=vendorCard(vendorById(S.vendorCard));
   else if(S.nudge&&kind()==="orbyt")h+=nudgeDialog();
   else if(S.clientShare&&kind()!=="vendor")h+=clientDialog();
@@ -2049,7 +2050,7 @@ function projectDetail(p,mode){
     <div class="facts"><span>Agent <b>${esc(p.agent||"Not set")}</b></span><span>${esc(ctLabel(p))} <b>${esc(client(p)||"Not set")}</b></span>
       ${isOrbyt&&S.canWrite?`<label class="inlinesel"><span>Budget</span><select id="pb-${esc(p.id)}" data-budget="${esc(p.id)}"><option value="">Not sure</option>${TIERS.map(t=>`<option value="${t}" ${p.budget===t?"selected":""}>${BUDGETS[t]}</option>`).join("")}</select></label>`:p.budget?`<span>Budget <b>${BUDGETS[p.budget]}</b></span>`:""}
       <span class="pill ${cls}">${st}</span>${PM_ON&&isOrbyt&&!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<span class="pill comparing">${esc(PMI[p.pmInterest])}</span>`:""}</div>
-      ${isOrbyt&&p.brokerage?`<div class="small" style="margin-top:4px">${esc(p.brokerage)}${p.agentPhone?" · "+esc(p.agentPhone):""}${p.agentEmail?" · "+esc(p.agentEmail):""}</div>`:""}</div>
+      ${isOrbyt&&p.brokerage?`<div class="small" style="margin-top:4px">${esc(p.brokerage)}${p.agentPhone?" · "+esc(p.agentPhone):""}${p.agentEmail?" · "+esc(p.agentEmail):""}</div>`:""}${isOrbyt&&S.canWrite&&typeof changeAgentBlock==="function"?changeAgentBlock(p):""}</div>
     <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>`;
   if(p.notes)h+=`<p class="note">${esc(p.notes)}</p>`;
   if(mode!=="vendor")h+=teamPanel(p,isOrbyt);
@@ -3220,7 +3221,8 @@ function agentsView(){
         <td class="num">${r.ps.length}${r.ps.length?`<div class="small">${live} active</div>`:""}${last?`<div class="small"><button class="linkbtn" data-act="openmatch" data-id="${esc(last.id)}">${esc(last.address)}</button></div>`:""}${r.sh.length?`<div class="small">Shared on ${r.sh.length}: <button class="linkbtn" data-act="openmatch" data-id="${esc(r.sh[0].id)}">${esc(r.sh[0].address)}</button></div>`:""}</td>
         <td>${pill[r.status]||""}</td>
         <td style="white-space:nowrap">${!r.id?"":r.status==="pending"?`<button class="btn sm" data-act="agstatus" data-id="${esc(r.id)}" data-v="active">Approve</button> <button class="linkbtn" data-act="agstatus" data-id="${esc(r.id)}" data-v="declined">Decline</button>`
-          :r.status==="active"?`<button class="linkbtn" data-act="agstatus" data-id="${esc(r.id)}" data-v="declined">Turn off access</button>`:`<button class="linkbtn" data-act="agstatus" data-id="${esc(r.id)}" data-v="active">Turn access back on</button>`}${r.id?` <button class="linkbtn" data-act="agdel" data-id="${esc(r.id)}">Delete</button>`:""}</td></tr>
+          :r.status==="active"?`<button class="linkbtn" data-act="agstatus" data-id="${esc(r.id)}" data-v="declined">Turn off access</button>`:`<button class="linkbtn" data-act="agstatus" data-id="${esc(r.id)}" data-v="active">Turn access back on</button>`}${r.id?` <button class="linkbtn" data-act="agedit" data-id="${esc(r.id)}">Edit</button> <button class="linkbtn" data-act="agdel" data-id="${esc(r.id)}">Delete</button>`:""}</td></tr>
+        ${r.id&&S.agEdit===r.id?`<tr class="delrow"><td colspan="6">${personForm("agentedit",r.id,{name:r.name,email:r.email,phone:r.phone,brokerage:r.brokerage},"agent",true)}</td></tr>`:""}
         ${r.id&&S.agDel===r.id?`<tr class="delrow"><td colspan="6"><div class="callout" style="margin:0"><p style="margin:0"><span class="strong">Delete ${esc(r.name)} for good?</span> This removes their login and profile, and it can't be undone.</p>
           ${r.ps.length?`<label class="checkrow top" style="margin-top:8px"><input type="checkbox" id="agdel-proj"> <span>Also delete their ${r.ps.length} ${r.ps.length===1?"project":"projects"} (${esc(r.ps.map(x=>x.address).join(", "))}). Otherwise ${r.ps.length===1?"it stays":"they stay"} in your desk.</span></label>`:""}
           <div class="actions"><button class="btn sm danger" data-act="agdelgo" data-id="${esc(r.id)}">Delete for good</button><button class="btn ghost sm" data-act="agdel" data-id="">Cancel</button></div></div></td></tr>`:""}`}).join("")}
@@ -3323,7 +3325,7 @@ const agreementPill=v=>v.userId&&v.approved!==false&&Array.isArray(D.terms_accep
 const agentTermsLine=uid=>{if(!uid)return"";const t=currentAcceptance(uid,"agent");
   return t?`<div class="small">Agreed to terms ${esc(fmtStamp(t.accepted_at))}</div>`:`<div class="small warntext">Hasn't agreed to terms yet</div>`};
 const myAgreementBtn=()=>{const r=myRole();if(!r)return"";const old=r==="vendor"&&agreementsFor(myVendorId())[0];
-  return `<a class="linkbtn" href="${esc(termsUrl(r))}" target="_blank" rel="noopener">Terms of Use</a>${old?`<button class="linkbtn" data-act="agview" data-id="${esc(old.id)}">Signed agreement</button>`:""}`};
+  return `<button class="linkbtn" data-act="mydetails">My details</button><a class="linkbtn" href="${esc(termsUrl(r))}" target="_blank" rel="noopener">Terms of Use</a>${old?`<button class="linkbtn" data-act="agview" data-id="${esc(old.id)}">Signed agreement</button>`:""}`};
 function printAgreement(html){
   const w=window.open("","_blank");if(!w){toast("Allow pop-ups for this site to print the agreement.");return}
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Orbyt Vendor Network Agreement</title><style>body{font:15px/1.55 Georgia,serif;max-width:760px;margin:40px auto;padding:0 20px;color:#111}
@@ -3483,6 +3485,78 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="agdel
   if(a==="vdelgo"){const v=vendorById(id);if(!v)return;
     guard(async()=>{await removeFolder("vendor-files",id);await removeFolder("vendor-photos",id);for(const b of S.bids.filter(b=>b.vendorId===id))await removeFolder("quotes",b.id);
       fail((await sb.rpc("admin_delete_account",{p_user:v.userId||null,p_vendor:id,p_projects:false})).error,"delete");S.vDel=null;S.vendorCard=null;await S.db.reload()},`Deleted ${v.name}.`)}});
+
+
+/* ---------- editing people: My details (agents and vendors), Edit on the Agents tab, Change agent on projects ---------- */
+function personForm(kindOf,id,d,role,admin){
+  const f=(k,label,type,val,extra="")=>`<label class="field"><span>${label}</span><input type="${type}" id="pf-${kindOf}-${k}" name="${k}" value="${esc(val||"")}" ${extra}></label>`;
+  return `<form class="form inner" data-form="${kindOf}" data-id="${esc(id)}" novalidate><div class="grid">
+      ${role==="vendor"&&!admin?f("company","Company name","text",d.company):""}
+      ${f("name",role==="vendor"?"Your name":"Name","text",d.name)}${f("phone","Mobile phone","tel",d.phone)}
+      ${role==="agent"?f("brokerage","Brokerage","text",d.brokerage):""}${role==="vendor"&&!admin?f("web","Website","text",d.web):""}
+      ${admin?f("email","Login email","email",d.email):""}</div>
+    ${admin?`<p class="small" style="margin:0">Changing the login email switches their sign-in right away, with no confirmation email, so double-check the spelling. Their projects follow the new email.</p>`:""}
+    <p class="small warntext pferr" role="alert" style="margin:0" hidden></p>
+    <div class="actions"><button class="btn sm" type="submit">Save</button><button class="btn ghost sm" type="button" data-act="${admin?"agedit":"mydetailsclose"}" data-id="">Cancel</button></div></form>`}
+function myDetailsView(){
+  const r=myRole(),me=S.me||{},v=r==="vendor"?vendorById(myVendorId()):null;
+  const d=r==="vendor"?{company:v&&v.name,name:me.full_name||(v&&v.contactName),phone:me.phone||(v&&v.phone),web:v&&v.web}:{name:me.full_name,phone:me.phone,brokerage:me.brokerage};
+  return `<div class="scrim" data-act="mydetailsclose"></div><div class="vcard" role="dialog" aria-modal="true" aria-labelledby="md-title">
+    <div class="vchead"><div><div class="eyebrow">Your account</div><h2 id="md-title" style="font-weight:500;margin-top:4px">My details</h2></div><button class="xbtn" data-act="mydetailsclose" aria-label="Close">×</button></div>
+    ${personForm("mydetails","",d,r,false)}
+    <form class="form inner" data-form="myemail" novalidate style="margin-top:18px"><h3 style="margin:0">Login email</h3>
+      <p class="small" style="margin:0">You sign in with <b>${esc(S.email||me.email||"")}</b>. Changing brokerages or companies? Enter your new email and we'll send a confirmation link to it. Your login switches once you click it.</p>
+      <label class="field"><span>New email</span><input type="email" id="md-email" name="email" autocomplete="email"></label>
+      <p class="small warntext emerr" role="alert" style="margin:0" hidden></p><p class="small emok" style="margin:0" hidden></p>
+      <div class="actions"><button class="btn ghost sm" type="submit">Send confirmation link</button></div></form></div>`}
+function changeAgentBlock(p){
+  if(S.chAgent!==p.id)return `<div style="margin-top:4px"><button class="linkbtn small" data-act="chagent" data-id="${esc(p.id)}">Change agent</button></div>`;
+  const agents=(D.profiles||[]).filter(x=>x.role==="agent"&&x.status!=="declined").sort((a,b)=>String(a.full_name||a.email).localeCompare(String(b.full_name||b.email)));
+  return `<form class="form inner" data-form="chagent" data-id="${esc(p.id)}" novalidate style="max-width:560px"><h3 style="margin:8px 0 0">Change the agent on this project</h3>
+    <label class="field"><span>Agent</span><select name="who" id="ca-who-${esc(p.id)}"><option value="">Choose an agent</option>
+      ${agents.map(a=>`<option value="${esc(a.id)}" ${a.id===p.agentId?"selected":""}>${esc(a.full_name||a.email)}${a.brokerage?" ("+esc(a.brokerage)+")":""}</option>`).join("")}<option value="new">Someone without an account yet</option></select></label>
+    <div class="grid canew" ${S.chAgentNew?"":"hidden"}>
+      <label class="field"><span>Name</span><input type="text" name="name" id="ca-name-${esc(p.id)}"></label><label class="field"><span>Email</span><input type="email" name="email" id="ca-email-${esc(p.id)}"></label>
+      <label class="field"><span>Mobile phone</span><input type="tel" name="phone" id="ca-phone-${esc(p.id)}"></label><label class="field"><span>Brokerage</span><input type="text" name="brokerage" id="ca-brok-${esc(p.id)}"></label></div>
+    <p class="small" style="margin:0">The project moves to them with its vendors and bids. If they don't have an account yet, it links to them when they sign up with that email.</p>
+    <div class="actions"><button class="btn sm" type="submit">Move project</button><button class="btn ghost sm" type="button" data-act="chagent" data-id="">Cancel</button></div></form>`}
+const okEmail=x=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x);
+const pfErr=(f,m)=>{const el=f.querySelector(".pferr");if(el){el.textContent=m;el.hidden=!m}};
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="mydetails"],[data-act="mydetailsclose"],[data-act="agedit"],[data-act="chagent"]');if(!t)return;const a=t.dataset.act;
+  if(a==="mydetails"){S.myDetails=true;render();return}
+  if(a==="mydetailsclose"){S.myDetails=false;render();return}
+  if(kind()!=="orbyt")return;
+  if(a==="agedit"){S.agEdit=t.dataset.id||null;S.agDel=null;render();return}
+  if(a==="chagent"){S.chAgent=t.dataset.id||null;S.chAgentNew=false;render()}});
+document.addEventListener("change",e=>{const sel=e.target.closest&&e.target.closest('form[data-form="chagent"] select[name="who"]');if(!sel)return;
+  S.chAgentNew=sel.value==="new";const g=sel.form.querySelector(".canew");if(g)g.hidden=!S.chAgentNew});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.myDetails){S.myDetails=false;render()}});
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="mydetails"],form[data-form="myemail"],form[data-form="agentedit"],form[data-form="chagent"]');if(!f)return;
+  e.preventDefault();e.stopImmediatePropagation();const fd=new FormData(f),g=k=>String(fd.get(k)||"").trim(),k=f.dataset.form;
+  if(k==="mydetails"){if(!g("name"))return pfErr(f,"Add your name.");const r=myRole();
+    guard(async()=>{fail((await sb.from("profiles").update(r==="agent"?{full_name:g("name"),phone:g("phone")||null,brokerage:g("brokerage")||null}:{full_name:g("name"),phone:g("phone")||null}).eq("id",S.uid)).error,"details");
+      if(r==="vendor"){const vid=myVendorId();fail((await sb.from("vendors").update({name:g("company")||undefined,website:g("web")||null}).eq("id",vid)).error,"details")}
+      const{data}=await sb.from("profiles").select("*").eq("id",S.uid).maybeSingle();if(data){S.me=data;if(r==="agent")S.role=S.session="agent:"+(data.full_name||data.email)}
+      S.myDetails=false;await S.db.reload()},"Saved.");return}
+  if(k==="myemail"){const em=g("email").toLowerCase(),er=f.querySelector(".emerr"),okp=f.querySelector(".emok");
+    const show=(m,good)=>{if(er){er.textContent=good?"":m;er.hidden=good||!m}if(okp){okp.textContent=good?m:"";okp.hidden=!good}};
+    if(!okEmail(em))return show("Enter a valid email.");if(em===String(S.email||"").toLowerCase())return show("That's already your login email.");
+    (async()=>{const btn=f.querySelector("button");if(btn)btn.disabled=true;
+      const{error}=await sb.auth.updateUser({email:em},{emailRedirectTo:location.origin+location.pathname});if(btn)btn.disabled=false;
+      if(error)return show(/already|registered|exists/i.test(error.message)?"That email already has an Orbyt account.":"That didn't go through. Try again in a minute.");
+      show(`Check ${em} for a confirmation link. You may also get one at your current address. Your login switches once you confirm.`,true)})();return}
+  if(k==="agentedit"){const id=f.dataset.id,prof=(D.profiles||[]).find(x=>x.id===id);if(!prof)return;const em=g("email").toLowerCase();
+    if(!g("name"))return pfErr(f,"Add their name.");if(!okEmail(em))return pfErr(f,"Enter a valid email.");
+    guard(async()=>{fail((await sb.from("profiles").update({full_name:g("name"),phone:g("phone")||null,brokerage:g("brokerage")||null}).eq("id",id)).error,"details");
+      if(em!==String(prof.email||"").toLowerCase())fail((await sb.rpc("admin_set_email",{p_user:id,p_email:em})).error,"email");
+      S.agEdit=null;await S.db.reload()},"Saved. Their projects are updated too.");return}
+  if(k==="chagent"){const pid=f.dataset.id,who=g("who");let row;
+    if(!who){toast("Choose an agent.");return}
+    if(who==="new"){const em=g("email").toLowerCase();if(!g("name")||!okEmail(em)){toast("Add their name and a valid email.");return}
+      const ex=(D.profiles||[]).find(x=>String(x.email||"").toLowerCase()===em);
+      row={agent_name:g("name"),agent_email:em,agent_phone:g("phone")||null,brokerage:g("brokerage")||null,agent_id:ex&&ex.role==="agent"?ex.id:null}}
+    else{const a=(D.profiles||[]).find(x=>x.id===who);if(!a)return;row={agent_name:a.full_name||a.email,agent_email:a.email,agent_phone:a.phone||null,brokerage:a.brokerage||null,agent_id:a.id}}
+    guard(async()=>{fail((await sb.from("projects").update(row).eq("id",pid)).error,"project");S.chAgent=null;S.chAgentNew=false;await S.db.reload()},`Moved to ${row.agent_name}.`)}},true);
 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.quoteView){S.quoteView=null;render()}});
 liveBoot();

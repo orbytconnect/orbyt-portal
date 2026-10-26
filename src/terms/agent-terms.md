@@ -106,7 +106,7 @@ Agent will keep Orbyt\'s non-public information private and use it only to use t
 
 ## 9. Privacy and Communications
 
-**9.1 Privacy.** Orbyt handles personal information as described in its Privacy Policy, posted on the Orbyt website. Orbyt may share Agent\'s and its Client\'s contact and property details with Vendors to make Introductions and provide the Services.
+**9.1 Privacy.** Orbyt handles personal information as described in its Privacy Policy at [portal.orbytconnect.com/privacy.html](https://portal.orbytconnect.com/privacy.html). Orbyt may share Agent\'s and its Client\'s contact and property details with Vendors to make Introductions and provide the Services.
 
 **9.2 Electronic communications.** Agent agrees to receive communications from Orbyt electronically, and agrees that electronic agreements, notices, and records satisfy any requirement that they be in writing.
 

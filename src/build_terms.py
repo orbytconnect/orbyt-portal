@@ -2,7 +2,7 @@
 import pathlib, subprocess, html
 HERE = pathlib.Path(__file__).resolve().parent
 OUT = HERE.parent / "site" / "terms"; OUT.mkdir(parents=True, exist_ok=True)
-PAGES = {"vendor-terms.md": ("vendor.html", "Orbyt Vendor Terms of Use"), "agent-terms.md": ("agent.html", "Orbyt Agent Terms of Use")}
+PAGES = {"vendor-terms.md": ("vendor.html", "Orbyt Vendor Terms of Use"), "agent-terms.md": ("agent.html", "Orbyt Agent Terms of Use"), "privacy.md": ("../privacy.html", "Orbyt Privacy Policy")}
 TPL = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title>
@@ -27,5 +27,5 @@ button{{font:inherit;color:var(--teal);background:none;border:0;padding:0;text-d
 """
 for src, (out, title) in PAGES.items():
     body = subprocess.run(["pandoc", str(HERE / "terms" / src), "-f", "markdown", "-t", "html5"], check=True, capture_output=True, text=True).stdout
-    (OUT / out).write_text(TPL.format(title=html.escape(title), body=body))
-    print("wrote terms/" + out, len(body), "bytes")
+    dest = (OUT / out).resolve(); dest.write_text(TPL.format(title=html.escape(title), body=body))
+    print("wrote", dest.relative_to(HERE.parent / "site"), len(body), "bytes")

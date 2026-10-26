@@ -196,7 +196,7 @@ Vendor may choose to run promotions that increase its visibility to Agents, at t
 
 **12.5 Return and duration.** When Vendor leaves the network, or when Orbyt asks, Vendor will delete or return Client Information and Orbyt\'s information, except what it needs to finish an active Job or must keep by law. These obligations continue for two (2) years after Vendor leaves the network, for trade secrets for as long as they remain trade secrets, and for property access information for as long as it could still be used.
 
-**12.6 How Orbyt uses Vendor\'s information.** Orbyt may share Vendor\'s profile and contact information with Agents and Clients to make Introductions, and will otherwise handle personal information as described in Orbyt\'s Privacy Policy, posted on the Orbyt website.
+**12.6 How Orbyt uses Vendor\'s information.** Orbyt may share Vendor\'s profile and contact information with Agents and Clients to make Introductions, and will otherwise handle personal information as described in Orbyt\'s Privacy Policy at [portal.orbytconnect.com/privacy.html](https://portal.orbytconnect.com/privacy.html).
 
 ## 13. Independent Businesses and Disclaimers
 

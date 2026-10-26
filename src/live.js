@@ -331,7 +331,8 @@ function signupView(m){
       <div class="grid"><label class="field"><span>Create a password (8+ characters)</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}
       ${m==="vendor"?`<p class="small" style="margin:0"><b>What Orbyt costs:</b> nothing to join and no monthly fee. You only pay when an introduction turns into a paid job, on a sliding scale for the first job with each new agent (12% of the first $1,000, less above that, $600 cap) and 2% on repeat jobs. The full fee schedule is in the terms.</p>`:""}
-      <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}${m==="vendor"?", including the fee schedule":""}.</span></label>${authMsg()}
+      <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}${m==="vendor"?", including the fee schedule":""}.</span></label>
+      <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",location.origin+location.pathname).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>${authMsg()}
       <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
     </form></div></section>`;
 }
@@ -545,6 +546,7 @@ const shortVersion=r=>`<section class="section"><h2>The short version</h2><ul cl
 const termsForm=r=>`<form class="form" data-form="acceptterms" novalidate><h2>${r==="vendor"?"Vendor":"Agent"} Terms of Use</h2>
     <p class="small" style="margin:0">Read the full ${termsLink(r,"Terms of Use")}. They open in a new tab, where you can print or save a copy.</p>
     <label class="checkrow top"><input type="checkbox" id="tm-ok" name="ok"> <span>I agree to the ${termsLink(r)}${r==="vendor"?", including the fee schedule, on behalf of my business":""}.</span></label>
+    <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",location.origin+location.pathname).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>
     <p class="small warntext tmerr" role="alert" style="margin:0" hidden></p>
     <div class="actions"><button class="btn" type="submit">Agree and continue</button><button class="btn ghost" type="button" data-act="signout">Sign out</button></div></form>`;
 function termsGate(){

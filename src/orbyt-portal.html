@@ -867,7 +867,7 @@ function formBlock(v){
   return `<div><span class="eyebrow">Their sign-up form</span>
     <dl class="formlist">${F.map(([k,x])=>`<div><dt>${k}</dt><dd>${x||'<span class="small">Not given</span>'}</dd></div>`).join("")}</dl>
     <p class="small" style="margin:8px 0 0">${v.source?esc(v.source)+" · ":""}${v.createdAt?"Joined "+fmtStamp(v.createdAt)+" · ":""}${v.licensed?"License checked":"License not checked"} · ${v.insured?"Insurance checked":"Insurance not checked"}</p>
-    ${v.approved===false&&S.canWrite?`<div class="actions" style="margin-top:8px"><button class="btn sm" data-act="approvevendor" data-id="${esc(v.id)}">Approve, I've checked them</button></div>`:""}</div>`;
+    ${v.approved===false&&S.canWrite?`<div class="actions" style="margin-top:8px"><button class="btn sm" data-act="approvevendor" data-id="${esc(v.id)}">Approve, I've checked them</button></div>`:""}${typeof deleteVendorBlock==="function"?deleteVendorBlock(v):""}</div>`;
 }
 function profileBlock(v){
   const o=kind()==="orbyt",web=safeUrl(v.web),port=safeUrl(v.portfolioUrl),coi=v.coiId?blobHref(v.coiId):safeUrl(v.coiUrl);

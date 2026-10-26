@@ -338,7 +338,7 @@ table.mini{min-width:0}
 .agbox{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 22px}.agbox.tall{max-height:68vh}
 .insemail{width:100%;font:13px/1.5 inherit;margin:8px 0 4px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);resize:vertical}
 .steps{margin:6px 0 0;padding-left:20px}.steps>li{margin:0 0 14px}.form.inner{margin:8px 0 0;padding:0;border:0;background:none}.insmore summary{cursor:pointer;margin-top:8px}.insnote{margin:0}
-.checkrow.top{align-items:flex-start}.checkrow.top input{margin-top:3px}.tldr{margin:6px 0 10px;padding-left:20px}.tldr li{margin:4px 0}
+.checkrow.top{align-items:flex-start}.btn.danger{background:var(--warn);border-color:var(--warn);color:#fff}.delrow td{background:var(--surface-2)}.checkrow.top input{margin-top:3px}.tldr{margin:6px 0 10px;padding-left:20px}.tldr li{margin:4px 0}
 .agdoc{font-size:14px;line-height:1.6}.agdoc h2{font-size:20px;font-weight:500;margin:14px 0 8px}.agdoc h3{font-size:16px;font-weight:500;margin:22px 0 6px}.agdoc p{margin:0 0 10px}
 .agtable,.agsig{border-collapse:collapse;width:100%;min-width:0;margin:8px 0 12px;font-size:14px}.agtable th,.agsig th{font-size:14px;text-transform:none;letter-spacing:0;white-space:normal;background:none}.agtable td,.agtable th,.agsig td,.agsig th{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;font-weight:400}
 .agtable th{width:45%;color:var(--ink-2)}.agsig th{font-weight:500}.agsign{font-style:italic;font-size:16px}.agblank{color:var(--muted)}
@@ -888,7 +888,7 @@ function formBlock(v){
   return `<div><span class="eyebrow">Their sign-up form</span>
     <dl class="formlist">${F.map(([k,x])=>`<div><dt>${k}</dt><dd>${x||'<span class="small">Not given</span>'}</dd></div>`).join("")}</dl>
     <p class="small" style="margin:8px 0 0">${v.source?esc(v.source)+" · ":""}${v.createdAt?"Joined "+fmtStamp(v.createdAt)+" · ":""}${v.licensed?"License checked":"License not checked"} · ${v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}${kind()==="orbyt"?insuranceAdminLine(v):""}
-    ${v.approved===false&&S.canWrite?`<div class="actions" style="margin-top:8px"><button class="btn sm" data-act="approvevendor" data-id="${esc(v.id)}">Approve, I've checked them</button></div>`:""}</div>`;
+    ${v.approved===false&&S.canWrite?`<div class="actions" style="margin-top:8px"><button class="btn sm" data-act="approvevendor" data-id="${esc(v.id)}">Approve, I've checked them</button></div>`:""}${typeof deleteVendorBlock==="function"?deleteVendorBlock(v):""}</div>`;
 }
 function profileBlock(v){
   const o=kind()==="orbyt",web=safeUrl(v.web),port=safeUrl(v.portfolioUrl),coi=v.coiId?blobHref(v.coiId):safeUrl(v.coiUrl);
@@ -3220,7 +3220,10 @@ function agentsView(){
         <td class="num">${r.ps.length}${r.ps.length?`<div class="small">${live} active</div>`:""}${last?`<div class="small"><button class="linkbtn" data-act="openmatch" data-id="${esc(last.id)}">${esc(last.address)}</button></div>`:""}${r.sh.length?`<div class="small">Shared on ${r.sh.length}: <button class="linkbtn" data-act="openmatch" data-id="${esc(r.sh[0].id)}">${esc(r.sh[0].address)}</button></div>`:""}</td>
         <td>${pill[r.status]||""}</td>
         <td style="white-space:nowrap">${!r.id?"":r.status==="pending"?`<button class="btn sm" data-act="agstatus" data-id="${esc(r.id)}" data-v="active">Approve</button> <button class="linkbtn" data-act="agstatus" data-id="${esc(r.id)}" data-v="declined">Decline</button>`
-          :r.status==="active"?`<button class="linkbtn" data-act="agstatus" data-id="${esc(r.id)}" data-v="declined">Turn off access</button>`:`<button class="linkbtn" data-act="agstatus" data-id="${esc(r.id)}" data-v="active">Turn access back on</button>`}</td></tr>`}).join("")}
+          :r.status==="active"?`<button class="linkbtn" data-act="agstatus" data-id="${esc(r.id)}" data-v="declined">Turn off access</button>`:`<button class="linkbtn" data-act="agstatus" data-id="${esc(r.id)}" data-v="active">Turn access back on</button>`}${r.id?` <button class="linkbtn" data-act="agdel" data-id="${esc(r.id)}">Delete</button>`:""}</td></tr>
+        ${r.id&&S.agDel===r.id?`<tr class="delrow"><td colspan="6"><div class="callout" style="margin:0"><p style="margin:0"><span class="strong">Delete ${esc(r.name)} for good?</span> This removes their login and profile, and it can't be undone.</p>
+          ${r.ps.length?`<label class="checkrow top" style="margin-top:8px"><input type="checkbox" id="agdel-proj"> <span>Also delete their ${r.ps.length} ${r.ps.length===1?"project":"projects"} (${esc(r.ps.map(x=>x.address).join(", "))}). Otherwise ${r.ps.length===1?"it stays":"they stay"} in your desk.</span></label>`:""}
+          <div class="actions"><button class="btn sm danger" data-act="agdelgo" data-id="${esc(r.id)}">Delete for good</button><button class="btn ghost sm" data-act="agdel" data-id="">Cancel</button></div></div></td></tr>`:""}`}).join("")}
     </tbody></table></div>`:`<p class="small">${S.agQ?"No agents match that search.":"No agents yet. They show up here as soon as they sign up."}</p>`}</section>`;
 }
 document.addEventListener("input",e=>{if(e.target.id!=="ag-q")return;S.agQ=e.target.value;render();const el=$("#ag-q");if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},true);
@@ -3460,6 +3463,26 @@ function insuranceAlerts(){const A=[];
     else if(st.verified&&st.expired&&st.g!=="low")A.push({id:"insexp-"+v.id+"-"+st.exp,cls:"k-warn",urgent:true,label:"Insurance expired",title:`${v.name}'s insurance expired ${fmtDate(st.exp)}`,
       meta:"Introductions are paused. They've been emailed to upload the renewal.",when:st.exp,act:{a:"vcard",id:v.id,label:"Open"},auto:false})}
   return A}
+
+
+/* ---------- deleting agents and vendors (Ashleigh only, mostly for test accounts) ---------- */
+async function removeFolder(bucket,folder){try{const{data}=await sb.storage.from(bucket).list(folder,{limit:1000});
+  if(data&&data.length)await sb.storage.from(bucket).remove(data.map(f=>folder+"/"+f.name))}catch(_){}}
+function deleteVendorBlock(v){if(kind()!=="orbyt"||!S.canWrite)return"";
+  if(S.vDel!==v.id)return `<div class="actions" style="margin-top:6px"><button class="linkbtn warntext" data-act="vdel" data-id="${esc(v.id)}">Delete vendor</button></div>`;
+  const n=S.bids.filter(b=>b.vendorId===v.id).length;
+  return `<div class="callout" style="margin:8px 0 0"><p style="margin:0"><span class="strong">Delete ${esc(v.name)} for good?</span> This removes their profile${v.userId?", login":""}${n?`, ${n} ${n===1?"bid":"bids"}`:""} and reviews, and it can't be undone.</p>
+    <div class="actions"><button class="btn sm danger" data-act="vdelgo" data-id="${esc(v.id)}">Delete for good</button><button class="btn ghost sm" data-act="vdel" data-id="">Cancel</button></div></div>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="agdel"],[data-act="agdelgo"],[data-act="vdel"],[data-act="vdelgo"]');if(!t||kind()!=="orbyt")return;
+  const a=t.dataset.act,id=t.dataset.id;
+  if(a==="agdel"){S.agDel=id||null;render();return}
+  if(a==="vdel"){S.vDel=id||null;render();return}
+  if(a==="agdelgo"){const withP=!!($("#agdel-proj")&&$("#agdel-proj").checked),ps=withP?(S.projects||[]).filter(p=>p.agentId===id):[];
+    guard(async()=>{for(const p of ps)for(const b of S.bids.filter(b=>b.projectId===p.id))await removeFolder("quotes",b.id);
+      fail((await sb.rpc("admin_delete_account",{p_user:id,p_vendor:null,p_projects:withP})).error,"delete");S.agDel=null;await S.db.reload()},"Deleted.");return}
+  if(a==="vdelgo"){const v=vendorById(id);if(!v)return;
+    guard(async()=>{await removeFolder("vendor-files",id);await removeFolder("vendor-photos",id);for(const b of S.bids.filter(b=>b.vendorId===id))await removeFolder("quotes",b.id);
+      fail((await sb.rpc("admin_delete_account",{p_user:v.userId||null,p_vendor:id,p_projects:false})).error,"delete");S.vDel=null;S.vendorCard=null;await S.db.reload()},`Deleted ${v.name}.`)}});
 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.quoteView){S.quoteView=null;render()}});
 liveBoot();

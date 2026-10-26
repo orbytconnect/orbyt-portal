@@ -6,6 +6,8 @@
 const SB_URL="https://wqlsmrkmmbydqsuooshc.supabase.co";
 const SB_KEY="sb_publishable_vmIhLd3MJNWkraNwDe4n_Q_DAMFLavF";
 let sb=null;
+// the portal home, whatever page address someone arrived on (like /join/vendor)
+const portalHome=()=>location.origin+"/";
 const D={};                       // raw rows, by table
 const TABLES=["profiles","vendors","vendor_admin","vendor_private","vendor_notes","projects","project_private","project_admin",
   "project_members","default_shares","bids","invoices","reviews","favorites","task_checks","client_links","my_tasks","time_logs",
@@ -342,7 +344,7 @@ function signupView(m){
         ${authorityBox("su")}
         <label class="checkrow top"><input type="checkbox" id="su-optout" name="optout"> <span>If you'd rather not receive Orbyt updates and announcements, tick this box.</span></label></div>`
       :`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>`}
-      <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",location.origin+location.pathname).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>${authMsg()}
+      <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",portalHome()).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>${authMsg()}
       <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
     </form></div></section>`;
 }
@@ -387,7 +389,7 @@ function quoteViewer(){
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">${esc(b.category)} quote</div><h2 id="qv-title" style="font-weight:500;margin-top:4px">${esc(bidName(b))}</h2><div class="small">${esc(b.pdfName||"")}</div></div>
       <button class="xbtn" id="qv-close" data-act="closequote" aria-label="Close">×</button></div>${body}</div>`;
 }
-const clientUrl=t=>location.origin+location.pathname+"?quotes="+t;
+const clientUrl=t=>portalHome()+"?quotes="+t;
 function clientLinkBlock(p){
   const l=(D.client_links||[]).find(x=>x.project_id===p.id&&!x.revoked_at);
   if(!l)return `<div class="callout"><p style="margin:0"><span class="strong">Private link.</span> Give your client a page with these quotes that updates as new ones come in. No login needed, and you can turn it off anytime.</p>
@@ -410,7 +412,7 @@ async function renderClientPage(token){
 
 document.addEventListener("click",async e=>{
   const t=e.target.closest("[data-act]");if(!t)return;const a=t.dataset.act;
-  if(a==="signout"){await sb.auth.signOut();location.href=location.pathname}
+  if(a==="signout"){await sb.auth.signOut();location.href=portalHome()}
   else if(a==="authmode"){S.authMode=t.dataset.m;S.authErr="";S.authNote="";render();window.scrollTo({top:0})}
   else if(a==="viewquote"){S.quoteView=t.dataset.id;render();$("#qv-close")?.focus()}
   else if(a==="closequote"){S.quoteView=null;render()}
@@ -433,7 +435,7 @@ document.addEventListener("submit",async e=>{
     if(kindOf==="signin"){if(!email||!pass)return done("Enter your email and password.");
       const{data,error}=await sb.auth.signInWithPassword({email,password:pass});if(error)return done(friendlyAuthError(error));S.authErr="";await enter(data.user);return}
     if(kindOf==="forgot"){if(!email)return done("Enter the email you signed up with.");
-      const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+      const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:portalHome()});
       return done(error?friendlyAuthError(error):"","If that email has an account, a reset link is on its way.")}
     if(kindOf==="newpass"){if(pass.length<8)return done("Use a password with at least 8 characters.");if(pass!==pass2)return done("Those passwords don't match. Type them again.");
       const{data,error}=await sb.auth.updateUser({password:pass});if(error)return done(friendlyAuthError(error));toast("Password saved");S.authMode="signin";await enter(data.user);return}
@@ -449,7 +451,7 @@ document.addEventListener("submit",async e=>{
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();
       else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),website:String(fd.get("web")||"").trim(),services:svcs,years_in_business:String(fd.get("years")||""),
         team_size:String(fd.get("team")||""),lead_time:String(fd.get("lead")||""),references:String(fd.get("references")||"").trim(),heard_about:String(fd.get("heard")||"").trim()});
-      const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:location.origin+location.pathname}});
+      const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
       if(error)return done(friendlyAuthError(error));
       if(data.session){S.authErr="";await enter(data.user);return}
       S.pendingEmail=email;S.authMode="checkemail";S.authErr="";if(btn)btn.disabled=false;render();return}
@@ -462,7 +464,9 @@ async function liveBoot(){
   if(q.get("quotes")){S.authReady=true;await renderClientPage(q.get("quotes"));return}
   if(q.get("review")){S.authReady=true;await renderReviewPage(q.get("review"));return}
   // links from orbytconnect.com: ?join=agent or ?join=vendor opens that sign-up form
-  const join=q.get("join");if(join==="agent"||join==="vendor")S.authMode=join;else if(q.has("join"))S.authMode="join";
+  // clean links: /join, /join/agent and /join/vendor (the older ?join=... links still work)
+  const path=location.pathname.replace(/\/+$/,"").toLowerCase(),pm=path.match(/^\/join(?:\/(agent|vendor))?$/);
+  const join=q.get("join")||(pm&&pm[1]);if(join==="agent"||join==="vendor")S.authMode=join;else if(q.has("join")||pm)S.authMode="join";
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.authReady=true;S.session=null;render()}});
   const{data:{session}}=await sb.auth.getSession();
   if(session&&S.authMode!=="newpass")await enter(session.user);else{S.authReady=true;render()}
@@ -513,7 +517,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="agsta
 const TERMS={
   vendor:{version:"vendor-terms-2026-10-25",title:"Orbyt Vendor Terms of Use",path:"terms/vendor.html"},
   agent:{version:"agent-terms-2026-10-25",title:"Orbyt Agent Terms of Use",path:"terms/agent.html"}};
-const termsUrl=r=>new URL(TERMS[r].path,location.origin+location.pathname).href;
+const termsUrl=r=>new URL(TERMS[r].path,portalHome()).href;
 const termsLink=(r,label)=>`<a href="${esc(termsUrl(r))}" target="_blank" rel="noopener">${esc(label||TERMS[r].title)}</a>`;
 const myRole=()=>kind()==="vendor"?"vendor":kind()==="agent"?"agent":"";
 const myVendorId=()=>kind()==="vendor"?roleVal():"";
@@ -584,7 +588,7 @@ const termsForm=r=>{const v=r==="vendor"?vendorById(myVendorId()):null;
     ${r==="vendor"?bizFields("tm",v):""}
     <label class="checkrow top"><input type="checkbox" id="tm-ok" name="ok"> <span>I've read and agree to the ${termsLink(r)}${r==="vendor"?", including the fees above":""}.</span></label>
     ${r==="vendor"?authorityBox("tm",v&&v.legalName):""}
-    <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",location.origin+location.pathname).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+    <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",portalHome()).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>
     <p class="small warntext tmerr" role="alert" style="margin:0" hidden></p>
     <div class="actions"><button class="btn" type="submit">Agree and continue</button><button class="btn ghost" type="button" data-act="signout">Sign out</button></div></form>`};
 function termsGate(){
@@ -849,7 +853,7 @@ document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form=
     const show=(m,good)=>{if(er){er.textContent=good?"":m;er.hidden=good||!m}if(okp){okp.textContent=good?m:"";okp.hidden=!good}};
     if(!okEmail(em))return show("Enter a valid email.");if(em===String(S.email||"").toLowerCase())return show("That's already your login email.");
     (async()=>{const btn=f.querySelector("button");if(btn)btn.disabled=true;
-      const{error}=await sb.auth.updateUser({email:em},{emailRedirectTo:location.origin+location.pathname});if(btn)btn.disabled=false;
+      const{error}=await sb.auth.updateUser({email:em},{emailRedirectTo:portalHome()});if(btn)btn.disabled=false;
       if(error)return show(/already|registered|exists/i.test(error.message)?"That email already has an Orbyt account.":"That didn't go through. Try again in a minute.");
       show(`Check ${em} for a confirmation link. You may also get one at your current address. Your login switches once you confirm.`,true)})();return}
   if(k==="agentedit"){const id=f.dataset.id,prof=(D.profiles||[]).find(x=>x.id===id);if(!prof)return;const em=g("email").toLowerCase();
@@ -943,7 +947,7 @@ async function renderReviewPage(token){
       <div class="grid"><label class="field"><span>Your name</span><input type="text" id="rv-name" name="name" value="${esc(data.agent_name||"")}" autocomplete="name"></label>
         <label class="field"><span>Your brokerage</span><input type="text" id="rv-brokerage" name="brokerage" autocomplete="organization"></label></div>
       <label class="field"><span>About when was the job? (optional)</span><input type="text" id="rv-when" name="when" maxlength="40" placeholder="Spring 2026"></label>
-      <p class="small" style="margin:0">I check every review before it's posted. Your name, brokerage and review show on their Orbyt profile, never your email. Read the <a href="${esc(new URL("privacy.html",location.origin+location.pathname).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+      <p class="small" style="margin:0">I check every review before it's posted. Your name, brokerage and review show on their Orbyt profile, never your email. Read the <a href="${esc(new URL("privacy.html",portalHome()).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>
       <p class="small warntext rverr" role="alert" style="margin:0" hidden></p>
       <button class="btn" type="submit">Send my review</button></form>`);
 }

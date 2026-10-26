@@ -1,0 +1,3 @@
+# Clean sign-up links open the portal page, which reads the address and shows the right form
+/join          /index.html  200
+/join/*        /index.html  200

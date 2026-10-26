@@ -529,7 +529,6 @@ const SHORT={
   vendor:["Reply to each introduction within 48 hours: yes, no, or a question. Saying no is always fine.",
     "You contract with and bill the client directly, in your own name, and you're responsible for your work. Add Orbyt's short client notice (Schedule 2) to your quotes.",
     "Keep your licenses current and carry general liability insurance of at least $1M per occurrence and $2M aggregate. Depending on your services, Orbyt also needs to be named as an additional insured (Schedule 3).",
-    "Fees follow the agents and clients Orbyt introduces you to for 12 months, however the job is booked, as shown above.",
     "You cover claims about your work, Orbyt's liability is limited, and most disputes go to individual arbitration in San Diego."],
   agent:["Orbyt doesn't charge agents for introductions. Vendors pay Orbyt a fee on work that comes from them.",
     "Vendors are independent businesses. You or your client hire and pay them directly, and they're responsible for their work.",

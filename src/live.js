@@ -519,8 +519,8 @@ function feesSection(){
     <div class="feegrid">
       <div class="feecard"><span class="eyebrow">First job with a new agent</span><table class="agtable"><tbody><tr><td>First $1,000</td><td>12%</td></tr><tr><td>$1,001 to $5,000</td><td>8%</td></tr><tr><td>Above $5,000</td><td>5%</td></tr></tbody></table>
         <p class="small" style="margin:0">Each portion is charged at its own rate, like tax brackets. $25 minimum, $600 cap per job.</p></div>
-      <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">On later jobs for that agent, their clients, or the seller you were introduced to, for 12 months after the latest introduction, whether they book through Orbyt or directly. $15 minimum, $100 cap per job.</p></div>
-      <div class="feecard"><span class="eyebrow">Never a fee on</span><p class="small" style="margin:0">Staging extensions while a home is on the market, jobs cancelled before work starts, or anything the client doesn't pay you. Already worked with an agent in the past year? Tell me when you reply to the introduction, and your other work with them stays fee-free.</p>
+      <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">On later jobs with that agent or their clients. $15 minimum, $100 cap per job.</p></div>
+      <div class="feecard"><span class="eyebrow">Never a fee on</span><p class="small" style="margin:0">Staging extensions while a home is on the market, jobs cancelled before work starts, or anything the client doesn't pay you.</p>
         <span class="eyebrow" style="margin-top:10px;display:block">Optional</span><p class="small" style="margin:0">Promoted placement, $20 per promotion.</p></div></div>
     <p class="small"><b>Example:</b> a $3,000 first job is $120 on the first $1,000 plus $160 on the next $2,000, for a $280 fee. The same job as a repeat is $60.</p>
     ${feeCalc()}

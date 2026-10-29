@@ -360,4 +360,4 @@ Every Vendor carries the insurance in Section 3.3 and uploads a certificate unde
 |---|---|---|
 | Higher risk | General contractor and remodeling, roofing, plumbing, electrical, HVAC, concrete, flooring, drywall, fencing, garage doors, appliance repair, solar panel cleaning, pest control, and tree service | Required before Vendor\'s first Introduction |
 | Standard | Handyman, landscaping, pool services, moving, junk removal, gutter cleaning, pressure washing, window cleaning, and staging | Required within thirty (30) days after Orbyt approves Vendor |
-| Lower risk | All other services, including cleaning, carpet cleaning, painting, photography, organizing, signage, furniture rental, and home inspection | Not required |
+| Lower risk | All other services, including cleaning, carpet cleaning, painting, photography, organizing, signage, and home inspection | Not required |

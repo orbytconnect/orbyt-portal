@@ -81,7 +81,14 @@ sub(".vcard.wide{width:min(720px,calc(100% - 32px))}", """.vcard.wide{width:min(
 .agbox{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 22px}.agbox.tall{max-height:68vh}
 .insemail{width:100%;font:13px/1.5 inherit;margin:8px 0 4px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);resize:vertical}
 .steps{margin:6px 0 0;padding-left:20px}.steps>li{margin:0 0 14px}.form.inner{margin:8px 0 0;padding:0;border:0;background:none}.insmore summary{cursor:pointer;margin-top:8px}.insnote{margin:0}
-.canew[hidden]{display:none!important}.checkrow.top{align-items:flex-start}.btn.danger{background:var(--warn);border-color:var(--warn);color:#fff}.delrow td{background:var(--surface-2)}.checkrow.top input{margin-top:3px}.tldr{margin:6px 0 10px;padding-left:20px}.tldr li{margin:4px 0}
+.canew[hidden],.np-lp[hidden]{display:none!important}
+.folds .fold{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:0 0 10px}.fold>summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:14px 16px}
+.fold>summary::-webkit-details-marker{display:none}.fold>summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin-right:4px}
+.fold[open]>summary::before{transform:rotate(45deg)}.foldtitle{font-weight:500}.foldhint{flex-basis:100%;margin-left:22px}@media(min-width:700px){.foldhint{flex-basis:auto;margin-left:auto}}
+.foldbody{padding:0 16px 16px}.foldbody>section,.foldbody>.section{margin:0!important;padding:0;border:0;background:none;box-shadow:none}.foldbody>section>.sechead:first-child h2,.foldbody>section>.sechead:first-child>div>h2{display:none}
+.statuslist{list-style:none;margin:4px 0 8px;padding:0;display:grid;gap:6px}.statuslist li{display:flex;gap:10px;align-items:flex-start}.statuslist .tick{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-top:1px}
+.statuslist li.isdone .tick{background:var(--teal-text);border-color:var(--teal-text);color:var(--surface)}.statuslist li.todo{color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin:10px 0 4px}.segbtn{font:inherit;font-size:14px;border:0;background:none;color:var(--ink);padding:6px 14px;cursor:pointer}.segbtn.on{background:var(--ink);color:var(--surface)}.checkrow.top{align-items:flex-start}.btn.danger{background:var(--warn);border-color:var(--warn);color:#fff}.delrow td{background:var(--surface-2)}.checkrow.top input{margin-top:3px}.tldr{margin:6px 0 10px;padding-left:20px}.tldr li{margin:4px 0}
 .agdoc{font-size:14px;line-height:1.6}.agdoc h2{font-size:20px;font-weight:500;margin:14px 0 8px}.agdoc h3{font-size:16px;font-weight:500;margin:22px 0 6px}.agdoc p{margin:0 0 10px}
 .agtable,.agsig{border-collapse:collapse;width:100%;min-width:0;margin:8px 0 12px;font-size:14px}.agtable th,.agsig th{font-size:14px;text-transform:none;letter-spacing:0;white-space:normal;background:none}.agtable td,.agtable th,.agsig td,.agsig th{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;font-weight:400}
 .agtable th{width:45%;color:var(--ink-2)}.agsig th{font-weight:500}.agsign{font-style:italic;font-size:16px}.agblank{color:var(--muted)}
@@ -93,8 +100,7 @@ sub(".vcard.wide{width:min(720px,calc(100% - 32px))}", """.vcard.wide{width:min(
 .starpick label{font-size:32px;line-height:1;color:var(--line);cursor:pointer}.starpick input:checked~label,.starpick label:hover,.starpick label:hover~label{color:var(--star)}
 .starpick input:focus-visible+label{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}""")
 # review requests: invite card on the vendor dashboard, and "Past client" labels wherever reviews show
-sub('h+=(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);',
-    'h+=(typeof insuranceCard==="function"?insuranceCard(v):"")+reviewInviteCard(v)+vendorPricingCard(v);')
+
 sub('<span class="rating"><b>${"\u2605".repeat(r.rating)}</b><span class="small">${"\u2605".repeat(5-r.rating)}</span></span></div>',
     '<span class="rating"><b>${"\u2605".repeat(r.rating)}</b><span class="small">${"\u2605".repeat(5-r.rating)}</span></span>${revSource(r)}</div>')
 sub('${esc(r.agent||"Agent")} · ${esc(p?p.address:"")} · ${ago(r.createdAt)}', '${esc(revWho(r))}${p?" · "+esc(p.address):""} · ${ago(r.createdAt)}')

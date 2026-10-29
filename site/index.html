@@ -339,7 +339,14 @@ table.mini{min-width:0}
 .agbox{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 22px}.agbox.tall{max-height:68vh}
 .insemail{width:100%;font:13px/1.5 inherit;margin:8px 0 4px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);resize:vertical}
 .steps{margin:6px 0 0;padding-left:20px}.steps>li{margin:0 0 14px}.form.inner{margin:8px 0 0;padding:0;border:0;background:none}.insmore summary{cursor:pointer;margin-top:8px}.insnote{margin:0}
-.canew[hidden]{display:none!important}.checkrow.top{align-items:flex-start}.btn.danger{background:var(--warn);border-color:var(--warn);color:#fff}.delrow td{background:var(--surface-2)}.checkrow.top input{margin-top:3px}.tldr{margin:6px 0 10px;padding-left:20px}.tldr li{margin:4px 0}
+.canew[hidden],.np-lp[hidden]{display:none!important}
+.folds .fold{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:0 0 10px}.fold>summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:14px 16px}
+.fold>summary::-webkit-details-marker{display:none}.fold>summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin-right:4px}
+.fold[open]>summary::before{transform:rotate(45deg)}.foldtitle{font-weight:500}.foldhint{flex-basis:100%;margin-left:22px}@media(min-width:700px){.foldhint{flex-basis:auto;margin-left:auto}}
+.foldbody{padding:0 16px 16px}.foldbody>section,.foldbody>.section{margin:0!important;padding:0;border:0;background:none;box-shadow:none}.foldbody>section>.sechead:first-child h2,.foldbody>section>.sechead:first-child>div>h2{display:none}
+.statuslist{list-style:none;margin:4px 0 8px;padding:0;display:grid;gap:6px}.statuslist li{display:flex;gap:10px;align-items:flex-start}.statuslist .tick{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-top:1px}
+.statuslist li.isdone .tick{background:var(--teal-text);border-color:var(--teal-text);color:var(--surface)}.statuslist li.todo{color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin:10px 0 4px}.segbtn{font:inherit;font-size:14px;border:0;background:none;color:var(--ink);padding:6px 14px;cursor:pointer}.segbtn.on{background:var(--ink);color:var(--surface)}.checkrow.top{align-items:flex-start}.btn.danger{background:var(--warn);border-color:var(--warn);color:#fff}.delrow td{background:var(--surface-2)}.checkrow.top input{margin-top:3px}.tldr{margin:6px 0 10px;padding-left:20px}.tldr li{margin:4px 0}
 .agdoc{font-size:14px;line-height:1.6}.agdoc h2{font-size:20px;font-weight:500;margin:14px 0 8px}.agdoc h3{font-size:16px;font-weight:500;margin:22px 0 6px}.agdoc p{margin:0 0 10px}
 .agtable,.agsig{border-collapse:collapse;width:100%;min-width:0;margin:8px 0 12px;font-size:14px}.agtable th,.agsig th{font-size:14px;text-transform:none;letter-spacing:0;white-space:normal;background:none}.agtable td,.agtable th,.agsig td,.agsig th{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;font-weight:400}
 .agtable th{width:45%;color:var(--ink-2)}.agsig th{font-weight:500}.agsign{font-style:italic;font-size:16px}.agblank{color:var(--muted)}
@@ -520,7 +527,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 /* typical order of work before a listing (or a buyer move-in); lower goes first */
 const SEQ={"General contractor / remodeling":1,"Plumbing":2,"Electric":2,"HVAC":2,"Handyman":3,"Painting":4,"Landscaping":5,"Pool services":5,"Window cleaning":6,"Cleaning":7,"Staging":8,"Photography":9,
   "Home inspection":0,"Junk removal":0,"Organizing":0,"Roofing":1,"Flooring":2,"Drywall":2,"Concrete":2,"Pest control":3,"Appliance repair":3,"Garage doors":3,"Fencing":5,"Tree service":5,"Pressure washing":5,
-  "Gutter cleaning":6,"Solar panel cleaning":6,"Carpet cleaning":7,"Furniture rental":8,"Signage":9};
+  "Gutter cleaning":6,"Solar panel cleaning":6,"Carpet cleaning":7,"Signage":9};
 const seqOf=(p,c)=>{if(c==="Moving")return p.clientType==="Buyer"?10:0;if(SEQ[c]!==undefined)return SEQ[c];const k=Object.keys(SEQ).find(x=>x.toLowerCase()===String(c).toLowerCase());return k?SEQ[k]:5};
 const capF=t=>t.charAt(0).toUpperCase()+t.slice(1);
 function typicalSteps(p){const g={};for(const c of p.categories||[]){const k=seqOf(p,c);(g[k]=g[k]||[]).push(c)}return Object.keys(g).map(Number).sort((a,b)=>a-b).map(k=>g[k])}
@@ -561,9 +568,9 @@ function timingBlock(p,mine){
     ${mine?`<p class="paynote" style="margin:10px 0 0"><b>Plan around the other work.</b> ${steps.length>1?`${myIdx>0?`On most homes, ${esc(steps.slice(0,myIdx).flat().join(", ").toLowerCase())} ${steps.slice(0,myIdx).flat().length===1?"happens":"happen"} before you.`:""} ${myIdx<steps.length-1?`${esc(capF(steps.slice(myIdx+1).flat().join(", ").toLowerCase()))} ${steps.slice(myIdx+1).flat().length===1?"comes":"come"} after, so leave room for ${steps.slice(myIdx+1).flat().length===1?"it":"them"}.`:"Yours is usually the last step, so the home should be ready for you."} `:""}This is the typical order, and ${esc(firstName(p.agent))} sets the final schedule, so confirm your dates with them before you start.${p.targetDate&&!p.listed?` Everything needs to wrap before ${buyer?"move-in":"the list date"} on ${esc(fmtDate(p.targetDate))}${d!==null&&d>=0?` (${d} ${d===1?"day":"days"} away)`:""}.`:""}</p>`
     :`<p class="small" style="margin:8px 0 0">${hasCustomOrder(p)?"Order set for this home.":"Typical order for this home."} Book the early steps first so later vendors aren't waiting${p.targetDate&&!p.listed?`, and keep everything ahead of ${esc(fmtDate(p.targetDate))}`:""}.</p>`}</div>`;
 }
-const CATS=["Staging","Cleaning","Photography","Landscaping","Painting","Handyman","General contractor / remodeling","Plumbing","Electric","HVAC","Window cleaning","Pool services","Moving"];
+const CATS=["Staging","Cleaning","Photography","Landscaping","Painting","Handyman","General contractor / remodeling","Plumbing","Electric","HVAC","Window cleaning","Pool services","Moving","Home inspection"];
 // common extras vendors offer beyond the core categories (suggestions only; anything can be typed)
-const MORE_SERVICES=["Pressure washing","Junk removal","Roofing","Gutter cleaning","Flooring","Carpet cleaning","Pest control","Fencing","Concrete","Tree service","Organizing","Home inspection","Appliance repair","Garage doors","Drywall","Solar panel cleaning","Furniture rental","Signage"];
+const MORE_SERVICES=["Pressure washing","Junk removal","Roofing","Gutter cleaning","Flooring","Carpet cleaning","Pest control","Fencing","Concrete","Tree service","Organizing","Appliance repair","Garage doors","Drywall","Solar panel cleaning","Signage"];
 function moreChecks(name,prefix,skip){const list=[...MORE_SERVICES].filter(c=>!(skip||[]).includes(c)).sort((a,b)=>a.localeCompare(b));if(!list.length)return "";
   return `<div class="moresvc"><span class="small">More services</span><div class="checks">${list.map((c,i)=>`<label><input type="checkbox" id="${prefix}-${i}" name="${name}" value="${esc(c)}">${esc(c)}</label>`).join("")}</div></div>`}
 const ALIAS={"contractor":"General contractor / remodeling","general contractor":"General contractor / remodeling","remodeling":"General contractor / remodeling","pool cleaning":"Pool services","pool care":"Pool services","pool service":"Pool services","deep cleaning":"Cleaning","electrical":"Electric","electrician":"Electric","window washing":"Window cleaning"};
@@ -891,7 +898,7 @@ function formBlock(v){
     ["Services you offer",esc(vsv(v).join(", "))],["Service area",esc(v.areaNote||(v.areas||[]).join(", "))],["Years in business",esc(v.years||"")],["Team size",esc(v.team||"")],
     ["Certificate of insurance",coi?link(coi,"Open certificate"):""],["How much they work with agents",esc(v.worksWithAgents||"")],["Agent references",esc(v.references||"")],
     ["Typical lead time",esc(v.leadTime||"")],["Portfolio",photos.length?`<div class="thumbs">${photos.map(id=>`<a href="${esc(blobHref(id))}" target="_blank" rel="noopener"><img src="${esc(blobHref(id))}" alt="Recent work by ${esc(v.name)}"></a>`).join("")}</div>`:""],
-    ["Portfolio URL",port?link(port,v.portfolioUrl):""],["Interested in promoting special offers?",esc(v.promoInterest||"")],["How they heard about Orbyt",esc(v.heard||"")],["Anything I should know?",esc(v.signupNotes||"")]];
+    ["Portfolio URL",port?link(port,v.portfolioUrl):""],["Instagram",typeof igUrl==="function"&&igUrl(v.instagram)?link(igUrl(v.instagram),"@"+String(v.instagram).replace(/^@/,"")):""],["Portfolio PDF",v.portfolioPdf?link(blobHref(v.portfolioPdf),v.portfolioPdfName||"Open PDF"):""],["Referred by",typeof referredByName==="function"?esc(referredByName(v.userId)):""],["Interested in promoting special offers?",esc(v.promoInterest||"")],["How they heard about Orbyt",esc(v.heard||"")],["Anything I should know?",esc(v.signupNotes||"")]];
   return `<div><span class="eyebrow">Their sign-up form</span>
     <dl class="formlist">${F.map(([k,x])=>`<div><dt>${k}</dt><dd>${x||'<span class="small">Not given</span>'}</dd></div>`).join("")}</dl>
     <p class="small" style="margin:8px 0 0">${v.source?esc(v.source)+" · ":""}${v.createdAt?"Joined "+fmtStamp(v.createdAt)+" · ":""}${v.licensed?"License checked":"License not checked"} · ${v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}${kind()==="orbyt"?insuranceAdminLine(v)+businessLine(v)+reviewReqLine(v):""}
@@ -902,7 +909,8 @@ function profileBlock(v){
   const rows=[["Contact",v.contactName],["Years in business",v.years],["Team size",v.team],["Typical lead time",v.leadTime],o?["Works with agents",v.worksWithAgents]:null,o?["Promo interest",v.promoInterest]:null].filter(r=>r&&r[1]);
   const photos=(v.photoIds||[]).slice(0,5);
   let h=rows.length?`<div class="vfacts">${rows.map(([k,x])=>`<div><span class="eyebrow">${k}</span><div>${esc(x)}</div></div>`).join("")}</div>`:"";
-  if(web||port||photos.length)h+=`<div><span class="eyebrow">Work</span><div class="actions" style="margin-top:4px">${web?`<a href="${esc(web)}" target="_blank" rel="noopener">Website</a>`:""}${port?`<a href="${esc(port)}" target="_blank" rel="noopener">Portfolio</a>`:""}</div>
+  const ig=typeof igUrl==="function"?igUrl(v.instagram):"",pdf=v.portfolioPdf?blobHref(v.portfolioPdf):"";
+  if(web||port||ig||pdf||photos.length)h+=`<div><span class="eyebrow">Work</span><div class="actions" style="margin-top:4px">${web?`<a href="${esc(web)}" target="_blank" rel="noopener">Website</a>`:""}${ig?`<a href="${esc(ig)}" target="_blank" rel="noopener">Instagram</a>`:""}${port?`<a href="${esc(port)}" target="_blank" rel="noopener">Portfolio</a>`:""}${pdf?`<a href="${esc(pdf)}" target="_blank" rel="noopener">Portfolio PDF</a>`:""}</div>
     ${photos.length?`<div class="thumbs">${photos.map(id=>`<a href="${esc(blobHref(id))}" target="_blank" rel="noopener"><img src="${esc(blobHref(id))}" alt="Recent work by ${esc(v.name)}"></a>`).join("")}</div>`:""}</div>`;
   if(o){h+=`<div class="callout" style="margin:0"><div class="eyebrow">Vetting · only you see this</div>
     <div class="small"><span class="strong">Insurance:</span> ${coi?`<a href="${esc(coi)}" target="_blank" rel="noopener">Certificate of insurance</a>`:"No certificate on file"} · ${v.licensed?"Licensed":"License not checked"} · ${v.insured?"Insured":"Insurance not checked"}</div>
@@ -950,7 +958,7 @@ function agentView(){
   h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],["favorites",`Favorites <span class="small num">(${favs.length})</span>`,0],["team",`Always share with <span class="small num">(${defaultTeamOf(agent).length})</span>`,0]]);
   if(S.tab==="team")return h+myTeamView(agent);
   if(S.openForm==="newproject")h+=newProjectForm(agent);
-  if(S.tab==="tasks")return h+tasksView(T,"When a vendor sends a bid or a list date gets close, it shows up here.");
+  if(S.tab==="tasks")return h+tasksView(T,"When a vendor sends a bid or a list date gets close, it shows up here.")+(typeof agentFolds==="function"?agentFolds():"");
   if(S.tab==="favorites"){
     if(!favs.length)return h+`<div class="emptystate"><h2>No favorites yet</h2><p>Click any vendor's name to open their card, then choose "Save to favorites." Ashleigh sees your favorites and puts them first when she matches your listings.</p></div>`;
     const groups=CATS.filter(c=>favs.some(v=>vsv(v).includes(c)));
@@ -1043,7 +1051,7 @@ function vendorView(){
     <div>${ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
   h+=vendorStats(v,mine);
-  h+=(typeof insuranceCard==="function"?insuranceCard(v):"")+reviewInviteCard(v)+vendorPricingCard(v);
+  const foot=typeof vendorFolds==="function"?vendorFolds(v):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
   h+=statStrip([
     {key:"requested",label:"Bids requested",list:req,render:l=>bidTable(l,"vendor"),empty:"No open requests right now."},
     {key:"overdue",label:"Overdue",list:req.filter(b=>b.status==="requested"&&ageDays(b.requestedAt)>=REMIND_DAYS),render:l=>bidTable(l,"vendor"),empty:"Nothing overdue. Nice work."},
@@ -1053,8 +1061,8 @@ function vendorView(){
   const ob=S.openRequest&&mine.find(b=>b.id===S.openRequest);
   if(ob)return h+`<div class="back"><button class="linkbtn" data-act="closereq">${S.tab==="tasks"?"Back to tasks":"All projects"}</button></div>`+requestDetail(ob);
   if(S.tab==="tasks")return h+tasksView(T,"New bid requests show up here as soon as a listing needs you.")+
-    `<p class="small" style="margin-top:14px">If a request goes ${REMIND_DAYS} days without a bid, it comes back here as a reminder and you'll get an email.</p>`;
-  if(!mine.length)return h+`<div class="emptystate"><h2>No projects yet</h2><p>Projects you're asked to bid on will be listed here with the agent and your bid status.</p></div>`;
+    `<p class="small" style="margin-top:14px">If a request goes ${REMIND_DAYS} days without a bid, it comes back here as a reminder and you'll get an email.</p>`+foot;
+  if(!mine.length)return h+`<div class="emptystate"><h2>No projects yet</h2><p>Projects you're asked to bid on will be listed here with the agent and your bid status.</p></div>`+foot;
   const rows=sortRows(mine.filter(b=>inRange(projById(b.projectId))),{address:b=>projById(b.projectId).address,agent:b=>projById(b.projectId).agent,date:b=>projById(b.projectId).targetDate||"9999"});
   h+=rangeFilter(mine.length,rows.length);
   if(!rows.length)return h+`<p class="small">No projects list in that date range.</p>`;
@@ -1121,7 +1129,7 @@ function requestDetail(b){
   let h=`<article class="panel"><div class="dhead"><div style="min-width:0">
       <div class="eyebrow">${esc(b.category)} bid ${b.status==="requested"?'<span class="pill requested">Requested</span>':statusPill(b)} ${late?'<span class="pill late">Overdue</span>':""}</div>
       <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>
-      <div class="facts"><span>${b.introducedBy==="auto"?"Matched by":"Introduced by"} <b>${b.introducedBy==="auto"?"Orbyt":"Ashleigh at Orbyt"}</b>, for ${esc(p.agent)}</span><span>Area <b>${esc(p.area)}</b></span><span>Requested <b>${esc(reqDate)}</b> (${ago(b.requestedAt)})</span><span>For a <b>${p.clientType==="Buyer"?"buyer move-in":p.clientType==="Both"?"listing and buyer":"listing"}</b></span></div></div>
+      <div class="facts"><span>${b.introducedBy==="auto"?"Matched by":"Introduced by"} <b>${b.introducedBy==="auto"?"Orbyt":"Ashleigh at Orbyt"}</b>, for ${esc(p.agent)}</span><span>Area <b>${esc(p.area)}</b></span>${p.sqft?`<span>Size <b>${Number(p.sqft).toLocaleString("en-US")} sq ft</b></span>`:""}<span>Requested <b>${esc(reqDate)}</b> (${ago(b.requestedAt)})</span><span>For a <b>${p.clientType==="Buyer"?"buyer move-in":p.clientType==="Both"?"listing and buyer":"listing"}</b></span></div></div>
     <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>
     ${p.notes||(p.addedServices||{})[b.category]?.note?`<div class="reqsec"><h3>Notes from the agent</h3>${p.notes?`<p class="note" style="margin-top:8px">${esc(p.notes)}</p>`:""}${(p.addedServices||{})[b.category]?.note?`<p class="note" style="margin-top:8px"><span class="strong">About ${esc(b.category.toLowerCase())}:</span> ${esc(p.addedServices[b.category].note)}</p>`:""}</div>`:""}
     <div class="rgrid"><div class="reqsec"><h3>Timing on this home</h3>
@@ -1970,6 +1978,7 @@ function myTasksView(){
 }
 
 function nextSteps(b,p,isOrbyt){
+  if(isOrbyt)return pickedStatus(b,p);
   const st=b.steps||{},vn=esc(bidName(b)),ok=b.status==="selected",dis=!ok||!S.canWrite?"disabled":"";
   const item=(k,label,checked)=>`<label class="step ${checked?"isdone":""}"><input type="checkbox" id="st-${esc(b.id)}-${k}" data-act="step" data-id="${esc(b.id)}" data-k="${k}" ${checked?"checked":""} ${dis}><span>${label}</span></label>`;
   return `<div class="callout ${ok?"good":""}" style="margin-top:12px"><div class="eyebrow">Next steps with ${vn}</div>
@@ -1979,6 +1988,25 @@ function nextSteps(b,p,isOrbyt){
       ${item("done","Work is finished",b.done)}</div>
     ${finalBlock(b,p,isOrbyt)}
     <p class="small" style="margin:10px 0 0">Adding a vendor to the team doesn't sign anything or pay them. Orbyt makes the introduction, and the client handles the agreement and payment directly with ${vn}.</p></div>`;
+}
+function pickedStatus(b,p){
+  const st=b.steps||{},vn=esc(bidName(b)),ag=esc(firstName(p.agent)),inv=b.invoice||{};
+  const when=x=>x?` <span class="small">${esc(fmtStamp(x))}</span>`:"";
+  const row=(done,label,meta="")=>`<li class="${done?"isdone":"todo"}"><span class="tick" aria-hidden="true">${done?"✓":""}</span><span>${label}${meta}</span></li>`;
+  const conf=b.status==="selected";
+  const items=[
+    row(!!b.introducedAt,b.introducedBy==="auto"?"Matched automatically":"Introduced",when(b.introducedAt)),
+    row(!!b.submittedAt,`Bid sent${b.amount!=null?": "+money(b.amount):""}`,when(b.submittedAt)),
+    row(!!b.chosenAt||ONTEAM.includes(b.status),`${ag} picked ${vn}`,when(b.chosenAt)),
+    row(conf,conf?`${vn} confirmed${b.startDate?", start "+fmtDate(b.startDate):""}`:`Waiting for ${vn} to confirm`,conf?when(b.confirmedAt)+(b.confirmNote?`<div class="small">"${esc(b.confirmNote)}"</div>`:""):""),
+    row(!!st.agreement,`Agreement or estimate signed`,st.agreement?"":` <span class="small">(${ag} checks this off)</span>`),
+    row(!!st.paid,`Client paid ${vn}`,st.paid?"":` <span class="small">(${ag} checks this off)</span>`),
+    row(!!b.done||b.finalAmount!=null,b.finalAmount!=null?`Work finished, final amount ${money(b.finalAmount)}`:"Work finished",when(b.doneAt||b.finalReportedAt)),
+    row(!!b.finalConfirmedAt,b.finalConfirmedAt?`${ag} confirmed the final amount`:b.finalDispute?`<span class="warntext">${ag} says the final amount doesn't match: "${esc(b.finalDispute.note)}"</span>`:`${ag} confirms the final amount`,when(b.finalConfirmedAt)),
+    row(inv.status==="paid",inv.status==="paid"?"Orbyt fee paid":inv.status?"Orbyt fee invoiced":"Orbyt fee invoiced",inv.status==="paid"?when(inv.paidAt):inv.at?when(inv.at):"")];
+  return `<div class="callout ${conf?"good":""}" style="margin-top:12px"><div class="eyebrow">Where things stand with ${vn}</div>
+    <ol class="statuslist">${items.join("")}</ol>
+    <p class="small" style="margin:0">Just so you can follow along. ${ag} and ${vn} handle these steps, and you'll get an email if something needs you.</p></div>`;
 }
 function finalBlock(b,p,isOrbyt){
   if(b.status!=="selected"||b.finalAmount==null)return"";const vn=esc(bidName(b)),diff=b.finalAmount-(b.amount||0);
@@ -2054,7 +2082,7 @@ function projectDetail(p,mode){
   let h=`<article class="panel"><div class="dhead"><div style="min-width:0">
     <div class="eyebrow">${esc(p.area||"San Diego")} ${p.sample?'<span class="pill example">Example</span>':""} ${p.source?`<span class="pill">${esc(p.source)}</span>`:""}</div>
     <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>
-    <div class="facts"><span>Agent <b>${esc(p.agent||"Not set")}</b></span><span>${esc(ctLabel(p))} <b>${esc(client(p)||"Not set")}</b></span>
+    <div class="facts"><span>Agent <b>${esc(p.agent||"Not set")}</b></span><span>${esc(ctLabel(p))} <b>${esc(client(p)||"Not set")}</b></span>${p.sqft?`<span>Size <b>${Number(p.sqft).toLocaleString("en-US")} sq ft</b></span>`:""}${p.listPrice?`<span>Expected list price <b>${money(p.listPrice)}</b></span>`:""}
       ${isOrbyt&&S.canWrite?`<label class="inlinesel"><span>Budget</span><select id="pb-${esc(p.id)}" data-budget="${esc(p.id)}"><option value="">Not sure</option>${TIERS.map(t=>`<option value="${t}" ${p.budget===t?"selected":""}>${BUDGETS[t]}</option>`).join("")}</select></label>`:p.budget?`<span>Budget <b>${BUDGETS[p.budget]}</b></span>`:""}
       <span class="pill ${cls}">${st}</span>${PM_ON&&isOrbyt&&!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<span class="pill comparing">${esc(PMI[p.pmInterest])}</span>`:""}</div>
       ${isOrbyt&&p.brokerage?`<div class="small" style="margin-top:4px">${esc(p.brokerage)}${p.agentPhone?" · "+esc(p.agentPhone):""}${p.agentEmail?" · "+esc(p.agentEmail):""}</div>`:""}${isOrbyt&&S.canWrite&&typeof changeAgentBlock==="function"?changeAgentBlock(p):""}</div>
@@ -2213,7 +2241,9 @@ function newProjectForm(agent){
     <label class="field"><span>What's this for?</span><select id="np-ctype" name="clientType"><option value="Seller">A listing</option><option value="Buyer">A buyer who just closed</option><option value="Both">Both</option></select></label>
     <label class="field"><span>Client name</span><input type="text" id="np-client" name="client" required></label>
     <label class="field"><span>Target date (list or move-in)</span><input type="date" id="np-date" name="targetDate"></label>
-    <label class="field"><span>Client's budget</span><select id="np-budget" name="budget"><option value="">Not sure</option>${TIERS.map(t=>`<option value="${t}">${BUDGETS[t]}</option>`).join("")}</select></label></div>
+    <label class="field"><span>Client's budget</span><select id="np-budget" name="budget"><option value="">Not sure</option>${TIERS.map(t=>`<option value="${t}">${BUDGETS[t]}</option>`).join("")}</select></label>
+    <label class="field"><span>Home size (square feet)</span><input type="number" id="np-sqft" name="sqft" min="1" max="100000" step="1" inputmode="numeric" placeholder="2,400"></label>
+    <label class="field np-lp"><span>Expected list price ($)</span><input type="number" id="np-lp" name="listPrice" min="0" step="1000" inputmode="numeric" placeholder="1,250,000"></label></div>
     <div class="field"><span>Services needed</span><div class="checks">${CATS.map((c,i)=>`<label><input type="checkbox" id="np-cat-${i}" name="cat" value="${c}">${c}</label>`).join("")}</div>${moreChecks("cat","np-ms")}
       <div><button class="linkbtn" type="button" data-act="fullprep">Full-service listing prep (checks staging, cleaning, photography, landscaping and painting)</button></div></div>
     <div class="grid"><label class="field"><span>Something else? Separate with commas</span><input type="text" id="np-other" name="otherCats" placeholder="Anything not listed above"></label>
@@ -2522,7 +2552,7 @@ document.addEventListener("submit",e=>{
   else if(k==="newproject"){const cats=[...new Set([...fd.getAll("cat"),...splitCats(fd.get("otherCats"))])];if(!cats.length){toast("Pick at least one service the home needs.");return}
     const auto=matchMode()==="auto",who=kind();
     guard(async()=>{const data={address:fd.get("address").trim(),area:fd.get("area"),agent:fd.get("agent").trim(),agentPhone:fd.get("agentPhone").trim(),agentEmail:fd.get("agentEmail").trim(),client:fd.get("client").trim(),clientType:fd.get("clientType"),
-      targetDate:fd.get("targetDate")||"",budget:fd.get("budget")||"",brokerage:(fd.get("brokerage")||"").trim(),pmInterest:fd.get("pmInterest")||"",createdBy:kind(),categories:cats,notes:fd.get("notes").trim(),listed:false,createdAt:now(),members:kind()==="agent"&&fd.get("useTeam")?defaultTeamOf(fd.get("agent")).map(m=>({...m,addedBy:fd.get("agent"),addedAt:now(),fromDefault:true})):[]};
+      targetDate:fd.get("targetDate")||"",budget:fd.get("budget")||"",...(fd.get("sqft")?{sqft:Math.round(Number(fd.get("sqft")))}:{}),...(fd.get("listPrice")&&fd.get("clientType")!=="Buyer"?{listPrice:Number(fd.get("listPrice"))}:{}),brokerage:(fd.get("brokerage")||"").trim(),pmInterest:fd.get("pmInterest")||"",createdBy:kind(),categories:cats,notes:fd.get("notes").trim(),listed:false,createdAt:now(),members:kind()==="agent"&&fd.get("useTeam")?defaultTeamOf(fd.get("agent")).map(m=>({...m,addedBy:fd.get("agent"),addedAt:now(),fromDefault:true})):[]};
       const ref=await col("projects").add(data);
       if(auto&&kind()==="orbyt")for(const c of cats)for(const m of matchesFor({id:ref.id,...data},c,[],3))await col("bids").add({projectId:ref.id,category:c,vendorId:m.v.id,status:"requested",requestedAt:now(),introducedAt:now(),introducedBy:"auto",introNote:"",availChecked:false});
       S.openProject=ref.id;S.openForm=null},
@@ -2801,7 +2831,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
     return{id:v.id,userId:v.user_id,name:v.name,contactName:v.contact_name||"",email:v.email||"",phone:v.phone||"",web:v.website||"",
       services:v.services||[],category:(v.services||[])[0]||"",areas:normAreas(v.areas||[]),areaNote:v.area_note||"",years:v.years_in_business||"",
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
-      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),available:v.available!==false,source:v.source||"",createdAt:v.created_at,
+      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
       pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
       legalName:p.legal_name||"",dba:p.dba||"",businessType:p.business_type||"",signerTitle:p.signer_title||"",marketingOptOut:!!p.marketing_opt_out,
@@ -2811,7 +2841,7 @@ function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D
     return{id:p.id,agent:p.agent_name,agentId:p.agent_id,agentEmail:p.agent_email||"",agentPhone:p.agent_phone||"",brokerage:p.brokerage||"",
       address:p.address,area:normArea(p.area||""),clientType:p.client_type,targetDate:p.target_date||"",categories:p.categories||[],notes:p.notes||"",
       addedServices:p.added_services||{},listed:!!p.listed,listedAt:p.listed_at,workOrder:p.work_order||null,source:p.source||"",createdBy:p.created_by||"",createdAt:p.created_at,
-      client:pp.client_name||"",budget:pp.budget||"",pmInterest:pp.pm_interest||"",optionRequests:pp.option_requests||{},
+      client:pp.client_name||"",budget:pp.budget||"",listPrice:pp.list_price==null?null:Number(pp.list_price),sqft:p.sqft||null,pmInterest:pp.pm_interest||"",optionRequests:pp.option_requests||{},
       pm:!!pa.pm,pmInvoice:pa.pm_invoice||null,completed:!!pa.completed,completedAt:pa.completed_at,
       members:(D.project_members||[]).filter(m=>m.project_id===p.id).sort((a,b)=>String(a.added_at).localeCompare(String(b.added_at)))
         .map(m=>({id:m.id,name:m.name,email:m.email,role:m.role,notify:!!m.notify,fromDefault:!!m.from_default,userId:m.user_id,addedAt:m.added_at}))}})}
@@ -2895,9 +2925,9 @@ const VENDOR_MAP={name:"name",contactName:"contact_name",email:"email",phone:"ph
   years:"years_in_business",team:"team_size",leadTime:"lead_time",worksWithAgents:"works_with_agents",portfolioUrl:"portfolio_url",available:"available",source:"source"};
 const VADMIN_MAP={approved:"approved",featured:"featured",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
 const VPRIV_MAP={pricing:"pricing",references:"references_text",heard:"heard_about",signupNotes:"signup_notes",promoInterest:"promo_interest",coiUrl:"coi_url"};
-const PROJ_MAP={agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
+const PROJ_MAP={sqft:"sqft",agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
   targetDate:"target_date",categories:"categories",notes:"notes",addedServices:"added_services",listed:"listed",listedAt:"listed_at",workOrder:"work_order",source:"source",createdBy:"created_by"};
-const PPRIV_MAP={client:"client_name",budget:"budget",pmInterest:"pm_interest",optionRequests:"option_requests"};
+const PPRIV_MAP={listPrice:"list_price",client:"client_name",budget:"budget",pmInterest:"pm_interest",optionRequests:"option_requests"};
 const PADMIN_MAP={pm:"pm",pmInvoice:"pm_invoice",completed:"completed",completedAt:"completed_at"};
 const stripStore=p=>String(p||"").replace(/^[a-z-]+:/,"");
 
@@ -3087,7 +3117,10 @@ function signupView(m){
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone"></label>
-        ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage"></label>`:`<label class="field"><span>Website</span><input type="text" id="su-web" name="web"></label>`}</div>
+        ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage"></label>`:`<label class="field"><span>Website</span><input type="text" id="su-web" name="web" placeholder="yourbusiness.com"></label>`}</div>
+      ${m==="vendor"?`<div class="grid"><label class="field"><span>Instagram (optional)</span><input type="text" id="su-ig" name="instagram" placeholder="@yourbusiness"></label>
+        <label class="field"><span>Portfolio link (optional)</span><input type="text" id="su-port" name="portfolio" placeholder="Google Drive, Houzz, Dropbox or anywhere"></label></div>
+        <p class="small" style="margin:0">Have a portfolio PDF? You can upload it from your dashboard once you're approved.</p>`:""}
       ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}${moreChecks("svc","su-ms")}</div>
         <label class="field"><span>Anything else? (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything not listed above"></label>
         <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>`:""}
@@ -3208,9 +3241,9 @@ document.addEventListener("submit",async e=>{
         :m==="vendor"&&!String(fd.get("title")||"").trim()?"Add your title.":!fd.get("terms")?`Check the box to agree to the ${TERMS[m].title}.`
         :m==="vendor"&&!fd.get("authority")?"Check the box to confirm you have authority to agree for the business.":"";
       if(err)return done(err);
-      const meta={role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
+      const meta={ref:S.ref||"",role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();
-      else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),website:String(fd.get("web")||"").trim(),services:svcs,years_in_business:String(fd.get("years")||""),
+      else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),website:String(fd.get("web")||"").trim(),instagram:igHandle(fd.get("instagram")),portfolio_url:String(fd.get("portfolio")||"").trim(),services:svcs,years_in_business:String(fd.get("years")||""),
         team_size:String(fd.get("team")||""),lead_time:String(fd.get("lead")||""),references:String(fd.get("references")||"").trim(),heard_about:String(fd.get("heard")||"").trim()});
       const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
       if(error)return done(friendlyAuthError(error));
@@ -3226,6 +3259,7 @@ async function liveBoot(){
   if(q.get("review")){S.authReady=true;await renderReviewPage(q.get("review"));return}
   // links from orbytconnect.com: ?join=agent or ?join=vendor opens that sign-up form
   // clean links: /join, /join/agent and /join/vendor (the older ?join=... links still work)
+  const rf=String(q.get("ref")||"").toLowerCase();if(/^[0-9a-f]{8}$/.test(rf)){S.ref=rf;try{sessionStorage.setItem("orbyt-ref",rf)}catch(_){}}else{try{S.ref=sessionStorage.getItem("orbyt-ref")||""}catch(_){}}
   const path=location.pathname.replace(/\/+$/,"").toLowerCase(),pm=path.match(/^\/join(?:\/(agent|vendor))?$/);
   const join=q.get("join")||(pm&&pm[1]);if(join==="agent"||join==="vendor")S.authMode=join;else if(q.has("join")||pm)S.authMode="join";
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.authReady=true;S.session=null;render()}});
@@ -3256,7 +3290,7 @@ function agentsView(){
     <label class="field" style="max-width:360px;margin-bottom:12px"><span>Search</span><input type="text" id="ag-q" value="${esc(S.agQ||"")}" placeholder="Name, email, brokerage or area"></label>
     ${rows.length?`<div class="tablewrap"><table><thead><tr><th>Agent</th><th>Contact</th><th>Areas</th><th class="num">Projects</th><th>Status</th><th></th></tr></thead><tbody>
     ${rows.map(r=>{const live=r.ps.filter(p=>!p.listed).length,last=[...r.ps].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))[0];
-      return `<tr><td><span class="strong">${esc(r.name)}</span>${r.brokerage?`<div class="small">${esc(r.brokerage)}</div>`:""}${r.joined?`<div class="small">Joined ${esc(fmtStamp(r.joined))}</div>`:""}${r.id&&r.status==="active"?agentTermsLine(r.id):""}</td>
+      return `<tr><td><span class="strong">${esc(r.name)}</span>${r.brokerage?`<div class="small">${esc(r.brokerage)}</div>`:""}${r.joined?`<div class="small">Joined ${esc(fmtStamp(r.joined))}</div>`:""}${r.id&&r.status==="active"?agentTermsLine(r.id):""}${r.id&&referredByName(r.id)?`<div class="small">Referred by ${esc(referredByName(r.id))}</div>`:""}</td>
         <td>${r.email?`<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`:""}${r.phone?`<div class="small"><a href="tel:${esc(r.phone.replace(/[^\d+]/g,""))}">${esc(r.phone)}</a></div>`:""}</td>
         <td class="small">${esc(r.areas.join(", "))}</td>
         <td class="num">${r.ps.length}${r.ps.length?`<div class="small">${live} active</div>`:""}${last?`<div class="small"><button class="linkbtn" data-act="openmatch" data-id="${esc(last.id)}">${esc(last.address)}</button></div>`:""}${r.sh.length?`<div class="small">Shared on ${r.sh.length}: <button class="linkbtn" data-act="openmatch" data-id="${esc(r.sh[0].id)}">${esc(r.sh[0].address)}</button></div>`:""}</td>
@@ -3733,6 +3767,76 @@ async function removeService(p,c){
   else fail(error,"remove service");
   await S.db.reload();
 }
+
+
+/* ---------- portfolio, referrals, and folding the dashboard so jobs come first ---------- */
+const igHandle=x=>{let s=String(x||"").trim();if(!s)return"";const m=s.match(/instagram\.com\/([A-Za-z0-9._]+)/i);if(m)s=m[1];return s.replace(/^@+/,"").replace(/[^A-Za-z0-9._]/g,"").slice(0,30)};
+const igUrl=x=>{const h=igHandle(x);return h?"https://www.instagram.com/"+h+"/":""};
+function referredByName(uid){const p=(D.profiles||[]).find(x=>x.id===uid);if(!p||!p.referred_by)return"";const r=(D.profiles||[]).find(x=>x.id===p.referred_by);
+  if(!r)return"";if(r.role==="vendor"){const v=(D.vendors||[]).find(x=>x.user_id===r.id);if(v)return v.name+(r.full_name?" ("+r.full_name+")":"")}return r.full_name||r.email}
+// fold state: per viewer, remembered in this browser when possible
+function foldOpen(key,dflt){S.folds=S.folds||{};if(key in S.folds)return S.folds[key];try{const x=localStorage.getItem("orbyt-fold-"+S.uid+"-"+key);if(x!==null)return(S.folds[key]=x==="1")}catch(_){}return!!dflt}
+document.addEventListener("toggle",e=>{const d=e.target;if(!d.matches||!d.matches("details.fold[data-fold]"))return;S.folds=S.folds||{};S.folds[d.dataset.fold]=d.open;
+  try{localStorage.setItem("orbyt-fold-"+S.uid+"-"+d.dataset.fold,d.open?"1":"0")}catch(_){}},true);
+const fold=(key,title,pill,hint,body,dflt)=>body?`<details class="fold" data-fold="${key}" ${foldOpen(key,dflt)?"open":""}><summary><span class="foldtitle">${title}</span>${pill||""}${hint?`<span class="small foldhint">${hint}</span>`:""}</summary><div class="foldbody">${body}</div></details>`:"";
+function vendorFolds(v){
+  if(!v||kind()!=="vendor")return"";
+  const parts=[];
+  if(v.approved!==false){const st=insState(v),[pl,pc]=INS_PILL[st.state];
+    parts.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
+  const n=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf].filter(Boolean).length;
+  parts.push(fold("port","Portfolio",n?`<span class="pill set">${n} added</span>`:`<span class="pill late">Add your work</span>`,"Website, Instagram, a link or a PDF",portfolioCard(v),false));
+  const pr=vPricing(v),hasP=statedTier(v)||priceItems(v).length||pr.minimum;
+  parts.push(fold("price","Typical pricing",hasP?'<span class="pill set">Added</span>':'<span class="pill">Not added yet</span>',"Helps me match you to the right homes",vendorPricingCard(v),S.openForm==="pricing"));
+  if(typeof reviewInviteCard==="function"&&v.approved!==false){const sent=typeof rrFor==="function"?rrFor(v.id):[];
+    parts.push(fold("rr","Reviews from past clients",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Invite agents you've worked with",reviewInviteCard(v),!!S.rrMore))}
+  parts.push(fold("refer","Refer someone to Orbyt",refCountPill(),"A ready-made message to send",referralCard("vendor"),false));
+  return `<section class="section folds"><div class="sechead" style="margin-bottom:8px"><div><h2>Your profile</h2><span class="small">Finish these when you have a minute. Tap one to open it.</span></div></div>${parts.join("")}</section>`}
+function agentFolds(){if(kind()!=="agent"||!S.canWrite)return"";
+  return `<section class="section folds" style="margin-top:24px">${fold("refer","Refer someone to Orbyt",refCountPill(),"Know an agent or vendor who'd like Orbyt?",referralCard("agent"),false)}</section>`}
+// portfolio card
+function portfolioCard(v){
+  const pdf=v.portfolioPdf?blobHref(v.portfolioPdf):"";
+  return `<form class="form inner" data-form="portfolio" novalidate><p class="small" style="margin:0">Agents see these on your profile when I introduce you. Add whatever shows your work best.</p>
+    <div class="grid"><label class="field"><span>Website</span><input type="text" id="pt-web" name="web" value="${esc(v.web||"")}" placeholder="yourbusiness.com"></label>
+      <label class="field"><span>Instagram</span><input type="text" id="pt-ig" name="instagram" value="${esc(v.instagram?"@"+v.instagram:"")}" placeholder="@yourbusiness"></label>
+      <label class="field"><span>Portfolio link</span><input type="text" id="pt-port" name="portfolio" value="${esc(v.portfolioUrl||"")}" placeholder="Google Drive, Houzz, Dropbox or anywhere"></label>
+      <label class="field"><span>${v.portfolioPdf?"Replace your portfolio PDF":"Portfolio PDF"}</span><input type="file" id="pt-pdf" name="pdf" accept="application/pdf"></label></div>
+    ${v.portfolioPdf?`<p class="small" style="margin:0">On file: <a href="${esc(pdf)}" target="_blank" rel="noopener">${esc(v.portfolioPdfName||"Portfolio PDF")}</a> · <button class="linkbtn" type="button" data-act="ptpdfdel">Remove</button></p>`:""}
+    <p class="small warntext pterr" role="alert" style="margin:0" hidden></p>
+    <div class="actions"><button class="btn sm" type="submit">Save portfolio</button></div></form>`}
+const normUrl=x=>{const s=String(x||"").trim();return!s?"":/^https?:\/\//i.test(s)?s:"https://"+s};
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="portfolio"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),file=fd.get("pdf"),el=f.querySelector(".pterr");
+  if(file&&file.size&&(file.type!=="application/pdf"||file.size>25e6)){if(el){el.textContent=file.type!=="application/pdf"?"Choose a PDF file.":"That PDF is over 25 MB. Try a smaller version.";el.hidden=false}return}
+  guard(async()=>{const row={website:String(fd.get("web")||"").trim()||null,instagram:igHandle(fd.get("instagram"))||null,portfolio_url:normUrl(fd.get("portfolio"))||null};
+    if(file&&file.size){const old=v.portfolioPdfPath;const path=await putFile("vendor-photos",v.id,file);Object.assign(row,{portfolio_pdf:path,portfolio_pdf_name:file.name.slice(0,120)});
+      if(old)try{await sb.storage.from("vendor-photos").remove([old])}catch(_){}}
+    fail((await sb.from("vendors").update(row).eq("id",v.id)).error,"portfolio");await S.db.reload()},"Portfolio saved. Agents see it on your profile.")},true);
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="ptpdfdel"]');if(!t)return;const v=vendorById(myVendorId());if(!v||!v.portfolioPdfPath)return;
+  guard(async()=>{try{await sb.storage.from("vendor-photos").remove([v.portfolioPdfPath])}catch(_){}
+    fail((await sb.from("vendors").update({portfolio_pdf:null,portfolio_pdf_name:null}).eq("id",v.id)).error,"portfolio");await S.db.reload()},"Removed.")});
+// referral card: a ready-made message with the person's own sign-up link
+const refCode=()=>String(S.uid||"").slice(0,8);
+const refLink=who=>new URL("join/"+who,portalHome()).href+"?ref="+refCode();
+function refCountPill(){if(S.refCount==null&&!S.refCountLoading&&sb){S.refCountLoading=true;sb.rpc("my_referral_count").then(({data})=>{S.refCount=data||0;schedule()},()=>{S.refCount=0})}
+  return S.refCount?`<span class="pill set">${S.refCount} joined</span>`:""}
+function refMessage(me,who){const link=refLink(who);
+  if(me==="vendor"&&who==="vendor")return `Hi! I've been getting work through Orbyt, a vendor network here in San Diego that connects local pros with real estate agents getting homes ready to sell. Every vendor joins with references from agents, and you only pay when an introduction turns into a paid job. I think you'd be a great fit. You can apply here: ${link}`;
+  if(me==="vendor")return `Hi! I've joined Orbyt, a free service that matches agents with trusted local vendors for every listing, from staging and cleaning to repairs and photography. You send one request and get bids side by side. If you're prepping a listing soon, it's worth a look: ${link}`;
+  if(who==="vendor")return `Hi! I use Orbyt to line up vendors for my listings, and I'd love to see you in the network. Agents book trusted local pros through it, and you only pay when an introduction turns into a paid job. You can apply here: ${link}`;
+  return `Hi! I've been using Orbyt to line up vendors for my listings. You send one request, Ashleigh matches you with vetted local pros, and you compare bids side by side. It's free for agents. Thought you'd like it: ${link}`}
+function referralCard(me){const who=S.refWho||(me==="vendor"?"vendor":"agent"),msg=refMessage(me,who),subj=who==="vendor"?"An easier way to get listing work":"An easier way to line up vendors for your listings";
+  return `<div class="refcard"><p class="small" style="margin:0">Know someone who'd be a good fit? Send them this. It includes your own sign-up link, so I'll know they came from you.</p>
+    <div class="seg" role="group" aria-label="Who are you inviting?"><button type="button" class="segbtn ${who==="agent"?"on":""}" data-act="refwho" data-v="agent" aria-pressed="${who==="agent"}">An agent</button><button type="button" class="segbtn ${who==="vendor"?"on":""}" data-act="refwho" data-v="vendor" aria-pressed="${who==="vendor"}">A vendor</button></div>
+    <textarea class="insemail" id="ref-msg" rows="6" aria-label="Message to send">${esc(msg)}</textarea>
+    <div class="actions"><button class="btn ghost sm" type="button" data-act="refcopy">Copy message</button><a class="btn ghost sm" href="mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(msg)}">Email it</a><a class="btn ghost sm" href="sms:?&body=${encodeURIComponent(msg)}">Text it</a></div></div>`}
+document.addEventListener("click",async e=>{const t=e.target.closest('[data-act="refwho"],[data-act="refcopy"]');if(!t)return;
+  if(t.dataset.act==="refwho"){S.refWho=t.dataset.v;render();return}
+  const ta=$("#ref-msg");if(!ta)return;try{await navigator.clipboard.writeText(ta.value);toast("Copied. Paste it into a text or email.")}catch(_){ta.select();toast("Selected. Copy it with your keyboard.")}});
+
+// list price only applies to listings
+document.addEventListener("change",e=>{if(e.target.id!=="np-ctype")return;const f=e.target.form,w=f&&f.querySelector(".np-lp");if(w)w.hidden=e.target.value==="Buyer"});
 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.quoteView){S.quoteView=null;render()}});
 liveBoot();

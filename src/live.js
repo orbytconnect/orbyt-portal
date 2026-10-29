@@ -40,7 +40,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
     return{id:v.id,userId:v.user_id,name:v.name,contactName:v.contact_name||"",email:v.email||"",phone:v.phone||"",web:v.website||"",
       services:v.services||[],category:(v.services||[])[0]||"",areas:normAreas(v.areas||[]),areaNote:v.area_note||"",years:v.years_in_business||"",
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
-      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),available:v.available!==false,source:v.source||"",createdAt:v.created_at,
+      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
       pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
       legalName:p.legal_name||"",dba:p.dba||"",businessType:p.business_type||"",signerTitle:p.signer_title||"",marketingOptOut:!!p.marketing_opt_out,
@@ -50,7 +50,7 @@ function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D
     return{id:p.id,agent:p.agent_name,agentId:p.agent_id,agentEmail:p.agent_email||"",agentPhone:p.agent_phone||"",brokerage:p.brokerage||"",
       address:p.address,area:normArea(p.area||""),clientType:p.client_type,targetDate:p.target_date||"",categories:p.categories||[],notes:p.notes||"",
       addedServices:p.added_services||{},listed:!!p.listed,listedAt:p.listed_at,workOrder:p.work_order||null,source:p.source||"",createdBy:p.created_by||"",createdAt:p.created_at,
-      client:pp.client_name||"",budget:pp.budget||"",pmInterest:pp.pm_interest||"",optionRequests:pp.option_requests||{},
+      client:pp.client_name||"",budget:pp.budget||"",listPrice:pp.list_price==null?null:Number(pp.list_price),sqft:p.sqft||null,pmInterest:pp.pm_interest||"",optionRequests:pp.option_requests||{},
       pm:!!pa.pm,pmInvoice:pa.pm_invoice||null,completed:!!pa.completed,completedAt:pa.completed_at,
       members:(D.project_members||[]).filter(m=>m.project_id===p.id).sort((a,b)=>String(a.added_at).localeCompare(String(b.added_at)))
         .map(m=>({id:m.id,name:m.name,email:m.email,role:m.role,notify:!!m.notify,fromDefault:!!m.from_default,userId:m.user_id,addedAt:m.added_at}))}})}
@@ -134,9 +134,9 @@ const VENDOR_MAP={name:"name",contactName:"contact_name",email:"email",phone:"ph
   years:"years_in_business",team:"team_size",leadTime:"lead_time",worksWithAgents:"works_with_agents",portfolioUrl:"portfolio_url",available:"available",source:"source"};
 const VADMIN_MAP={approved:"approved",featured:"featured",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
 const VPRIV_MAP={pricing:"pricing",references:"references_text",heard:"heard_about",signupNotes:"signup_notes",promoInterest:"promo_interest",coiUrl:"coi_url"};
-const PROJ_MAP={agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
+const PROJ_MAP={sqft:"sqft",agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
   targetDate:"target_date",categories:"categories",notes:"notes",addedServices:"added_services",listed:"listed",listedAt:"listed_at",workOrder:"work_order",source:"source",createdBy:"created_by"};
-const PPRIV_MAP={client:"client_name",budget:"budget",pmInterest:"pm_interest",optionRequests:"option_requests"};
+const PPRIV_MAP={listPrice:"list_price",client:"client_name",budget:"budget",pmInterest:"pm_interest",optionRequests:"option_requests"};
 const PADMIN_MAP={pm:"pm",pmInvoice:"pm_invoice",completed:"completed",completedAt:"completed_at"};
 const stripStore=p=>String(p||"").replace(/^[a-z-]+:/,"");
 
@@ -326,7 +326,10 @@ function signupView(m){
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone"></label>
-        ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage"></label>`:`<label class="field"><span>Website</span><input type="text" id="su-web" name="web"></label>`}</div>
+        ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage"></label>`:`<label class="field"><span>Website</span><input type="text" id="su-web" name="web" placeholder="yourbusiness.com"></label>`}</div>
+      ${m==="vendor"?`<div class="grid"><label class="field"><span>Instagram (optional)</span><input type="text" id="su-ig" name="instagram" placeholder="@yourbusiness"></label>
+        <label class="field"><span>Portfolio link (optional)</span><input type="text" id="su-port" name="portfolio" placeholder="Google Drive, Houzz, Dropbox or anywhere"></label></div>
+        <p class="small" style="margin:0">Have a portfolio PDF? You can upload it from your dashboard once you're approved.</p>`:""}
       ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}${moreChecks("svc","su-ms")}</div>
         <label class="field"><span>Anything else? (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything not listed above"></label>
         <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>`:""}
@@ -447,9 +450,9 @@ document.addEventListener("submit",async e=>{
         :m==="vendor"&&!String(fd.get("title")||"").trim()?"Add your title.":!fd.get("terms")?`Check the box to agree to the ${TERMS[m].title}.`
         :m==="vendor"&&!fd.get("authority")?"Check the box to confirm you have authority to agree for the business.":"";
       if(err)return done(err);
-      const meta={role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
+      const meta={ref:S.ref||"",role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();
-      else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),website:String(fd.get("web")||"").trim(),services:svcs,years_in_business:String(fd.get("years")||""),
+      else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),website:String(fd.get("web")||"").trim(),instagram:igHandle(fd.get("instagram")),portfolio_url:String(fd.get("portfolio")||"").trim(),services:svcs,years_in_business:String(fd.get("years")||""),
         team_size:String(fd.get("team")||""),lead_time:String(fd.get("lead")||""),references:String(fd.get("references")||"").trim(),heard_about:String(fd.get("heard")||"").trim()});
       const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
       if(error)return done(friendlyAuthError(error));
@@ -465,6 +468,7 @@ async function liveBoot(){
   if(q.get("review")){S.authReady=true;await renderReviewPage(q.get("review"));return}
   // links from orbytconnect.com: ?join=agent or ?join=vendor opens that sign-up form
   // clean links: /join, /join/agent and /join/vendor (the older ?join=... links still work)
+  const rf=String(q.get("ref")||"").toLowerCase();if(/^[0-9a-f]{8}$/.test(rf)){S.ref=rf;try{sessionStorage.setItem("orbyt-ref",rf)}catch(_){}}else{try{S.ref=sessionStorage.getItem("orbyt-ref")||""}catch(_){}}
   const path=location.pathname.replace(/\/+$/,"").toLowerCase(),pm=path.match(/^\/join(?:\/(agent|vendor))?$/);
   const join=q.get("join")||(pm&&pm[1]);if(join==="agent"||join==="vendor")S.authMode=join;else if(q.has("join")||pm)S.authMode="join";
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.authReady=true;S.session=null;render()}});
@@ -495,7 +499,7 @@ function agentsView(){
     <label class="field" style="max-width:360px;margin-bottom:12px"><span>Search</span><input type="text" id="ag-q" value="${esc(S.agQ||"")}" placeholder="Name, email, brokerage or area"></label>
     ${rows.length?`<div class="tablewrap"><table><thead><tr><th>Agent</th><th>Contact</th><th>Areas</th><th class="num">Projects</th><th>Status</th><th></th></tr></thead><tbody>
     ${rows.map(r=>{const live=r.ps.filter(p=>!p.listed).length,last=[...r.ps].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))[0];
-      return `<tr><td><span class="strong">${esc(r.name)}</span>${r.brokerage?`<div class="small">${esc(r.brokerage)}</div>`:""}${r.joined?`<div class="small">Joined ${esc(fmtStamp(r.joined))}</div>`:""}${r.id&&r.status==="active"?agentTermsLine(r.id):""}</td>
+      return `<tr><td><span class="strong">${esc(r.name)}</span>${r.brokerage?`<div class="small">${esc(r.brokerage)}</div>`:""}${r.joined?`<div class="small">Joined ${esc(fmtStamp(r.joined))}</div>`:""}${r.id&&r.status==="active"?agentTermsLine(r.id):""}${r.id&&referredByName(r.id)?`<div class="small">Referred by ${esc(referredByName(r.id))}</div>`:""}</td>
         <td>${r.email?`<a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`:""}${r.phone?`<div class="small"><a href="tel:${esc(r.phone.replace(/[^\d+]/g,""))}">${esc(r.phone)}</a></div>`:""}</td>
         <td class="small">${esc(r.areas.join(", "))}</td>
         <td class="num">${r.ps.length}${r.ps.length?`<div class="small">${live} active</div>`:""}${last?`<div class="small"><button class="linkbtn" data-act="openmatch" data-id="${esc(last.id)}">${esc(last.address)}</button></div>`:""}${r.sh.length?`<div class="small">Shared on ${r.sh.length}: <button class="linkbtn" data-act="openmatch" data-id="${esc(r.sh[0].id)}">${esc(r.sh[0].address)}</button></div>`:""}</td>
@@ -972,3 +976,73 @@ async function removeService(p,c){
   else fail(error,"remove service");
   await S.db.reload();
 }
+
+
+/* ---------- portfolio, referrals, and folding the dashboard so jobs come first ---------- */
+const igHandle=x=>{let s=String(x||"").trim();if(!s)return"";const m=s.match(/instagram\.com\/([A-Za-z0-9._]+)/i);if(m)s=m[1];return s.replace(/^@+/,"").replace(/[^A-Za-z0-9._]/g,"").slice(0,30)};
+const igUrl=x=>{const h=igHandle(x);return h?"https://www.instagram.com/"+h+"/":""};
+function referredByName(uid){const p=(D.profiles||[]).find(x=>x.id===uid);if(!p||!p.referred_by)return"";const r=(D.profiles||[]).find(x=>x.id===p.referred_by);
+  if(!r)return"";if(r.role==="vendor"){const v=(D.vendors||[]).find(x=>x.user_id===r.id);if(v)return v.name+(r.full_name?" ("+r.full_name+")":"")}return r.full_name||r.email}
+// fold state: per viewer, remembered in this browser when possible
+function foldOpen(key,dflt){S.folds=S.folds||{};if(key in S.folds)return S.folds[key];try{const x=localStorage.getItem("orbyt-fold-"+S.uid+"-"+key);if(x!==null)return(S.folds[key]=x==="1")}catch(_){}return!!dflt}
+document.addEventListener("toggle",e=>{const d=e.target;if(!d.matches||!d.matches("details.fold[data-fold]"))return;S.folds=S.folds||{};S.folds[d.dataset.fold]=d.open;
+  try{localStorage.setItem("orbyt-fold-"+S.uid+"-"+d.dataset.fold,d.open?"1":"0")}catch(_){}},true);
+const fold=(key,title,pill,hint,body,dflt)=>body?`<details class="fold" data-fold="${key}" ${foldOpen(key,dflt)?"open":""}><summary><span class="foldtitle">${title}</span>${pill||""}${hint?`<span class="small foldhint">${hint}</span>`:""}</summary><div class="foldbody">${body}</div></details>`:"";
+function vendorFolds(v){
+  if(!v||kind()!=="vendor")return"";
+  const parts=[];
+  if(v.approved!==false){const st=insState(v),[pl,pc]=INS_PILL[st.state];
+    parts.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
+  const n=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf].filter(Boolean).length;
+  parts.push(fold("port","Portfolio",n?`<span class="pill set">${n} added</span>`:`<span class="pill late">Add your work</span>`,"Website, Instagram, a link or a PDF",portfolioCard(v),false));
+  const pr=vPricing(v),hasP=statedTier(v)||priceItems(v).length||pr.minimum;
+  parts.push(fold("price","Typical pricing",hasP?'<span class="pill set">Added</span>':'<span class="pill">Not added yet</span>',"Helps me match you to the right homes",vendorPricingCard(v),S.openForm==="pricing"));
+  if(typeof reviewInviteCard==="function"&&v.approved!==false){const sent=typeof rrFor==="function"?rrFor(v.id):[];
+    parts.push(fold("rr","Reviews from past clients",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Invite agents you've worked with",reviewInviteCard(v),!!S.rrMore))}
+  parts.push(fold("refer","Refer someone to Orbyt",refCountPill(),"A ready-made message to send",referralCard("vendor"),false));
+  return `<section class="section folds"><div class="sechead" style="margin-bottom:8px"><div><h2>Your profile</h2><span class="small">Finish these when you have a minute. Tap one to open it.</span></div></div>${parts.join("")}</section>`}
+function agentFolds(){if(kind()!=="agent"||!S.canWrite)return"";
+  return `<section class="section folds" style="margin-top:24px">${fold("refer","Refer someone to Orbyt",refCountPill(),"Know an agent or vendor who'd like Orbyt?",referralCard("agent"),false)}</section>`}
+// portfolio card
+function portfolioCard(v){
+  const pdf=v.portfolioPdf?blobHref(v.portfolioPdf):"";
+  return `<form class="form inner" data-form="portfolio" novalidate><p class="small" style="margin:0">Agents see these on your profile when I introduce you. Add whatever shows your work best.</p>
+    <div class="grid"><label class="field"><span>Website</span><input type="text" id="pt-web" name="web" value="${esc(v.web||"")}" placeholder="yourbusiness.com"></label>
+      <label class="field"><span>Instagram</span><input type="text" id="pt-ig" name="instagram" value="${esc(v.instagram?"@"+v.instagram:"")}" placeholder="@yourbusiness"></label>
+      <label class="field"><span>Portfolio link</span><input type="text" id="pt-port" name="portfolio" value="${esc(v.portfolioUrl||"")}" placeholder="Google Drive, Houzz, Dropbox or anywhere"></label>
+      <label class="field"><span>${v.portfolioPdf?"Replace your portfolio PDF":"Portfolio PDF"}</span><input type="file" id="pt-pdf" name="pdf" accept="application/pdf"></label></div>
+    ${v.portfolioPdf?`<p class="small" style="margin:0">On file: <a href="${esc(pdf)}" target="_blank" rel="noopener">${esc(v.portfolioPdfName||"Portfolio PDF")}</a> · <button class="linkbtn" type="button" data-act="ptpdfdel">Remove</button></p>`:""}
+    <p class="small warntext pterr" role="alert" style="margin:0" hidden></p>
+    <div class="actions"><button class="btn sm" type="submit">Save portfolio</button></div></form>`}
+const normUrl=x=>{const s=String(x||"").trim();return!s?"":/^https?:\/\//i.test(s)?s:"https://"+s};
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="portfolio"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),file=fd.get("pdf"),el=f.querySelector(".pterr");
+  if(file&&file.size&&(file.type!=="application/pdf"||file.size>25e6)){if(el){el.textContent=file.type!=="application/pdf"?"Choose a PDF file.":"That PDF is over 25 MB. Try a smaller version.";el.hidden=false}return}
+  guard(async()=>{const row={website:String(fd.get("web")||"").trim()||null,instagram:igHandle(fd.get("instagram"))||null,portfolio_url:normUrl(fd.get("portfolio"))||null};
+    if(file&&file.size){const old=v.portfolioPdfPath;const path=await putFile("vendor-photos",v.id,file);Object.assign(row,{portfolio_pdf:path,portfolio_pdf_name:file.name.slice(0,120)});
+      if(old)try{await sb.storage.from("vendor-photos").remove([old])}catch(_){}}
+    fail((await sb.from("vendors").update(row).eq("id",v.id)).error,"portfolio");await S.db.reload()},"Portfolio saved. Agents see it on your profile.")},true);
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="ptpdfdel"]');if(!t)return;const v=vendorById(myVendorId());if(!v||!v.portfolioPdfPath)return;
+  guard(async()=>{try{await sb.storage.from("vendor-photos").remove([v.portfolioPdfPath])}catch(_){}
+    fail((await sb.from("vendors").update({portfolio_pdf:null,portfolio_pdf_name:null}).eq("id",v.id)).error,"portfolio");await S.db.reload()},"Removed.")});
+// referral card: a ready-made message with the person's own sign-up link
+const refCode=()=>String(S.uid||"").slice(0,8);
+const refLink=who=>new URL("join/"+who,portalHome()).href+"?ref="+refCode();
+function refCountPill(){if(S.refCount==null&&!S.refCountLoading&&sb){S.refCountLoading=true;sb.rpc("my_referral_count").then(({data})=>{S.refCount=data||0;schedule()},()=>{S.refCount=0})}
+  return S.refCount?`<span class="pill set">${S.refCount} joined</span>`:""}
+function refMessage(me,who){const link=refLink(who);
+  if(me==="vendor"&&who==="vendor")return `Hi! I've been getting work through Orbyt, a vendor network here in San Diego that connects local pros with real estate agents getting homes ready to sell. Every vendor joins with references from agents, and you only pay when an introduction turns into a paid job. I think you'd be a great fit. You can apply here: ${link}`;
+  if(me==="vendor")return `Hi! I've joined Orbyt, a free service that matches agents with trusted local vendors for every listing, from staging and cleaning to repairs and photography. You send one request and get bids side by side. If you're prepping a listing soon, it's worth a look: ${link}`;
+  if(who==="vendor")return `Hi! I use Orbyt to line up vendors for my listings, and I'd love to see you in the network. Agents book trusted local pros through it, and you only pay when an introduction turns into a paid job. You can apply here: ${link}`;
+  return `Hi! I've been using Orbyt to line up vendors for my listings. You send one request, Ashleigh matches you with vetted local pros, and you compare bids side by side. It's free for agents. Thought you'd like it: ${link}`}
+function referralCard(me){const who=S.refWho||(me==="vendor"?"vendor":"agent"),msg=refMessage(me,who),subj=who==="vendor"?"An easier way to get listing work":"An easier way to line up vendors for your listings";
+  return `<div class="refcard"><p class="small" style="margin:0">Know someone who'd be a good fit? Send them this. It includes your own sign-up link, so I'll know they came from you.</p>
+    <div class="seg" role="group" aria-label="Who are you inviting?"><button type="button" class="segbtn ${who==="agent"?"on":""}" data-act="refwho" data-v="agent" aria-pressed="${who==="agent"}">An agent</button><button type="button" class="segbtn ${who==="vendor"?"on":""}" data-act="refwho" data-v="vendor" aria-pressed="${who==="vendor"}">A vendor</button></div>
+    <textarea class="insemail" id="ref-msg" rows="6" aria-label="Message to send">${esc(msg)}</textarea>
+    <div class="actions"><button class="btn ghost sm" type="button" data-act="refcopy">Copy message</button><a class="btn ghost sm" href="mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(msg)}">Email it</a><a class="btn ghost sm" href="sms:?&body=${encodeURIComponent(msg)}">Text it</a></div></div>`}
+document.addEventListener("click",async e=>{const t=e.target.closest('[data-act="refwho"],[data-act="refcopy"]');if(!t)return;
+  if(t.dataset.act==="refwho"){S.refWho=t.dataset.v;render();return}
+  const ta=$("#ref-msg");if(!ta)return;try{await navigator.clipboard.writeText(ta.value);toast("Copied. Paste it into a text or email.")}catch(_){ta.select();toast("Selected. Copy it with your keyboard.")}});
+
+// list price only applies to listings
+document.addEventListener("change",e=>{if(e.target.id!=="np-ctype")return;const f=e.target.form,w=f&&f.querySelector(".np-lp");if(w)w.hidden=e.target.value==="Buyer"});

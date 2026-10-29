@@ -1,7 +1,8 @@
 import re, pathlib, sys
 HERE = pathlib.Path(__file__).resolve().parent
 src = (HERE / "orbyt-portal.html").read_text()
-live = (HERE / "live.js").read_text()
+live = (HERE / "live.js").read_text() + "\n" + (HERE / "homecard.js").read_text()
+qrlib = (HERE / "vendor" / "qrcode-generator.min.js").read_text()
 L = src.split("\n")
 
 def find(prefix, start=0):
@@ -49,6 +50,46 @@ sub("</style>", """.quoteframe{width:100%;height:70vh;border:1px solid var(--lin
 <body>""")
 sub("\n<script>\n/* typical order", '\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>\n<script>\n/* typical order')
 out = out.rstrip() + "\n</body>\n</html>\n"
+# QR codes for home team cards, inlined so printing never waits on another site
+sub('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>\n', '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>\n<script>\n' + qrlib.strip() + '\n</script>\n')
+# home team cards: the card maker, the card itself, and the request page
+sub("</style>\n</head>", """.note{white-space:pre-line}
+.hcwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,480px);gap:24px;align-items:start;margin-top:8px}
+@media (max-width:980px){.hcwrap{grid-template-columns:minmax(0,1fr)}.hcside{order:-1;position:static}}
+.hcform{margin:0}.hcfs{border:0;padding:0;margin:0;min-width:0}
+.hcrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) minmax(0,1.5fr);gap:8px;margin-bottom:6px}
+@media (max-width:640px){.hcrow{grid-template-columns:1fr 1fr;padding-bottom:8px;border-bottom:1px solid var(--line)}.hcrow .field:last-child{grid-column:1/-1}}
+.hclogo img{max-height:56px;max-width:220px;display:block;background:#F6F4EA;border-radius:6px;padding:6px}
+.hcfile{position:relative;overflow:hidden;cursor:pointer}.hcfile input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.hclink{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:4px}
+.hccallout{grid-template-columns:minmax(0,1fr) auto;align-items:center}@media (max-width:640px){.hccallout{grid-template-columns:1fr}}
+.hcside{position:sticky;top:12px;min-width:0}.hcprev{width:100%;max-width:480px;overflow:hidden;border-radius:6px;box-shadow:0 2px 14px rgba(24,49,79,.14)}
+.hcprev .htc{transform-origin:top left}
+.htc{width:5in;height:7in;background:#F6F4EA;color:#18314F;font-family:Jost,sans-serif;display:flex;flex-direction:column;overflow:hidden;text-align:left;letter-spacing:normal;-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}
+.htc *{box-sizing:border-box}
+.htc .hctop{padding:.34in .42in 0;display:flex;justify-content:space-between;align-items:center;gap:.2in;min-height:.3in}.htc .hctop .hcey{min-width:0}
+.htc .hcey{font-size:8.5pt;letter-spacing:.14em;text-transform:uppercase;color:#A8871F;font-weight:500;font-family:Jost,sans-serif}
+.htc h1{font-family:Jost,sans-serif;font-size:27pt;font-weight:500;line-height:1.02;margin:.08in .42in 0;letter-spacing:-.01em;color:#18314F;text-transform:none}
+.htc .hclg{flex:none;max-width:1.5in;max-height:.5in;object-fit:contain;display:block}
+.htc .hcfrom{padding:.08in .42in 0;font-size:10.5pt;color:#2C4260;line-height:1.45}.htc .hcfrom b{font-weight:500;color:#18314F}
+.htc .hcrule{height:1px;background:#E3DFD0;margin:.16in .42in .12in}
+.htc .hcgrid{display:grid;grid-template-columns:1fr 1fr;gap:.12in .22in;padding:0 .42in}
+.htc .hcc{font-size:7.5pt;letter-spacing:.13em;text-transform:uppercase;color:#A8871F;font-weight:500}
+.htc .hcn{font-size:11pt;font-weight:500;margin-top:2px;line-height:1.2}
+.htc .hcs{font-size:8.5pt;margin-top:1px}.htc .hcw{font-size:8pt;color:#5E6E83;line-height:1.35;margin-top:2px}
+.htc .hcmore{margin:.14in .42in 0;padding-top:.1in;border-top:1px solid #E3DFD0}.htc .hclist{font-size:8.5pt;color:#2C4260;line-height:1.45;margin-top:3px}
+.htc .hcfoot{margin:auto .42in .12in;padding-top:.1in;display:flex;justify-content:space-between;align-items:center;gap:.2in;font-size:7.5pt;color:#5E6E83}.htc .hcfoot img{height:.16in;width:auto}
+.htc .hcband{flex:none;height:1.72in;background:#18314F;color:#F6F4EA;display:flex;align-items:center;gap:.24in;padding:0 .42in}
+.htc .hcqr{flex:none;width:1.02in;height:1.02in;background:#fff;border-radius:10px;padding:.08in}.htc .hcqr svg{width:100%;height:100%;display:block}
+.htc h2{font-family:Jost,sans-serif;font-size:14pt;font-weight:500;margin:0 0 .04in;color:#F6F4EA;text-transform:none;letter-spacing:normal}
+.htc .hcband p{font-size:9pt;line-height:1.45;margin:0;color:#DDE3EA}.htc .hcurl{color:#E6D9A8;font-weight:500}
+.htc .hcperk{display:inline-block;margin-top:.07in;background:#E6D9A8;color:#18314F;font-size:8.5pt;font-weight:500;border-radius:999px;padding:3px 10px}
+.hcpagelogo{max-height:64px;max-width:240px;object-fit:contain;justify-self:start}
+.hcopts label{border-radius:14px}
+.hcpot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.hcpagefoot{text-align:center;color:var(--muted)}
+</style>
+</head>""")
 
 # no saved prototype session
 sub('S.session=localStorage.getItem("orbyt-portal-session")||null;if(S.session)S.role=S.session;', '')

@@ -11,7 +11,7 @@ const portalHome=()=>location.origin+"/";
 const D={};                       // raw rows, by table
 const TABLES=["profiles","vendors","vendor_admin","vendor_private","vendor_notes","projects","project_private","project_admin",
   "project_members","default_shares","bids","invoices","reviews","favorites","task_checks","client_links","my_tasks","time_logs",
-  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests"];
+  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards"];
 const nz=v=>v===""||v===undefined?null:v;
 const camel=s=>s.replace(/_([a-z])/g,(m,c)=>c.toUpperCase());
 const snake=s=>s.replace(/[A-Z]/g,c=>"_"+c.toLowerCase());
@@ -30,7 +30,7 @@ async function fetchAll(t){
   if(t==="review_requests"){if(!S.uid)return undefined;const{data,error}=await sb.rpc("review_requests_list");return error?undefined:(data||[])}
   let out=[],from=0;
   for(;;){const{data,error}=await sb.from(t).select("*").range(from,from+999);
-    if(error){console.error("load "+t,error);return t==="terms_acceptances"?undefined:out} // no terms step until update 8 is in
+    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
     out=out.concat(data||[]);if(!data||data.length<1000)return out;from+=1000}
 }
 
@@ -50,7 +50,7 @@ function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D
     return{id:p.id,agent:p.agent_name,agentId:p.agent_id,agentEmail:p.agent_email||"",agentPhone:p.agent_phone||"",brokerage:p.brokerage||"",
       address:p.address,area:normArea(p.area||""),clientType:p.client_type,targetDate:p.target_date||"",categories:p.categories||[],notes:p.notes||"",
       addedServices:p.added_services||{},listed:!!p.listed,listedAt:p.listed_at,workOrder:p.work_order||null,source:p.source||"",createdBy:p.created_by||"",createdAt:p.created_at,
-      client:pp.client_name||"",budget:pp.budget||"",listPrice:pp.list_price==null?null:Number(pp.list_price),sqft:p.sqft||null,pmInterest:pp.pm_interest||"",optionRequests:pp.option_requests||{},
+      client:pp.client_name||"",clientEmail:pp.client_email||"",clientPhone:pp.client_phone||"",budget:pp.budget||"",listPrice:pp.list_price==null?null:Number(pp.list_price),sqft:p.sqft||null,pmInterest:pp.pm_interest||"",optionRequests:pp.option_requests||{},
       pm:!!pa.pm,pmInvoice:pa.pm_invoice||null,completed:!!pa.completed,completedAt:pa.completed_at,
       members:(D.project_members||[]).filter(m=>m.project_id===p.id).sort((a,b)=>String(a.added_at).localeCompare(String(b.added_at)))
         .map(m=>({id:m.id,name:m.name,email:m.email,role:m.role,notify:!!m.notify,fromDefault:!!m.from_default,userId:m.user_id,addedAt:m.added_at}))}})}
@@ -470,6 +470,9 @@ async function liveBoot(){
   const q=new URLSearchParams(location.search);
   if(q.get("quotes")){S.authReady=true;await renderClientPage(q.get("quotes"));return}
   if(q.get("review")){S.authReady=true;await renderReviewPage(q.get("review"));return}
+  // a home team card's request page: /r/<agent name> (or ?card=<agent name>)
+  const rm=location.pathname.toLowerCase().match(/^\/r\/([a-z0-9-]{1,40})\/?$/),card=(rm&&rm[1])||String(q.get("card")||"").toLowerCase();
+  if(/^[a-z0-9-]{1,40}$/.test(card)){S.authReady=true;await renderCardRequestPage(card);return}
   // links from orbytconnect.com: ?join=agent or ?join=vendor opens that sign-up form
   // clean links: /join, /join/agent and /join/vendor (the older ?join=... links still work)
   const rf=String(q.get("ref")||"").toLowerCase();if(/^[0-9a-f]{8}$/.test(rf)){S.ref=rf;try{sessionStorage.setItem("orbyt-ref",rf)}catch(_){}}else{try{S.ref=sessionStorage.getItem("orbyt-ref")||""}catch(_){}}

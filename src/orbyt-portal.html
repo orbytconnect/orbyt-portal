@@ -905,7 +905,7 @@ function tabs(list){return `<div class="tabs" role="tablist">${list.map(([id,lab
 function agentView(){
   const agent=roleVal();const T=agentTasks(agent);const openN=splitTasks(T).open.length;
   const ps=S.projects.filter(p=>isOnProject(p,agent));
-  if(!["tasks","projects","favorites","team"].includes(S.tab))S.tab="tasks";
+  if(!["tasks","projects","favorites","team","card"].includes(S.tab))S.tab="tasks";
   let h=`<section class="hello"><div><h1>Hi ${esc(agent.split(" ")[0])}</h1>
     <p>See new bids as they come in, compare them side by side, view a PDF of each vendor's quote, and see who's booked for every project. Check off tasks as you go, or save them for later.</p>
     ${S.canWrite?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
@@ -921,13 +921,15 @@ function agentView(){
     {key:"received",label:"Bids received",list:ab.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"agent"),empty:"No new bids to look at."},
     {key:"accepted",label:"Bids accepted",list:ab.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"agent"),empty:"No vendors booked yet."}]);
   const favs=favIds(agent).map(vendorById).filter(Boolean);
-  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],["favorites",`Favorites <span class="small num">(${favs.length})</span>`,0],["team",`Always share with <span class="small num">(${defaultTeamOf(agent).length})</span>`,0]]);
+  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],["favorites",`Favorites <span class="small num">(${favs.length})</span>`,0],["team",`Always share with <span class="small num">(${defaultTeamOf(agent).length})</span>`,0],...(typeof hcView==="function"&&S.canWrite?[["card","Home team card",0]]:[])]);
   if(S.tab==="team")return h+myTeamView(agent);
+  if(S.tab==="card"&&typeof hcView==="function")return h+hcView(agent);
   if(S.openForm==="newproject")h+=newProjectForm(agent);
   if(S.tab==="tasks")return h+tasksView(T,"When a vendor sends a bid or a list date gets close, it shows up here.")+(typeof agentFolds==="function"?agentFolds():"");
   if(S.tab==="favorites"){
     if(!favs.length)return h+`<div class="emptystate"><h2>No favorites yet</h2><p>Click any vendor's name to open their card, then choose "Save to favorites." Ashleigh sees your favorites and puts them first when she matches your listings.</p></div>`;
     const groups=CATS.filter(c=>favs.some(v=>vsv(v).includes(c)));
+    if(typeof hcView==="function"&&S.canWrite)h+=`<div class="callout hccallout" style="margin-bottom:16px"><div><span class="strong">Share your favorites with buyers</span><div class="small">Print a home team card with these pros' names and ratings, and a code that sends requests back to you. No vendor contact details on it.</div></div><button class="btn ghost sm" data-act="hcmake">Make a home team card</button></div>`;
     return h+groups.map(c=>`<div class="section"><h2>${esc(c)}</h2><div class="favgrid">${favs.filter(v=>vsv(v).includes(c)).map(v=>{const jobs=S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected"&&projById(b.projectId)?.agent===agent).length;
       return `<div class="favcard"><div class="row"><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${S.canWrite?`<button class="linkbtn" data-act="fav" data-id="${esc(v.id)}">Remove</button>`:""}</div>
         <div>${ratingHtml(v.id)}</div><div class="small">${[vPhone(v),vEmail(v)].filter(Boolean).map(esc).join(" · ")||"No contact info yet"}</div>
@@ -2052,7 +2054,9 @@ function projectDetail(p,mode){
       <span class="pill ${cls}">${st}</span>${PM_ON&&isOrbyt&&!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<span class="pill comparing">${esc(PMI[p.pmInterest])}</span>`:""}</div>
       ${isOrbyt&&p.brokerage?`<div class="small" style="margin-top:4px">${esc(p.brokerage)}${p.agentPhone?" · "+esc(p.agentPhone):""}${p.agentEmail?" · "+esc(p.agentEmail):""}</div>`:""}${isOrbyt&&S.canWrite&&typeof changeAgentBlock==="function"?changeAgentBlock(p):""}</div>
     <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>`;
+  if(mode!=="vendor"&&(p.clientEmail||p.clientPhone))h+=`<p class="small" style="margin:8px 0 0">Reach ${esc(cfn(p)||"the client")}: ${[p.clientPhone?`<a href="tel:${esc(p.clientPhone.replace(/[^\d+]/g,""))}">${esc(p.clientPhone)}</a>`:"",p.clientEmail?`<a href="mailto:${esc(p.clientEmail)}">${esc(p.clientEmail)}</a>`:""].filter(Boolean).join(" · ")}</p>`;
   if(p.notes)h+=`<p class="note">${esc(p.notes)}</p>`;
+  if(mode==="agent"&&typeof hcProjectBtn==="function")h+=hcProjectBtn(p);
   if(mode!=="vendor")h+=teamPanel(p,isOrbyt);
   if((p.categories||[]).length>1&&!p.listed)h+=`<details class="timingwrap" data-p="${esc(p.id)}" ${S.openTiming===p.id?"open":""}><summary>Order of work <span class="small">· ${seqSteps(p).map(g=>esc(g.join(" + "))).join(" → ")}</span></summary>${S.openForm==="order:"+p.id?orderEditor(p):timingBlock(p,null)+(canReorder(p)?`<div class="actions" style="margin-top:8px"><button class="btn ghost sm" data-act="ordedit" data-id="${esc(p.id)}">Change the order</button></div>`:"")}</details>`;
   for(const c of p.categories||[]){

@@ -81,7 +81,7 @@ sub(".vcard.wide{width:min(720px,calc(100% - 32px))}", """.vcard.wide{width:min(
 .agbox{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 22px}.agbox.tall{max-height:68vh}
 .insemail{width:100%;font:13px/1.5 inherit;margin:8px 0 4px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);resize:vertical}
 .steps{margin:6px 0 0;padding-left:20px}.steps>li{margin:0 0 14px}.form.inner{margin:8px 0 0;padding:0;border:0;background:none}.insmore summary{cursor:pointer;margin-top:8px}.insnote{margin:0}
-.canew[hidden],.np-lp[hidden]{display:none!important}
+.canew[hidden],.np-lp[hidden]{display:none!important}.refmsg{min-height:0;field-sizing:content}
 .folds .fold{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:0 0 10px}.fold>summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:14px 16px}
 .fold>summary::-webkit-details-marker{display:none}.fold>summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin-right:4px}
 .fold[open]>summary::before{transform:rotate(45deg)}.foldtitle{font-weight:500}.foldhint{flex-basis:100%;margin-left:22px}@media(min-width:700px){.foldhint{flex-basis:auto;margin-left:auto}}

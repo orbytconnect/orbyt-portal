@@ -527,7 +527,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 /* typical order of work before a listing (or a buyer move-in); lower goes first */
 const SEQ={"General contractor / remodeling":1,"Plumbing":2,"Electric":2,"HVAC":2,"Handyman":3,"Painting":4,"Landscaping":5,"Pool services":5,"Window cleaning":6,"Cleaning":7,"Staging":8,"Photography":9,
   "Home inspection":0,"Junk removal":0,"Organizing":0,"Roofing":1,"Flooring":2,"Drywall":2,"Concrete":2,"Pest control":3,"Appliance repair":3,"Garage doors":3,"Fencing":5,"Tree service":5,"Pressure washing":5,
-  "Gutter cleaning":6,"Solar panel cleaning":6,"Carpet cleaning":7,"Signage":9};
+  "Gutter cleaning":6,"Solar panel cleaning":6,"Carpet cleaning":7,"Window treatments":7,"Landscape design":5,"Signage":9};
 const seqOf=(p,c)=>{if(c==="Moving")return p.clientType==="Buyer"?10:0;if(SEQ[c]!==undefined)return SEQ[c];const k=Object.keys(SEQ).find(x=>x.toLowerCase()===String(c).toLowerCase());return k?SEQ[k]:5};
 const capF=t=>t.charAt(0).toUpperCase()+t.slice(1);
 function typicalSteps(p){const g={};for(const c of p.categories||[]){const k=seqOf(p,c);(g[k]=g[k]||[]).push(c)}return Object.keys(g).map(Number).sort((a,b)=>a-b).map(k=>g[k])}
@@ -570,7 +570,7 @@ function timingBlock(p,mine){
 }
 const CATS=["Staging","Cleaning","Photography","Landscaping","Painting","Handyman","General contractor / remodeling","Plumbing","Electric","HVAC","Window cleaning","Pool services","Moving","Home inspection"];
 // common extras vendors offer beyond the core categories (suggestions only; anything can be typed)
-const MORE_SERVICES=["Pressure washing","Junk removal","Roofing","Gutter cleaning","Flooring","Carpet cleaning","Pest control","Fencing","Concrete","Tree service","Organizing","Appliance repair","Garage doors","Drywall","Solar panel cleaning","Signage"];
+const MORE_SERVICES=["Pressure washing","Junk removal","Roofing","Gutter cleaning","Flooring","Carpet cleaning","Pest control","Fencing","Concrete","Tree service","Organizing","Appliance repair","Garage doors","Drywall","Solar panel cleaning","Signage","Window treatments","Landscape design"];
 function moreChecks(name,prefix,skip){const list=[...MORE_SERVICES].filter(c=>!(skip||[]).includes(c)).sort((a,b)=>a.localeCompare(b));if(!list.length)return "";
   return `<div class="moresvc"><span class="small">More services</span><div class="checks">${list.map((c,i)=>`<label><input type="checkbox" id="${prefix}-${i}" name="${name}" value="${esc(c)}">${esc(c)}</label>`).join("")}</div></div>`}
 const ALIAS={"contractor":"General contractor / remodeling","general contractor":"General contractor / remodeling","remodeling":"General contractor / remodeling","pool cleaning":"Pool services","pool care":"Pool services","pool service":"Pool services","deep cleaning":"Cleaning","electrical":"Electric","electrician":"Electric","window washing":"Window cleaning"};
@@ -686,7 +686,7 @@ const statedPill=v=>statedTier(v)?`<span class="pill price" title="From the pric
 const svcMatch=(a,b)=>{a=String(a||"").toLowerCase().trim();b=String(b||"").toLowerCase().trim();return !a||!b||a.includes(b)||b.includes(a)};
 const priceItems=(v,cat)=>(vPricing(v).items||[]).filter(x=>x&&x.price&&(!cat||vsv(v).length<=1||svcMatch(x.service,cat)));
 const PRICE_EXAMPLES={"Staging":["3-bed vacant home, 30 days","From $3,500"],"Painting":["Interior repaint, 3-bed home","From $3,200"],"Cleaning":["Move-out deep clean, 3-bed","$450 to $650"],
-  "Photography":["Photos and drone, up to 3,000 sq ft","$350"],"Landscaping":["Front yard refresh and mulch","From $1,200"],"Handyman":["Punch list repairs","$85"],"Window cleaning":["Inside and out, 2-story home","$350 to $500"],
+  "Photography":["Photos and drone, up to 3,000 sq ft","$350"],"Landscaping":["Front yard refresh and mulch","From $1,200"],"Handyman":["Punch list repairs","$85"],"Window cleaning":["Inside and out, 2-story home","$350 to $500"],"Window treatments":["Shades for a 3-bed home, installed","From $1,800"],"Landscape design":["Front yard design plan","From $750"],
   "Pool services":["One-time green-to-clean","$400"],"Moving":["3-bed local move, crew of 3","$1,500 to $2,200"],"Junk Removal":["Full truckload","$600"]};
 const priceExample=(v,i)=>{const s=vsv(v)[i]||vsv(v)[0]||"";const ex=Object.entries(PRICE_EXAMPLES).find(([k])=>svcMatch(k,s));return[s||"Your service",...(ex?ex[1]:["What the job includes","From $500"])]};
 const minText=v=>vPricing(v).minimum?"Minimum "+vPricing(v).minimum:"";

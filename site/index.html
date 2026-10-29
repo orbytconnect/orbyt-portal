@@ -3143,8 +3143,10 @@ function signupView(m){
     </form></div></section>`;
 }
 async function enter(user){
+  if(S.recovering)return;   // finish choosing a new password first
   S.uid=user.id;S.email=user.email;
   const{data:prof}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
+  if(S.recovering)return;
   S.me=prof||null;S.authReady=true;
   if(!prof||prof.status==="pending"){S.authMode="pending";S.pendingName=prof&&prof.full_name?prof.full_name.split(" ")[0]:"";render();return}
   if(prof.status==="declined"){S.authMode="declined";render();return}
@@ -3232,7 +3234,7 @@ document.addEventListener("submit",async e=>{
       const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:portalHome()});
       return done(error?friendlyAuthError(error):"","If that email has an account, a reset link is on its way.")}
     if(kindOf==="newpass"){if(pass.length<8)return done("Use a password with at least 8 characters.");if(pass!==pass2)return done("Those passwords don't match. Type them again.");
-      const{data,error}=await sb.auth.updateUser({password:pass});if(error)return done(friendlyAuthError(error));toast("Password saved");S.authMode="signin";await enter(data.user);return}
+      const{data,error}=await sb.auth.updateUser({password:pass});if(error)return done(friendlyAuthError(error));toast("Password saved");S.recovering=false;S.authMode="signin";try{history.replaceState(null,"",location.pathname)}catch(_){}await enter(data.user);return}
     if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
       const err=!first||!last?"Add your first and last name.":!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)?"Enter a valid email.":m==="vendor"&&!String(fd.get("company")||"").trim()?"Add your company name."
@@ -3253,6 +3255,8 @@ document.addEventListener("submit",async e=>{
 },true);
 
 async function liveBoot(){
+  // a password reset link: read it before Supabase tidies the address bar, so the new-password screen stays put
+  const recovering=/type=recovery/.test(location.hash+location.search);
   sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   const q=new URLSearchParams(location.search);
   if(q.get("quotes")){S.authReady=true;await renderClientPage(q.get("quotes"));return}
@@ -3262,7 +3266,8 @@ async function liveBoot(){
   const rf=String(q.get("ref")||"").toLowerCase();if(/^[0-9a-f]{8}$/.test(rf)){S.ref=rf;try{sessionStorage.setItem("orbyt-ref",rf)}catch(_){}}else{try{S.ref=sessionStorage.getItem("orbyt-ref")||""}catch(_){}}
   const path=location.pathname.replace(/\/+$/,"").toLowerCase(),pm=path.match(/^\/join(?:\/(agent|vendor))?$/);
   const join=q.get("join")||(pm&&pm[1]);if(join==="agent"||join==="vendor")S.authMode=join;else if(q.has("join")||pm)S.authMode="join";
-  sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.authReady=true;S.session=null;render()}});
+  if(recovering){S.authMode="newpass";S.recovering=true}
+  sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.recovering=true;S.authReady=true;S.session=null;render()}});
   const{data:{session}}=await sb.auth.getSession();
   if(session&&S.authMode!=="newpass")await enter(session.user);else{S.authReady=true;render()}
 }

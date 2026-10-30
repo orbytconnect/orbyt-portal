@@ -463,7 +463,14 @@ document.addEventListener("submit",async e=>{
   }catch(x){console.error(x);done("Something went wrong. Check your connection and try again.")}
 },true);
 
+// if the database stops answering, say so instead of leaving a blank page
+function bootWatchdog(){setTimeout(()=>{const app=document.getElementById("app");if(!app)return;
+  const stuck=!app.innerHTML.trim()||/<h2>Loading<\/h2>/.test(app.innerHTML);if(!stuck)return;
+  app.innerHTML=`<section class="auth one"><div class="authcard"><div class="eyebrow">Orbyt Portal</div><h1>Can't reach Orbyt right now</h1>
+    <p>The portal is taking longer than usual to load. Try again in a minute. If it keeps happening, email ashleigh@orbytconnect.com.</p>
+    <div class="actions"><button class="btn" type="button" onclick="location.reload()">Try again</button></div></div></section>`},15000)}
 async function liveBoot(){
+  bootWatchdog();
   // a password reset link: read it before Supabase tidies the address bar, so the new-password screen stays put
   const recovering=/type=recovery/.test(location.hash+location.search);
   sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});

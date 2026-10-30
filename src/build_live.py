@@ -41,7 +41,7 @@ def sub(old, new, count=1):
 
 # full HTML document for hosting
 sub('<title>Orbyt Portal</title>\n<meta name="claude:viewport-fit-sides" content="cover">',
-    '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Orbyt Portal</title>\n<meta name="robots" content="noindex">')
+    '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Orbyt Portal</title>\n<meta name="robots" content="noindex">\n<link rel="icon" href="/favicon.svg" type="image/svg+xml">\n<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">\n<link rel="apple-touch-icon" href="/apple-touch-icon.png">')
 sub("</style>", """.quoteframe{width:100%;height:70vh;border:1px solid var(--line);border-radius:8px;background:#fff}
 .clientpage{max-width:760px;margin:28px auto 40px}
 .clientpage h1{margin:6px 0 4px}

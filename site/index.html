@@ -941,7 +941,7 @@ function formBlock(v){
     ["Services you offer",esc(vsv(v).join(", "))],["Service area",esc(v.areaNote||(v.areas||[]).join(", "))],["Years in business",esc(v.years||"")],["Team size",esc(v.team||"")],
     ["Certificate of insurance",coi?link(coi,"Open certificate"):""],["How much they work with agents",esc(v.worksWithAgents||"")],["Agent references",esc(v.references||"")],
     ["Typical lead time",esc(v.leadTime||"")],["Portfolio",photos.length?`<div class="thumbs">${photos.map(id=>`<a href="${esc(blobHref(id))}" target="_blank" rel="noopener"><img src="${esc(blobHref(id))}" alt="Recent work by ${esc(v.name)}"></a>`).join("")}</div>`:""],
-    ["Portfolio URL",port?link(port,v.portfolioUrl):""],["Instagram",typeof igUrl==="function"&&igUrl(v.instagram)?link(igUrl(v.instagram),"@"+String(v.instagram).replace(/^@/,"")):""],["Portfolio PDF",v.portfolioPdf?link(blobHref(v.portfolioPdf),v.portfolioPdfName||"Open PDF"):""],["Referred by",typeof referredByName==="function"?esc(referredByName(v.userId)):""],["Interested in promoting special offers?",esc(v.promoInterest||"")],["How they heard about Orbyt",esc(v.heard||"")],["Anything I should know?",esc(v.signupNotes||"")]];
+    ["Portfolio URL",port?link(port,v.portfolioUrl):""],["Instagram",typeof igUrl==="function"&&igUrl(v.instagram)?link(igUrl(v.instagram),"@"+String(v.instagram).replace(/^@/,"")):""],["Portfolio PDF",v.portfolioPdf?link(blobHref(v.portfolioPdf),v.portfolioPdfName||"Open PDF"):""],["Business overview PDF",typeof ovLink==="function"?ovLink(v,v.overviewPdfName||"Open PDF"):""],["Referred by",typeof referredByName==="function"?esc(referredByName(v.userId)):""],["Interested in promoting special offers?",esc(v.promoInterest||"")],["How they heard about Orbyt",esc(v.heard||"")],["Anything I should know?",esc(v.signupNotes||"")]];
   return `<div><span class="eyebrow">Their sign-up form</span>
     <dl class="formlist">${F.map(([k,x])=>`<div><dt>${k}</dt><dd>${x||'<span class="small">Not given</span>'}</dd></div>`).join("")}</dl>
     <p class="small" style="margin:8px 0 0">${v.source?esc(v.source)+" · ":""}${v.createdAt?"Joined "+fmtStamp(v.createdAt)+" · ":""}${v.licensed?"License checked":"License not checked"} · ${v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}${kind()==="orbyt"?insuranceAdminLine(v)+businessLine(v)+reviewReqLine(v):""}
@@ -953,7 +953,8 @@ function profileBlock(v){
   const photos=(v.photoIds||[]).slice(0,5);
   let h=rows.length?`<div class="vfacts">${rows.map(([k,x])=>`<div><span class="eyebrow">${k}</span><div>${esc(x)}</div></div>`).join("")}</div>`:"";
   const ig=typeof igUrl==="function"?igUrl(v.instagram):"",pdf=v.portfolioPdf?blobHref(v.portfolioPdf):"";
-  if(web||port||ig||pdf||photos.length)h+=`<div><span class="eyebrow">Work</span><div class="actions" style="margin-top:4px">${web?`<a href="${esc(web)}" target="_blank" rel="noopener">Website</a>`:""}${ig?`<a href="${esc(ig)}" target="_blank" rel="noopener">Instagram</a>`:""}${port?`<a href="${esc(port)}" target="_blank" rel="noopener">Portfolio</a>`:""}${pdf?`<a href="${esc(pdf)}" target="_blank" rel="noopener">Portfolio PDF</a>`:""}</div>
+  const ovl=typeof ovLink==="function"?ovLink(v,"Business overview (PDF)"):"";
+  if(web||port||ig||pdf||ovl||photos.length)h+=`<div><span class="eyebrow">Work</span><div class="actions" style="margin-top:4px">${ovl}${web?`<a href="${esc(web)}" target="_blank" rel="noopener">Website</a>`:""}${ig?`<a href="${esc(ig)}" target="_blank" rel="noopener">Instagram</a>`:""}${port?`<a href="${esc(port)}" target="_blank" rel="noopener">Portfolio</a>`:""}${pdf?`<a href="${esc(pdf)}" target="_blank" rel="noopener">Portfolio PDF</a>`:""}</div>
     ${photos.length?`<div class="thumbs">${photos.map(id=>`<a href="${esc(blobHref(id))}" target="_blank" rel="noopener"><img src="${esc(blobHref(id))}" alt="Recent work by ${esc(v.name)}"></a>`).join("")}</div>`:""}</div>`;
   if(o){h+=`<div class="callout" style="margin:0"><div class="eyebrow">Vetting · only you see this</div>
     <div class="small"><span class="strong">Insurance:</span> ${coi?`<a href="${esc(coi)}" target="_blank" rel="noopener">Certificate of insurance</a>`:"No certificate on file"} · ${v.licensed?"Licensed":"License not checked"} · ${v.insured?"Insured":"Insurance not checked"}</div>
@@ -1047,7 +1048,7 @@ function upNext(agent,openN){
   if(n.kind==="compare"){const fd=n.bids.filter(b=>b.availableFrom),fast=fd.length>1?fd.map(b=>b.availableFrom).sort()[0]:null;
     body=`<div class="unrows">${n.bids.map(b=>{const v=vendorById(b.vendorId);return `<div class="unrow"><div style="min-width:0"><span class="strong">${vLink(b)}</span> <span class="small">${v?ratingHtml(v.id):""}</span>${b.note?`<div class="small">${esc(b.note)}</div>`:""}</div>
       <div class="num unamt">${money(b.amount)}<div class="small">${esc(timeline(b))}${fast!==null&&b.availableFrom===fast?" · soonest":""}</div></div>
-      <div class="small">${b.pdfId?pdfLink(b):""}</div>
+      <div class="small">${b.pdfId?pdfLink(b):""}${typeof ovLink==="function"&&ovLink(b.vendorId)?`<div>${ovLink(b.vendorId,"About them")}</div>`:""}</div>
       <div><button class="btn sm" data-act="select" data-id="${esc(b.id)}">Add to team</button></div></div>`}).join("")}</div>
       <div class="actions"><button class="btn ghost sm" data-act="clientshare" data-id="${esc(p.id)}">Send quotes to ${esc(cfn(p)||"your client")}</button><button class="linkbtn" data-act="open" data-id="${esc(p.id)}">See the whole project</button></div>`}
   else body=`<p class="small" style="margin:0">${esc(n.sub)}</p><div class="actions"><button class="btn sm" data-act="open" data-id="${esc(p.id)}">${n.kind==="amount"?"Confirm amount":"See next steps"}</button></div>`;
@@ -1074,7 +1075,7 @@ function clientDialog(){
       <div class="small">Prepared by ${esc(ag)} with Orbyt${p.targetDate?" · listing "+esc(fmtDate(p.targetDate)):""}</div></div><button class="xbtn" id="cs-close" data-act="csclose" aria-label="Close">×</button></div>
     ${cats.length?cats.map(c=>{const sel=teamBid(p.id,c),bs=sel?[sel]:bidsFor(p.id,c).filter(b=>b.status!=="requested"&&b.status!=="declined"&&b.amount);
       return `<div><span class="eyebrow">${esc(c)}${sel?" · booked":""}</span><div class="unrows" style="margin-top:6px">${bs.map(b=>{const r=rating(b.vendorId);return `<div class="unrow cs"><div style="min-width:0"><span class="strong">${esc(bidName(b))}</span>${r?` <span class="small">★ ${r.avg.toFixed(1)} from ${r.n} ${r.n===1?"agent":"agents"}</span>`:""}${b.note?`<div class="small">${esc(b.note)}</div>`:""}</div>
-        <div class="num unamt">${money(b.amount)}<div class="small">${esc(timeline(b))}</div></div><div class="small">${b.pdfId?pdfLink(b):""}</div></div>`}).join("")}</div></div>`}).join("")
+        <div class="num unamt">${money(b.amount)}<div class="small">${esc(timeline(b))}</div></div><div class="small">${b.pdfId?pdfLink(b):""}${typeof ovLink==="function"&&ovLink(b.vendorId)?`<div>${ovLink(b.vendorId,"About them")}</div>`:""}</div></div>`}).join("")}</div></div>`}).join("")
       :`<p class="small">No quotes in yet. Once vendors send bids, they show up here.</p>`}
     <p class="small" style="margin:0">Your client sees vendor names, prices, timelines and ratings. They don't see your notes, Orbyt's notes or anyone's fees.</p>
     <label class="field"><span>Or send it as a message</span><textarea id="cs-text" rows="7" readonly>${esc(txt)}</textarea></label>
@@ -2161,7 +2162,7 @@ function projectDetail(p,mode){
           ${b.availChecked&&b.status==="requested"?`<div class="small">${isOrbyt?"Availability checked":"Ashleigh confirmed they're available"}</div>`:""}</td>
         <td class="money">${b.status==="requested"?'<span class="small">Waiting</span>':money(b.amount)}</td>
         <td>${b.status==="requested"?"–":`${esc(workDays(b)||"")}${b.availableFrom?`<div class="small">Can start ${esc(fmtDate(b.availableFrom))}</div>`:""}${!b.days&&!b.availableFrom?"See notes":""}`}${fast!==null&&b.availableFrom===fast&&b.status!=="requested"?'<span class="flag">Soonest</span>':""}</td>
-        <td style="max-width:240px">${esc(b.note||"")}</td><td>${b.status==="requested"?"":pdfLink(b)}</td>
+        <td style="max-width:240px">${esc(b.note||"")}</td><td>${b.status==="requested"?"":pdfLink(b)}${typeof ovLink==="function"&&ovLink(b.vendorId)?`<div class="small">${ovLink(b.vendorId,"About them")}</div>`:""}</td>
         <td style="white-space:nowrap">${b.status==="submitted"&&!sel&&S.canWrite?`<div class="actions"><button class="btn sm" data-act="select" data-id="${esc(b.id)}">Add to team</button><button class="linkbtn" data-act="form" data-key="changes:${esc(b.id)}">Request changes</button></div>`:statusPill(b)}
           ${ONTEAM.includes(b.status)&&S.canWrite?` <button class="linkbtn" data-act="unselect" data-id="${esc(b.id)}">Undo</button>`:""}
           ${b.status==="changes"&&b.changeNote?`<div class="small" style="white-space:normal;max-width:220px;margin-top:4px">${esc(b.changeNote)}</div>`:""}</td></tr>
@@ -2878,7 +2879,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
     return{id:v.id,userId:v.user_id,name:v.name,contactName:v.contact_name||"",email:v.email||"",phone:v.phone||"",web:v.website||"",
       services:v.services||[],category:(v.services||[])[0]||"",areas:normAreas(v.areas||[]),areaNote:v.area_note||"",years:v.years_in_business||"",
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
-      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
+      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",overviewPdfName:v.overview_pdf_name||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
       pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
       legalName:p.legal_name||"",dba:p.dba||"",businessType:p.business_type||"",signerTitle:p.signer_title||"",marketingOptOut:!!p.marketing_opt_out,
@@ -3248,7 +3249,7 @@ async function renderClientPage(token){
   const d=data,when=d.target_date?new Date(d.target_date+"T12:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric"}):"";
   $("#app").innerHTML=`<section class="clientpage"><div class="eyebrow">Quotes for your ${d.client_type==="Buyer"?"new home":"listing"}</div><h1>${esc(d.address)}</h1>
     <p class="small">Prepared by ${esc(d.agent)} with Orbyt${when?" · "+(d.client_type==="Buyer"?"move-in ":"listing ")+esc(when):""}</p>
-    ${(d.services||[]).map(s=>`<div class="section"><h2>${esc(s.service)}</h2>${(s.quotes||[]).length?`<div class="unrows">${s.quotes.map(q=>`<div class="unrow cs"><div style="min-width:0"><span class="strong">${esc(q.vendor||"Vendor")}</span>${q.booked?' <span class="pill set">Booked</span>':""}${q.rating?` <span class="small">★ ${esc(q.rating)} from ${q.review_count} ${q.review_count==1?"agent":"agents"}</span>`:""}${q.note?`<div class="small">${esc(q.note)}</div>`:""}</div>
+    ${(d.services||[]).map(s=>`<div class="section"><h2>${esc(s.service)}</h2>${(s.quotes||[]).length?`<div class="unrows">${s.quotes.map(q=>`<div class="unrow cs"><div style="min-width:0"><span class="strong">${esc(q.vendor||"Vendor")}</span>${q.booked?' <span class="pill set">Booked</span>':""}${q.overview?`<div class="small"><a href="${esc(ovUrl(q.overview))}" target="_blank" rel="noopener">About ${esc(q.vendor||"them")} (PDF)</a></div>`:""}${q.rating?` <span class="small">★ ${esc(q.rating)} from ${q.review_count} ${q.review_count==1?"agent":"agents"}</span>`:""}${q.note?`<div class="small">${esc(q.note)}</div>`:""}</div>
       <div class="num unamt">${money(q.amount)}<div class="small">${esc([q.days?q.days+(q.days==1?" day":" days")+" of work":"",q.available_from?"can start "+fmtDate(q.available_from):""].filter(Boolean).join(" · "))}</div></div><div></div></div>`).join("")}</div>`:`<p class="small">Quotes are on the way.</p>`}</div>`).join("")}
     <p class="small">Questions? Reach ${esc(d.agent)}${d.agent_email?" at "+esc(d.agent_email):""}${d.agent_phone?" or "+esc(d.agent_phone):""}. You'll pay each vendor directly.</p></section>`;
 }
@@ -3840,8 +3841,8 @@ function vendorFolds(v){
   if(v.approved!==false)parts.push(fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false));
   if(v.approved!==false){const st=insState(v),[pl,pc]=INS_PILL[st.state];
     parts.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
-  const n=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf].filter(Boolean).length;
-  parts.push(fold("port","Portfolio",n?`<span class="pill set">${n} added</span>`:`<span class="pill late">Add your work</span>`,"Website, Instagram, a link or a PDF",portfolioCard(v),false));
+  const n=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf,v.overviewPdf].filter(Boolean).length;
+  parts.push(fold("port","Business overview and portfolio",n?`<span class="pill set">${n} added</span>`:`<span class="pill late">Add your work</span>`,"Business overview, website, Instagram and your work",portfolioCard(v),false));
   const pr=vPricing(v),hasP=statedTier(v)||priceItems(v).length||pr.minimum;
   parts.push(fold("price","Typical pricing",hasP?'<span class="pill set">Added</span>':'<span class="pill">Not added yet</span>',"Helps me match you to the right homes",vendorPricingCard(v),S.openForm==="pricing"));
   if(typeof reviewInviteCard==="function"&&v.approved!==false){const sent=typeof rrFor==="function"?rrFor(v.id):[];
@@ -3853,7 +3854,11 @@ function agentFolds(){if(kind()!=="agent"||!S.canWrite)return"";
 // portfolio card
 function portfolioCard(v){
   const pdf=v.portfolioPdf?blobHref(v.portfolioPdf):"";
+  const ov=v.overviewPdf?ovUrl(v.overviewPdf):"";
   return `<form class="form inner" data-form="portfolio" novalidate><p class="small" style="margin:0">Agents see these on your profile when I introduce you. Add whatever shows your work best.</p>
+    <div class="callout" style="margin:0"><label class="field" style="margin:0"><span>${v.overviewPdf?"Replace your business overview PDF":"Business overview PDF"}</span><input type="file" id="pt-ov" name="overview" accept="application/pdf"></label>
+      <p class="small" style="margin:0">One PDF about your business: your services, packages, pricing if you like to share it, and what sets you apart. Agents see it on your profile and next to your quotes, and their clients can open it from the quotes page their agent sends them.</p>
+      ${v.overviewPdf?`<p class="small" style="margin:0">On file: <a href="${esc(ov)}" target="_blank" rel="noopener">${esc(v.overviewPdfName||"Business overview")}</a> · <button class="linkbtn" type="button" data-act="ovpdfdel">Remove</button></p>`:""}</div>
     <div class="grid"><label class="field"><span>Website</span><input type="text" id="pt-web" name="web" value="${esc(v.web||"")}" placeholder="yourbusiness.com"></label>
       <label class="field"><span>Instagram</span><input type="text" id="pt-ig" name="instagram" value="${esc(v.instagram?"@"+v.instagram:"")}" placeholder="@yourbusiness"></label>
       <label class="field"><span>Portfolio link</span><input type="text" id="pt-port" name="portfolio" value="${esc(v.portfolioUrl||"")}" placeholder="Google Drive, Houzz, Dropbox or anywhere"></label>
@@ -3861,14 +3866,23 @@ function portfolioCard(v){
     ${v.portfolioPdf?`<p class="small" style="margin:0">On file: <a href="${esc(pdf)}" target="_blank" rel="noopener">${esc(v.portfolioPdfName||"Portfolio PDF")}</a> · <button class="linkbtn" type="button" data-act="ptpdfdel">Remove</button></p>`:""}
     <p class="small warntext pterr" role="alert" style="margin:0" hidden></p>
     <div class="actions"><button class="btn sm" type="submit">Save portfolio</button></div></form>`}
+// business overview PDF: public link (clients on the quotes page aren't signed in)
+const ovUrl=path=>path?SB_URL+"/storage/v1/object/public/vendor-public/"+String(path).split("/").map(encodeURIComponent).join("/"):"";
+function ovLink(vid,label){const v=typeof vid==="string"?vendorById(vid):vid;if(!v||!v.overviewPdf)return"";
+  return `<a href="${esc(ovUrl(v.overviewPdf))}" target="_blank" rel="noopener">${esc(label||"About "+v.name+" (PDF)")}</a>`}
 const normUrl=x=>{const s=String(x||"").trim();return!s?"":/^https?:\/\//i.test(s)?s:"https://"+s};
 document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="portfolio"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
-  const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),file=fd.get("pdf"),el=f.querySelector(".pterr");
-  if(file&&file.size&&(file.type!=="application/pdf"||file.size>25e6)){if(el){el.textContent=file.type!=="application/pdf"?"Choose a PDF file.":"That PDF is over 25 MB. Try a smaller version.";el.hidden=false}return}
+  const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),file=fd.get("pdf"),ovf=fd.get("overview"),el=f.querySelector(".pterr");
+  for(const x of [ovf,file])if(x&&x.size&&(x.type!=="application/pdf"||x.size>25e6)){if(el){el.textContent=x.type!=="application/pdf"?"Choose a PDF file.":"That PDF is over 25 MB. Try a smaller version.";el.hidden=false}return}
   guard(async()=>{const row={website:String(fd.get("web")||"").trim()||null,instagram:igHandle(fd.get("instagram"))||null,portfolio_url:normUrl(fd.get("portfolio"))||null};
     if(file&&file.size){const old=v.portfolioPdfPath;const path=await putFile("vendor-photos",v.id,file);Object.assign(row,{portfolio_pdf:path,portfolio_pdf_name:file.name.slice(0,120)});
       if(old)try{await sb.storage.from("vendor-photos").remove([old])}catch(_){}}
+    if(ovf&&ovf.size){const old=v.overviewPdf;const path=await putFile("vendor-public",v.id,ovf);Object.assign(row,{overview_pdf:path,overview_pdf_name:ovf.name.slice(0,120)});
+      if(old)try{await sb.storage.from("vendor-public").remove([old])}catch(_){}}
     fail((await sb.from("vendors").update(row).eq("id",v.id)).error,"portfolio");await S.db.reload()},"Portfolio saved. Agents see it on your profile.")},true);
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="ovpdfdel"]');if(!t)return;const v=vendorById(myVendorId());if(!v||!v.overviewPdf)return;
+  guard(async()=>{try{await sb.storage.from("vendor-public").remove([v.overviewPdf])}catch(_){}
+    fail((await sb.from("vendors").update({overview_pdf:null,overview_pdf_name:null}).eq("id",v.id)).error,"overview");await S.db.reload()},"Removed.")});
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="ptpdfdel"]');if(!t)return;const v=vendorById(myVendorId());if(!v||!v.portfolioPdfPath)return;
   guard(async()=>{try{await sb.storage.from("vendor-photos").remove([v.portfolioPdfPath])}catch(_){}
     fail((await sb.from("vendors").update({portfolio_pdf:null,portfolio_pdf_name:null}).eq("id",v.id)).error,"portfolio");await S.db.reload()},"Removed.")});

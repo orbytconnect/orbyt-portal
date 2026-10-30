@@ -40,7 +40,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
     return{id:v.id,userId:v.user_id,name:v.name,contactName:v.contact_name||"",email:v.email||"",phone:v.phone||"",web:v.website||"",
       services:v.services||[],category:(v.services||[])[0]||"",areas:normAreas(v.areas||[]),areaNote:v.area_note||"",years:v.years_in_business||"",
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
-      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
+      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",overviewPdfName:v.overview_pdf_name||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
       pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
       legalName:p.legal_name||"",dba:p.dba||"",businessType:p.business_type||"",signerTitle:p.signer_title||"",marketingOptOut:!!p.marketing_opt_out,
@@ -410,7 +410,7 @@ async function renderClientPage(token){
   const d=data,when=d.target_date?new Date(d.target_date+"T12:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric"}):"";
   $("#app").innerHTML=`<section class="clientpage"><div class="eyebrow">Quotes for your ${d.client_type==="Buyer"?"new home":"listing"}</div><h1>${esc(d.address)}</h1>
     <p class="small">Prepared by ${esc(d.agent)} with Orbyt${when?" · "+(d.client_type==="Buyer"?"move-in ":"listing ")+esc(when):""}</p>
-    ${(d.services||[]).map(s=>`<div class="section"><h2>${esc(s.service)}</h2>${(s.quotes||[]).length?`<div class="unrows">${s.quotes.map(q=>`<div class="unrow cs"><div style="min-width:0"><span class="strong">${esc(q.vendor||"Vendor")}</span>${q.booked?' <span class="pill set">Booked</span>':""}${q.rating?` <span class="small">★ ${esc(q.rating)} from ${q.review_count} ${q.review_count==1?"agent":"agents"}</span>`:""}${q.note?`<div class="small">${esc(q.note)}</div>`:""}</div>
+    ${(d.services||[]).map(s=>`<div class="section"><h2>${esc(s.service)}</h2>${(s.quotes||[]).length?`<div class="unrows">${s.quotes.map(q=>`<div class="unrow cs"><div style="min-width:0"><span class="strong">${esc(q.vendor||"Vendor")}</span>${q.booked?' <span class="pill set">Booked</span>':""}${q.overview?`<div class="small"><a href="${esc(ovUrl(q.overview))}" target="_blank" rel="noopener">About ${esc(q.vendor||"them")} (PDF)</a></div>`:""}${q.rating?` <span class="small">★ ${esc(q.rating)} from ${q.review_count} ${q.review_count==1?"agent":"agents"}</span>`:""}${q.note?`<div class="small">${esc(q.note)}</div>`:""}</div>
       <div class="num unamt">${money(q.amount)}<div class="small">${esc([q.days?q.days+(q.days==1?" day":" days")+" of work":"",q.available_from?"can start "+fmtDate(q.available_from):""].filter(Boolean).join(" · "))}</div></div><div></div></div>`).join("")}</div>`:`<p class="small">Quotes are on the way.</p>`}</div>`).join("")}
     <p class="small">Questions? Reach ${esc(d.agent)}${d.agent_email?" at "+esc(d.agent_email):""}${d.agent_phone?" or "+esc(d.agent_phone):""}. You'll pay each vendor directly.</p></section>`;
 }
@@ -1002,8 +1002,8 @@ function vendorFolds(v){
   if(v.approved!==false)parts.push(fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false));
   if(v.approved!==false){const st=insState(v),[pl,pc]=INS_PILL[st.state];
     parts.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
-  const n=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf].filter(Boolean).length;
-  parts.push(fold("port","Portfolio",n?`<span class="pill set">${n} added</span>`:`<span class="pill late">Add your work</span>`,"Website, Instagram, a link or a PDF",portfolioCard(v),false));
+  const n=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf,v.overviewPdf].filter(Boolean).length;
+  parts.push(fold("port","Business overview and portfolio",n?`<span class="pill set">${n} added</span>`:`<span class="pill late">Add your work</span>`,"Business overview, website, Instagram and your work",portfolioCard(v),false));
   const pr=vPricing(v),hasP=statedTier(v)||priceItems(v).length||pr.minimum;
   parts.push(fold("price","Typical pricing",hasP?'<span class="pill set">Added</span>':'<span class="pill">Not added yet</span>',"Helps me match you to the right homes",vendorPricingCard(v),S.openForm==="pricing"));
   if(typeof reviewInviteCard==="function"&&v.approved!==false){const sent=typeof rrFor==="function"?rrFor(v.id):[];
@@ -1015,7 +1015,11 @@ function agentFolds(){if(kind()!=="agent"||!S.canWrite)return"";
 // portfolio card
 function portfolioCard(v){
   const pdf=v.portfolioPdf?blobHref(v.portfolioPdf):"";
+  const ov=v.overviewPdf?ovUrl(v.overviewPdf):"";
   return `<form class="form inner" data-form="portfolio" novalidate><p class="small" style="margin:0">Agents see these on your profile when I introduce you. Add whatever shows your work best.</p>
+    <div class="callout" style="margin:0"><label class="field" style="margin:0"><span>${v.overviewPdf?"Replace your business overview PDF":"Business overview PDF"}</span><input type="file" id="pt-ov" name="overview" accept="application/pdf"></label>
+      <p class="small" style="margin:0">One PDF about your business: your services, packages, pricing if you like to share it, and what sets you apart. Agents see it on your profile and next to your quotes, and their clients can open it from the quotes page their agent sends them.</p>
+      ${v.overviewPdf?`<p class="small" style="margin:0">On file: <a href="${esc(ov)}" target="_blank" rel="noopener">${esc(v.overviewPdfName||"Business overview")}</a> · <button class="linkbtn" type="button" data-act="ovpdfdel">Remove</button></p>`:""}</div>
     <div class="grid"><label class="field"><span>Website</span><input type="text" id="pt-web" name="web" value="${esc(v.web||"")}" placeholder="yourbusiness.com"></label>
       <label class="field"><span>Instagram</span><input type="text" id="pt-ig" name="instagram" value="${esc(v.instagram?"@"+v.instagram:"")}" placeholder="@yourbusiness"></label>
       <label class="field"><span>Portfolio link</span><input type="text" id="pt-port" name="portfolio" value="${esc(v.portfolioUrl||"")}" placeholder="Google Drive, Houzz, Dropbox or anywhere"></label>
@@ -1023,14 +1027,23 @@ function portfolioCard(v){
     ${v.portfolioPdf?`<p class="small" style="margin:0">On file: <a href="${esc(pdf)}" target="_blank" rel="noopener">${esc(v.portfolioPdfName||"Portfolio PDF")}</a> · <button class="linkbtn" type="button" data-act="ptpdfdel">Remove</button></p>`:""}
     <p class="small warntext pterr" role="alert" style="margin:0" hidden></p>
     <div class="actions"><button class="btn sm" type="submit">Save portfolio</button></div></form>`}
+// business overview PDF: public link (clients on the quotes page aren't signed in)
+const ovUrl=path=>path?SB_URL+"/storage/v1/object/public/vendor-public/"+String(path).split("/").map(encodeURIComponent).join("/"):"";
+function ovLink(vid,label){const v=typeof vid==="string"?vendorById(vid):vid;if(!v||!v.overviewPdf)return"";
+  return `<a href="${esc(ovUrl(v.overviewPdf))}" target="_blank" rel="noopener">${esc(label||"About "+v.name+" (PDF)")}</a>`}
 const normUrl=x=>{const s=String(x||"").trim();return!s?"":/^https?:\/\//i.test(s)?s:"https://"+s};
 document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="portfolio"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
-  const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),file=fd.get("pdf"),el=f.querySelector(".pterr");
-  if(file&&file.size&&(file.type!=="application/pdf"||file.size>25e6)){if(el){el.textContent=file.type!=="application/pdf"?"Choose a PDF file.":"That PDF is over 25 MB. Try a smaller version.";el.hidden=false}return}
+  const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),file=fd.get("pdf"),ovf=fd.get("overview"),el=f.querySelector(".pterr");
+  for(const x of [ovf,file])if(x&&x.size&&(x.type!=="application/pdf"||x.size>25e6)){if(el){el.textContent=x.type!=="application/pdf"?"Choose a PDF file.":"That PDF is over 25 MB. Try a smaller version.";el.hidden=false}return}
   guard(async()=>{const row={website:String(fd.get("web")||"").trim()||null,instagram:igHandle(fd.get("instagram"))||null,portfolio_url:normUrl(fd.get("portfolio"))||null};
     if(file&&file.size){const old=v.portfolioPdfPath;const path=await putFile("vendor-photos",v.id,file);Object.assign(row,{portfolio_pdf:path,portfolio_pdf_name:file.name.slice(0,120)});
       if(old)try{await sb.storage.from("vendor-photos").remove([old])}catch(_){}}
+    if(ovf&&ovf.size){const old=v.overviewPdf;const path=await putFile("vendor-public",v.id,ovf);Object.assign(row,{overview_pdf:path,overview_pdf_name:ovf.name.slice(0,120)});
+      if(old)try{await sb.storage.from("vendor-public").remove([old])}catch(_){}}
     fail((await sb.from("vendors").update(row).eq("id",v.id)).error,"portfolio");await S.db.reload()},"Portfolio saved. Agents see it on your profile.")},true);
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="ovpdfdel"]');if(!t)return;const v=vendorById(myVendorId());if(!v||!v.overviewPdf)return;
+  guard(async()=>{try{await sb.storage.from("vendor-public").remove([v.overviewPdf])}catch(_){}
+    fail((await sb.from("vendors").update({overview_pdf:null,overview_pdf_name:null}).eq("id",v.id)).error,"overview");await S.db.reload()},"Removed.")});
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="ptpdfdel"]');if(!t)return;const v=vendorById(myVendorId());if(!v||!v.portfolioPdfPath)return;
   guard(async()=>{try{await sb.storage.from("vendor-photos").remove([v.portfolioPdfPath])}catch(_){}
     fail((await sb.from("vendors").update({portfolio_pdf:null,portfolio_pdf_name:null}).eq("id",v.id)).error,"portfolio");await S.db.reload()},"Removed.")});

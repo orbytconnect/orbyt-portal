@@ -543,6 +543,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 .htc .hcperk{display:inline-block;margin-top:.07in;background:#E6D9A8;color:#18314F;font-size:8.5pt;font-weight:500;border-radius:999px;padding:3px 10px}
 .hcpagelogo{max-height:64px;max-width:240px;object-fit:contain;justify-self:start}
 .hcopts label{border-radius:14px}
+.candlinks{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 .myrevs{display:grid;gap:10px}.myrev{margin:0;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.myrev .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .hcpot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
 .hcpagefoot{text-align:center;color:var(--muted)}
@@ -2089,6 +2090,14 @@ function moreForm(p,c){
     ${favs.length?`<label class="field"><span>Suggest one of your favorites (optional)</span><select id="mo-v-${ib}" name="vendorId"><option value="">No suggestion</option>${favs.map(v=>`<option value="${esc(v.id)}">${esc(v.name)}</option>`).join("")}</select></label>`:""}
     <div class="actions"><button class="btn" type="submit">Send to Ashleigh</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></form>`;
 }
+// the vendor's own materials, one tap away while matching
+function candWorkLinks(v){const L=[];const a=(u,t)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>`:"";
+  if(typeof ovLink==="function"&&v.overviewPdf)L.push(ovLink(v,"About PDF"));
+  if(v.portfolioPdf)L.push(a(blobHref(v.portfolioPdf),"Portfolio PDF"));
+  const port=safeUrl(v.portfolioUrl);if(port)L.push(a(port,"Portfolio link"));
+  const web=safeUrl(v.web);if(web)L.push(a(web,"Website"));
+  const ig=typeof igUrl==="function"?igUrl(v.instagram):"";if(ig)L.push(a(ig,"Instagram"));
+  return L.filter(Boolean).join("")}
 function pickForm(p,c,bids){
   if(!S.canWrite)return"";
   const key=p.id+"|"+c,d=S.pick[key]||{extra:[],vals:{}},ib=(p.id+c).replace(/[^a-z0-9]/gi,"");
@@ -2109,7 +2118,7 @@ function pickForm(p,c,bids){
       ${priceItems(v,c).length||vPricing(v).minimum?`<div class="small">${esc([priceItems(v,c).length?"Typical: "+priceItems(v,c).slice(0,2).map(priceItemText).join(" · "):"",minText(v)].filter(Boolean).join(" · "))}</div>`:""}
       ${w.length?`<ul class="why">${w.slice(0,4).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${mm.warn?`<div class="small warntext">${esc(mm.warn)}</div>`:""}
       ${vnotes(id)[0]?`<div class="candnote"><span class="strong">Your note:</span> ${esc(vnotes(id)[0].text.length>110?vnotes(id)[0].text.slice(0,110)+"…":vnotes(id)[0].text)}</div>`:""}
-      <button class="linkbtn" type="button" data-act="vcard" data-id="${esc(id)}">Details, pricing and notes</button>
+      <div class="candlinks small">${candWorkLinks(v)}<button class="linkbtn" type="button" data-act="vcard" data-id="${esc(id)}">Details, pricing and notes</button></div>
       <label class="availrow"><input type="checkbox" name="avail-${esc(id)}" id="pa-${ib}-${vk}" ${val("avail-"+id)?"checked":""}>Checked availability</label>
       <input type="text" name="note-${esc(id)}" id="pn-${ib}-${vk}" value="${esc(val("note-"+id)||"")}" placeholder="Why this one? ${esc(ag)} sees this note." aria-label="Note for ${esc(ag)} about ${esc(v.name)}">
     </div>`};

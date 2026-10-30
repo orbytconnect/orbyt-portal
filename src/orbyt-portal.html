@@ -1016,7 +1016,7 @@ function vendorView(){
   const mine=S.bids.filter(b=>b.vendorId===v.id&&projById(b.projectId));
   let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${v.featured?'<span class="pill featured">Featured</span>':""}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for signing up. I'll reach out to say hi and check your references before your first introduction.</p>`:""}
     <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p></div>
-    <div>${ratingHtml(v.id)}</div></section>`;
+    <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
   h+=vendorStats(v,mine);
   const foot=typeof vendorFolds==="function"?vendorFolds(v):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);

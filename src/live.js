@@ -999,6 +999,7 @@ const fold=(key,title,pill,hint,body,dflt)=>body?`<details class="fold" data-fol
 function vendorFolds(v){
   if(!v||kind()!=="vendor")return"";
   const parts=[];
+  if(v.approved!==false)parts.push(fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false));
   if(v.approved!==false){const st=insState(v),[pl,pc]=INS_PILL[st.state];
     parts.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
   const n=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf].filter(Boolean).length;
@@ -1054,3 +1055,23 @@ document.addEventListener("click",async e=>{const t=e.target.closest('[data-act=
 
 // list price only applies to listings
 document.addEventListener("change",e=>{if(e.target.id!=="np-ctype")return;const f=e.target.form,w=f&&f.querySelector(".np-lp");if(w)w.hidden=e.target.value==="Buyer"});
+
+/* ---------- vendors: their reviews, to read and reuse in their own marketing ---------- */
+const myReviews=v=>S.reviews.filter(r=>r.vendorId===v.id&&r.approved).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+const shortName=n=>{const w=String(n||"").trim().split(/\s+/).filter(Boolean);return!w.length?"An agent":w.length===1?w[0]:w[0]+" "+w[w.length-1].charAt(0)+"."};
+function revBrokerage(r){if(r.brokerage)return r.brokerage;const p=r.projectId?projById(r.projectId):null;return p&&p.brokerage||""}
+function revService(r){const b=r.bidId?S.bids.find(x=>x.id===r.bidId):null;return b?b.category:""}
+const revQuote=r=>`"${String(r.comment||"").trim()}" (${[shortName(r.agent),revBrokerage(r)].filter(Boolean).join(", ")})`;
+function myReviewsCard(v){const rs=myReviews(v);
+  if(!rs.length)return `<p class="small" style="margin:0">No reviews yet. After a job, the agent gets asked to rate your work, and every review I approve shows up here. You can also ask agents you've worked with before for a review in "Reviews from past clients."</p>`;
+  return `<p class="small" style="margin:0 0 4px">Every review agents see on your Orbyt profile. Feel free to share them on your website or social. "Copy" gives you the words with the agent's first name, last initial and brokerage.</p>
+    <div class="myrevs">${rs.map(r=>{const when=r.source==="past_client"&&r.workWhen?"Work in "+r.workWhen:fmtDate(String(r.createdAt||"").slice(0,10));
+      return `<blockquote class="myrev"><div class="row"><span class="rating"><b>${"★".repeat(r.rating)}</b><span class="small">${"★".repeat(5-r.rating)}</span></span>${typeof revSource==="function"?revSource(r):""}</div>
+        ${r.comment?`<p style="margin:6px 0">${esc(r.comment)}</p>`:`<p class="small" style="margin:6px 0">Stars only, no comment.</p>`}
+        <div class="small">${esc([r.agent||"Agent",revBrokerage(r)].filter(Boolean).join(", "))}${revService(r)?" · "+esc(revService(r)):""}${when?" · "+esc(when):""}</div>
+        ${r.comment?`<button class="linkbtn" type="button" data-act="copyrev" data-id="${esc(r.id)}">Copy</button>`:""}</blockquote>`}).join("")}</div>`}
+function myReviewsPill(v){const rt=rating(v.id);return rt?`<span class="pill set">★ ${rt.avg.toFixed(1)} · ${rt.n} ${rt.n===1?"review":"reviews"}</span>`:`<span class="pill">None yet</span>`}
+document.addEventListener("click",async e=>{const t=e.target.closest('[data-act="copyrev"],[data-act="myrevs"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  if(t.dataset.act==="myrevs"){const d=document.querySelector('details.fold[data-fold="myrev"]');if(d){d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"})}return}
+  const r=S.reviews.find(x=>x.id===t.dataset.id);if(!r)return;const txt=revQuote(r);
+  try{await navigator.clipboard.writeText(txt);toast("Review copied")}catch(_){window.prompt("Copy this review:",txt)}},true);

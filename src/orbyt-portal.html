@@ -555,6 +555,13 @@ const vsv=v=>v.services&&v.services.length?v.services:[v.category];
 const ctLabel=p=>p.clientType==="Buyer"?"Buyer":p.clientType==="Both"?"Client":"Seller";
 const allCats=ps=>[...CATS,...[...new Set(ps.flatMap(p=>p.categories||[]))].filter(c=>!CATS.includes(c))];
 const AREAS=["Oceanside / Carlsbad","Encinitas / Cardiff","Solana Beach / Del Mar","Rancho Santa Fe / Fairbanks","Carmel Valley / Torrey Highlands","La Jolla / UTC","Inland North County","Rancho Bernardo / Poway / 4S","Beaches","Point Loma / Coronado","Central San Diego","Clairemont / Mission Valley","East County","South Bay"];
+// a vendor's areas in a few words, for tables: "All of San Diego", "All but South Bay", or "Oceanside, Encinitas +4 more"
+function areasShort(list){const a=(list||[]).filter(Boolean);if(!a.length)return"Not given";
+  const known=AREAS.filter(x=>a.includes(x)),missing=AREAS.filter(x=>!a.includes(x)),extra=a.filter(x=>!AREAS.includes(x));
+  const short=x=>String(x).split(" / ")[0];
+  if(!missing.length&&!extra.length)return"All of San Diego";
+  if(missing.length<=2&&!extra.length)return"All but "+missing.map(short).join(" and ");
+  const names=[...known,...extra].map(short);return names.length<=3?names.join(", "):names.slice(0,2).join(", ")+" +"+(names.length-2)+" more"}
 /* neighborhood words mapped to an area; more specific phrases first */
 const AREA_WORDS=[["del mar heights","Carmel Valley / Torrey Highlands"],["torrey highlands","Carmel Valley / Torrey Highlands"],["torrey hills","Carmel Valley / Torrey Highlands"],["carmel valley","Carmel Valley / Torrey Highlands"],
   ["oceanside","Oceanside / Carlsbad"],["carlsbad","Oceanside / Carlsbad"],["encinitas","Encinitas / Cardiff"],["leucadia","Encinitas / Cardiff"],["cardiff","Encinitas / Cardiff"],["olivenhain","Encinitas / Cardiff"],
@@ -2185,12 +2192,12 @@ function rosterView(){
   if(!vs.length)return h+`<p class="small">No vendors match those filters.</p>`;
   return h+`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Service</th><th>Areas</th><th>Rating</th><th>Pricing</th><th>Licensed and insured</th><th>Taking work</th><th>Booked</th><th></th></tr></thead><tbody>${vs.map(v=>`<tr>
     <td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${vnotes(v.id).length?` <span class="small" title="You have notes on this vendor">· ${vnotes(v.id).length} ${vnotes(v.id).length===1?"note":"notes"}</span>`:""} ${v.approved===false?'<span class="pill late">Needs review</span>':""} ${v.featured?'<span class="pill featured">Featured</span>':""} ${v.sample?'<span class="pill example">Example</span>':""}${vPhone(v)||vEmail(v)?`<div class="small">${esc([vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div>`:""}</td>
-    <td>${esc(vsv(v).join(", "))}</td><td class="small" style="max-width:240px">${esc((v.areas||[]).join(", "))}</td><td>${ratingHtml(v.id)}${(()=>{const k=S.reviews.filter(r=>r.vendorId===v.id&&!r.approved).length;return k?`<div><button class="pill comparing" style="border:0;cursor:pointer;margin-top:4px" data-act="vcard" data-id="${esc(v.id)}">${k} to approve</button></div>`:""})()}</td>
+    <td>${esc(vsv(v).join(", "))}</td><td class="small" style="max-width:200px" title="${esc((v.areas||[]).join(", "))}">${esc(areasShort(v.areas))}</td><td>${ratingHtml(v.id)}${(()=>{const k=S.reviews.filter(r=>r.vendorId===v.id&&!r.approved).length;return k?`<div><button class="pill comparing" style="border:0;cursor:pointer;margin-top:4px" data-act="vcard" data-id="${esc(v.id)}">${k} to approve</button></div>`:""})()}</td>
     <td>${(()=>{const st=priceStats(v.id);return st?`${st.tier?tierPill(st):'<span class="small">Not enough bids yet</span>'}<div class="small num" style="margin-top:4px">Avg ${money(st.avgAmt)} · ${st.n} ${st.n===1?"bid":"bids"}${st.decided?` · won ${st.won} of ${st.decided}`:""}</div>`:'<span class="small">No bids yet</span>'})()}</td>
     <td>${v.licensed&&v.insured?"Yes":'<span style="color:var(--warn)">Check</span>'}</td>
     <td>${S.canWrite?`<button class="linkbtn" style="color:var(--ink);text-decoration:none" data-act="avail" data-id="${esc(v.id)}"><span class="dot ${v.available!==false?"on":""}"></span>${v.available!==false?"Yes":"Paused"}</button>`:v.available!==false?"Yes":"Paused"}</td>
     <td class="num">${S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected").length}</td>
-    <td>${S.canWrite?(v.approved===false?`<button class="btn sm" data-act="vcard" data-id="${esc(v.id)}">Review</button>`:`<button class="linkbtn" data-act="feature" data-id="${esc(v.id)}">${v.featured?"End promo":"Mark promo paid"}</button>`):""}</td></tr>`).join("")}</tbody></table></div>
+    <td style="white-space:nowrap">${S.canWrite?(v.approved===false?`<button class="btn sm" data-act="vcard" data-id="${esc(v.id)}">Review</button>`:`<button class="linkbtn" data-act="feature" data-id="${esc(v.id)}">${v.featured?"End promo":"Mark promo paid"}</button>`):""}</td></tr>`).join("")}</tbody></table></div>
     <p class="small">Gold "Featured" marks a vendor who paid for a promo. Ratings come from approved reviews and count toward matches. Pricing compares each vendor's bids to the other bids on the same job, and only you see it. When a project has a budget, vendors whose pricing fits it rank higher.</p>`;
 }
 

@@ -928,7 +928,7 @@ function vendorCard(v){
     <div class="vfacts"><div class="wide"><span class="eyebrow">Works in</span><div>${esc((v.areas||[]).join(", ")||"Not set")}</div></div>
       ${withYou!==null?`<div><span class="eyebrow">Jobs with you</span><div class="num">${withYou}</div></div>`:""}
       ${favBy!==null?`<div><span class="eyebrow">Agent favorite</span><div class="num">${favBy} ${favBy===1?"agent":"agents"}</div></div>`:""}</div>
-    ${kind()==="orbyt"?notesBlock(v)+pricingBlock(v)+formBlock(v):profileBlock(v)}
+    ${kind()==="orbyt"?workBlock(v)+notesBlock(v)+pricingBlock(v)+formBlock(v):profileBlock(v)}
     ${kind()==="orbyt"?(()=>{const mine=S.reviews.filter(r=>r.vendorId===v.id).sort((a,b)=>(a.approved?1:0)-(b.approved?1:0)||String(b.createdAt).localeCompare(String(a.createdAt)));
       return mine.length?`<div><span class="eyebrow">Reviews · approve or hide them here</span><div class="revlist" style="margin-top:6px">${mine.map(r=>revItem(r,false)).join("")}</div></div>`:""})()
     :revs.length?`<div><span class="eyebrow">What agents say</span><div class="vrevs">${revs.map(r=>`<blockquote><span class="rating"><b>${"★".repeat(r.rating)}</b></span> ${esc(r.comment||"")}<div class="small">${esc(revWho(r))}, ${ago(r.createdAt)}${revSource(r)}</div></blockquote>`).join("")}</div></div>`:""}
@@ -1056,7 +1056,7 @@ function upNext(agent,openN){
   if(n.kind==="compare"){const fd=n.bids.filter(b=>b.availableFrom),fast=fd.length>1?fd.map(b=>b.availableFrom).sort()[0]:null;
     body=`<div class="unrows">${n.bids.map(b=>{const v=vendorById(b.vendorId);return `<div class="unrow"><div style="min-width:0"><span class="strong">${vLink(b)}</span> <span class="small">${v?ratingHtml(v.id):""}</span>${b.note?`<div class="small">${esc(b.note)}</div>`:""}</div>
       <div class="num unamt">${money(b.amount)}<div class="small">${esc(timeline(b))}${fast!==null&&b.availableFrom===fast?" · soonest":""}</div></div>
-      <div class="small">${b.pdfId?pdfLink(b):""}${typeof ovLink==="function"&&ovLink(b.vendorId)?`<div>${ovLink(b.vendorId,"About them")}</div>`:""}</div>
+      <div class="small">${b.pdfId?pdfLink(b):""}${vendorDocs(b.vendorId)?`<div>${vendorDocs(b.vendorId)}</div>`:""}</div>
       <div><button class="btn sm" data-act="select" data-id="${esc(b.id)}">Add to team</button></div></div>`}).join("")}</div>
       <div class="actions"><button class="btn ghost sm" data-act="clientshare" data-id="${esc(p.id)}">Send quotes to ${esc(cfn(p)||"your client")}</button><button class="linkbtn" data-act="open" data-id="${esc(p.id)}">See the whole project</button></div>`}
   else body=`<p class="small" style="margin:0">${esc(n.sub)}</p><div class="actions"><button class="btn sm" data-act="open" data-id="${esc(p.id)}">${n.kind==="amount"?"Confirm amount":"See next steps"}</button></div>`;
@@ -1083,7 +1083,7 @@ function clientDialog(){
       <div class="small">Prepared by ${esc(ag)} with Orbyt${p.targetDate?" · listing "+esc(fmtDate(p.targetDate)):""}</div></div><button class="xbtn" id="cs-close" data-act="csclose" aria-label="Close">×</button></div>
     ${cats.length?cats.map(c=>{const sel=teamBid(p.id,c),bs=sel?[sel]:bidsFor(p.id,c).filter(b=>b.status!=="requested"&&b.status!=="declined"&&b.amount);
       return `<div><span class="eyebrow">${esc(c)}${sel?" · booked":""}</span><div class="unrows" style="margin-top:6px">${bs.map(b=>{const r=rating(b.vendorId);return `<div class="unrow cs"><div style="min-width:0"><span class="strong">${esc(bidName(b))}</span>${r?` <span class="small">★ ${r.avg.toFixed(1)} from ${r.n} ${r.n===1?"agent":"agents"}</span>`:""}${b.note?`<div class="small">${esc(b.note)}</div>`:""}</div>
-        <div class="num unamt">${money(b.amount)}<div class="small">${esc(timeline(b))}</div></div><div class="small">${b.pdfId?pdfLink(b):""}${typeof ovLink==="function"&&ovLink(b.vendorId)?`<div>${ovLink(b.vendorId,"About them")}</div>`:""}</div></div>`}).join("")}</div></div>`}).join("")
+        <div class="num unamt">${money(b.amount)}<div class="small">${esc(timeline(b))}</div></div><div class="small">${b.pdfId?pdfLink(b):""}${vendorDocs(b.vendorId)?`<div>${vendorDocs(b.vendorId)}</div>`:""}</div></div>`}).join("")}</div></div>`}).join("")
       :`<p class="small">No quotes in yet. Once vendors send bids, they show up here.</p>`}
     <p class="small" style="margin:0">Your client sees vendor names, prices, timelines and ratings. They don't see your notes, Orbyt's notes or anyone's fees.</p>
     <label class="field"><span>Or send it as a message</span><textarea id="cs-text" rows="7" readonly>${esc(txt)}</textarea></label>
@@ -2097,6 +2097,15 @@ function moreForm(p,c){
     ${favs.length?`<label class="field"><span>Suggest one of your favorites (optional)</span><select id="mo-v-${ib}" name="vendorId"><option value="">No suggestion</option>${favs.map(v=>`<option value="${esc(v.id)}">${esc(v.name)}</option>`).join("")}</select></label>`:""}
     <div class="actions"><button class="btn" type="submit">Send to Ashleigh</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></form>`;
 }
+// a vendor's two PDFs, next to their quotes
+function vendorDocs(vid){const v=vendorById(vid);if(!v)return"";const L=[];
+  if(typeof ovLink==="function"&&v.overviewPdf)L.push(ovLink(v,"About PDF"));
+  if(v.portfolioPdf)L.push(`<a href="${esc(blobHref(v.portfolioPdf))}" target="_blank" rel="noopener">Portfolio PDF</a>`);
+  return L.join(" · ")}
+// for Ashleigh's vendor card: everything they've added about their work, at the top
+function workBlock(v){const links=candWorkLinks(v),photos=(v.photoIds||[]).slice(0,5);
+  return `<div><span class="eyebrow">Their work</span>${links?`<div class="candlinks" style="margin-top:4px">${links}</div>`:`<div class="small" style="margin-top:4px">No overview, portfolio, website or Instagram added yet</div>`}
+    ${photos.length?`<div class="thumbs">${photos.map(id=>`<a href="${esc(blobHref(id))}" target="_blank" rel="noopener"><img src="${esc(blobHref(id))}" alt="Recent work by ${esc(v.name)}"></a>`).join("")}</div>`:""}</div>`}
 // the vendor's own materials, one tap away while matching
 function candWorkLinks(v){const L=[];const a=(u,t)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>`:"";
   if(typeof ovLink==="function"&&v.overviewPdf)L.push(ovLink(v,"About PDF"));
@@ -2178,7 +2187,7 @@ function projectDetail(p,mode){
           ${b.availChecked&&b.status==="requested"?`<div class="small">${isOrbyt?"Availability checked":"Ashleigh confirmed they're available"}</div>`:""}</td>
         <td class="money">${b.status==="requested"?'<span class="small">Waiting</span>':money(b.amount)}</td>
         <td>${b.status==="requested"?"–":`${esc(workDays(b)||"")}${b.availableFrom?`<div class="small">Can start ${esc(fmtDate(b.availableFrom))}</div>`:""}${!b.days&&!b.availableFrom?"See notes":""}`}${fast!==null&&b.availableFrom===fast&&b.status!=="requested"?'<span class="flag">Soonest</span>':""}</td>
-        <td style="max-width:240px">${esc(b.note||"")}</td><td>${b.status==="requested"?"":pdfLink(b)}${typeof ovLink==="function"&&ovLink(b.vendorId)?`<div class="small">${ovLink(b.vendorId,"About them")}</div>`:""}</td>
+        <td style="max-width:240px">${esc(b.note||"")}</td><td>${b.status==="requested"?"":pdfLink(b)}${vendorDocs(b.vendorId)?`<div class="small">${vendorDocs(b.vendorId)}</div>`:""}</td>
         <td style="white-space:nowrap">${b.status==="submitted"&&!sel&&S.canWrite?`<div class="actions"><button class="btn sm" data-act="select" data-id="${esc(b.id)}">Add to team</button><button class="linkbtn" data-act="form" data-key="changes:${esc(b.id)}">Request changes</button></div>`:statusPill(b)}
           ${ONTEAM.includes(b.status)&&S.canWrite?` <button class="linkbtn" data-act="unselect" data-id="${esc(b.id)}">Undo</button>`:""}
           ${b.status==="changes"&&b.changeNote?`<div class="small" style="white-space:normal;max-width:220px;margin-top:4px">${esc(b.changeNote)}</div>`:""}</td></tr>

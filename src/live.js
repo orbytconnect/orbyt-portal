@@ -327,10 +327,10 @@ function signupView(m){
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
-        ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label>`:`<label class="field"><span>Website</span><input type="text" id="su-web" name="web" placeholder="yourbusiness.com"></label>`}</div>
-      ${m==="vendor"?`<div class="grid"><label class="field"><span>Instagram</span><input type="text" id="su-ig" name="instagram" placeholder="@yourbusiness"></label>
-        <label class="field"><span>Portfolio link</span><input type="text" id="su-port" name="portfolio" placeholder="Google Drive, Houzz, Dropbox or anywhere"></label></div>
-        <p class="small" style="margin:0">Add at least one of your website, Instagram or a portfolio link, so I can see your work. You can upload a portfolio PDF and a business overview from your dashboard once you're approved.</p>`:""}
+        ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label>`:`<label class="field"><span>Website (optional)</span><input type="text" id="su-web" name="web" placeholder="yourbusiness.com"></label>`}</div>
+      ${m==="vendor"?`<div class="grid"><label class="field"><span>Instagram (optional)</span><input type="text" id="su-ig" name="instagram" placeholder="@yourbusiness"></label>
+        <label class="field"><span>Portfolio link (optional)</span><input type="text" id="su-port" name="portfolio" placeholder="Google Drive, Houzz, Dropbox or anywhere"></label></div>
+        <p class="small" style="margin:0">If you have a website, Instagram or portfolio, adding it helps me match you. You can upload a portfolio PDF and a business overview from your dashboard once you're approved.</p>`:""}
       ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}${moreChecks("svc","su-ms")}</div>
         <label class="field"><span>Anything else? (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything not listed above"></label>
         <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>`:""}
@@ -452,7 +452,6 @@ document.addEventListener("submit",async e=>{
       const checks=[[V&&!g("company"),"Add your company name.","#su-company"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
         [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[digits.length<10,"Add a mobile phone number, with area code.","#su-phone"],
         [!V&&!g("brokerage"),"Add your brokerage.","#su-brokerage"],
-        [V&&!g("web")&&!g("instagram")&&!g("portfolio"),"Add your website, Instagram or a portfolio link, so I can see your work.","#su-web"],
         [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!areas.length,V?"Pick at least one area you work in.":"Pick at least one area where you list homes.","#su-area-0"],
         [V&&!g("years"),"Choose your years in business.","#su-years"],[V&&!g("team"),"Choose your team size.","#su-team"],[V&&!g("lead"),"Choose your typical lead time.","#su-lead"],
         [V&&g("references").length<10,"Add 2 to 3 agent references, with names and phone numbers or emails.","#su-refs"],

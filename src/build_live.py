@@ -87,6 +87,7 @@ sub("</style>\n</head>", """.note{white-space:pre-line}
 .hcpagelogo{max-height:64px;max-width:240px;object-fit:contain;justify-self:start}
 .hcopts label{border-radius:14px}
 .availtoggle{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:10px}.availtoggle .seg{margin:0}
+.promotag{margin-top:4px}.callout.offer{border-color:var(--gold,#A8871F)}
 .candlinks{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 .myrevs{display:grid;gap:10px}.myrev{margin:0;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.myrev .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .hcpot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
@@ -119,7 +120,7 @@ sub("""  if(S.quoteView&&S.session)h+=quoteViewer();""", """  if(S.quoteView&&S.
   else if(S.myDetails&&S.session&&typeof myDetailsView==="function")h+=myDetailsView();""")
 sub("""<button class="btn ghost sm" data-act="signout">Sign out</button>`;""", """${myAgreementBtn()}<button class="btn ghost sm" data-act="signout">Sign out</button>`;""")
 sub("""v.insured?"Insurance checked":"Insurance not checked"}</p>""", """v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}${kind()==="orbyt"?insuranceAdminLine(v)+businessLine(v)+reviewReqLine(v):""}""")
-sub("""${v.approved===false?'<span class="pill late">Needs review</span>':""} ${v.featured?'<span class="pill featured">Featured</span>':""} ${v.sample?""", """${v.approved===false?'<span class="pill late">Needs review</span>':""}${agreementPill(v)} ${v.featured?'<span class="pill featured">Featured</span>':""} ${v.sample?""")
+sub("""${v.approved===false?'<span class="pill late">Needs review</span>':""} ${featuredNow(v)?'<span class="pill featured">Featured</span>':""} ${v.sample?""", """${v.approved===false?'<span class="pill late">Needs review</span>':""}${agreementPill(v)} ${featuredNow(v)?'<span class="pill featured">Featured</span>':""} ${v.sample?""")
 sub("Approved. They can be matched now.", "Approved. Next time they sign in, they'll see the fees, then they're ready for introductions.")
 sub(".vcard.wide{width:min(720px,calc(100% - 32px))}", """.vcard.wide{width:min(720px,calc(100% - 32px))}
 .agbox{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 22px}.agbox.tall{max-height:68vh}

@@ -40,7 +40,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
     return{id:v.id,userId:v.user_id,name:v.name,contactName:v.contact_name||"",email:v.email||"",phone:v.phone||"",web:v.website||"",
       services:v.services||[],category:(v.services||[])[0]||"",areas:normAreas(v.areas||[]),areaNote:v.area_note||"",years:v.years_in_business||"",
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
-      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",overviewPdfName:v.overview_pdf_name||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
+      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",overviewPdfName:v.overview_pdf_name||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
       pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
       legalName:p.legal_name||"",dba:p.dba||"",businessType:p.business_type||"",signerTitle:p.signer_title||"",marketingOptOut:!!p.marketing_opt_out,
@@ -132,7 +132,7 @@ function blobHref(id){return signedUrl(id)||"#"}
 const pick=(d,map)=>{const o={};for(const[k,col]of Object.entries(map))if(k in d)o[col]=typeof d[k]==="string"&&col.match(/_(date|at)$|^target_date$|^due$/)?nz(d[k]):d[k];return o};
 const VENDOR_MAP={name:"name",contactName:"contact_name",email:"email",phone:"phone",web:"website",services:"services",areas:"areas",areaNote:"area_note",
   years:"years_in_business",team:"team_size",leadTime:"lead_time",worksWithAgents:"works_with_agents",portfolioUrl:"portfolio_url",available:"available",source:"source"};
-const VADMIN_MAP={approved:"approved",featured:"featured",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
+const VADMIN_MAP={approved:"approved",featured:"featured",featuredUntil:"featured_until",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
 const VPRIV_MAP={pricing:"pricing",references:"references_text",heard:"heard_about",signupNotes:"signup_notes",promoInterest:"promo_interest",coiUrl:"coi_url"};
 const PROJ_MAP={sqft:"sqft",agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
   targetDate:"target_date",categories:"categories",notes:"notes",addedServices:"added_services",listed:"listed",listedAt:"listed_at",workOrder:"work_order",source:"source",createdBy:"created_by"};
@@ -570,7 +570,7 @@ function feesSection(){
         <p class="small" style="margin:0">Each portion is charged at its own rate, like tax brackets. $25 minimum, $600 cap per job.</p></div>
       <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">On later jobs with that agent or their clients. $15 minimum, $100 cap per job.</p></div>
       <div class="feecard"><span class="eyebrow">Never a fee on</span><p class="small" style="margin:0">Staging extensions while a home is on the market, jobs cancelled before work starts, or anything the client doesn't pay you.</p>
-        <span class="eyebrow" style="margin-top:10px;display:block">Optional</span><p class="small" style="margin:0">Promoted placement, $20 per promotion.</p></div></div>
+        <span class="eyebrow" style="margin-top:10px;display:block">Optional</span><p class="small" style="margin:0">Featured placement, $20 for 30 days.</p></div></div>
     <p class="small"><b>Example:</b> a $3,000 first job is $120 on the first $1,000 plus $160 on the next $2,000, for a $280 fee. The same job as a repeat is $60.</p>
     ${feeCalc()}
     <p class="small" style="margin:0"><b>When it's due:</b> report your final invoice amount within 5 business days of finishing a job (you can do it right on the job in the portal). Orbyt sends an invoice, due 15 days after the job wraps. Fees more than 30 days past due add 1.5% a month, and new introductions pause until they're paid.</p></section>`}
@@ -605,7 +605,7 @@ function signupFees(){
     <div class="feecard"><span class="eyebrow">First job with a new agent</span><table class="agtable"><tbody><tr><td>First $1,000</td><td>12%</td></tr><tr><td>$1,001 to $5,000</td><td>8%</td></tr><tr><td>Above $5,000</td><td>5%</td></tr></tbody></table>
       <p class="small" style="margin:0">Each portion at its own rate, like tax brackets. $25 minimum, $600 cap per job.</p></div>
     <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">Later jobs with that agent or their clients. $15 minimum, $100 cap per job.</p></div>
-    <div class="feecard"><span class="eyebrow">Good to know</span><p class="small" style="margin:0">Nothing to join and no monthly fee. Optional promoted placement is $20 per promotion. Fees more than 30 days past due add 1.5% a month, and new intros pause until they're paid.</p></div></div>`}
+    <div class="feecard"><span class="eyebrow">Good to know</span><p class="small" style="margin:0">Nothing to join and no monthly fee. Optional featured placement is $20 for 30 days. Fees more than 30 days past due add 1.5% a month, and new intros pause until they're paid.</p></div></div>`}
 // the business name in the authority line follows what's typed
 document.addEventListener("input",e=>{const el=e.target;if(!el.matches||!el.matches("input[data-bizname]"))return;const f=el.closest("form");
   f&&f.querySelectorAll(".bizname").forEach(b=>b.textContent=el.value.trim()||"[Legal business name]")},true);
@@ -1023,6 +1023,8 @@ function vendorFolds(v){
   parts.push(fold("price","Typical pricing",hasP?'<span class="pill set">Added</span>':'<span class="pill">Not added yet</span>',"Helps me match you to the right homes",vendorPricingCard(v),S.openForm==="pricing"));
   if(typeof reviewInviteCard==="function"&&v.approved!==false){const sent=typeof rrFor==="function"?rrFor(v.id):[];
     parts.push(fold("rr","Reviews from past clients",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Invite agents you've worked with",reviewInviteCard(v),!!S.rrMore))}
+  if(v.approved!==false){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
+    parts.push(fold("promo","Featured placement",on?`<span class="pill featured">Featured until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"","$20 for 30 days, with your own offer",promoCard(v),!!S.promoOpen))}
   parts.push(fold("refer","Refer someone to Orbyt",refCountPill(),"A ready-made message to send",referralCard("vendor"),false));
   return `<section class="section folds"><div class="sechead" style="margin-bottom:8px"><div><h2>Your profile</h2><span class="small">Finish these when you have a minute. Tap one to open it.</span></div></div>${parts.join("")}</section>`}
 function agentFolds(){if(kind()!=="agent"||!S.canWrite)return"";
@@ -1112,3 +1114,24 @@ function availToggle(v){if(kind()!=="vendor"||!S.canWrite||v.approved===false)re
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="myavail"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   const v=vendorById(myVendorId());if(!v)return;const want=t.dataset.v==="1";if((v.available!==false)===want)return;
   guard(async()=>{fail((await sb.from("vendors").update({available:want}).eq("id",v.id)).error,"availability");await S.db.reload()},want?"You're taking new work again.":"Paused. No new requests until you switch back.")},true);
+
+/* ---------- vendors: featured placement with their own offer ---------- */
+function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
+  const left=on&&v.featuredUntil?Math.round((new Date(v.featuredUntil+"T12:00:00")-new Date())/864e5):null;
+  const status=on?`<p class="small" style="margin:0"><span class="strong">You're featured until ${esc(fmtDate(v.featuredUntil))}.</span> Agents see a Featured label and your offer on your profile and next to your quotes, and you're listed first among equally good matches.${req?" Your renewal request is in. I'll send a payment link.":""}</p>`
+    :req?`<p class="small" style="margin:0"><span class="strong">Request sent.</span> I'll email you a $20 payment link. Your 30 days start once it's paid. You can still change your offer below.</p>`
+    :`<p class="small" style="margin:0">Stand out to agents for 30 days for $20. You get a Featured label and your offer on your profile and next to your quotes, and you're listed first among equally good matches. Matches still go to the best fit for each home, so great work and reviews matter most.</p>`;
+  return `<form class="form inner" data-form="promo" novalidate>${status}
+    <label class="field"><span>Your offer for Orbyt agents and their clients</span><input type="text" id="pr-offer" name="offer" maxlength="90" value="${esc(v.promoOffer||"")}" placeholder="10% off move-in cleans booked through Orbyt"></label>
+    <label class="field"><span>Details (optional)</span><textarea id="pr-details" name="details" rows="2" maxlength="400" placeholder="Good through December. Homes up to 3,000 sq ft.">${esc(v.promoDetails||"")}</textarea></label>
+    <p class="small" style="margin:0">A discount, a free add-on, faster scheduling, or whatever fits your service. Make it something you'll honor for anyone who books through Orbyt while you're featured.</p>
+    <p class="small warntext prerr" role="alert" style="margin:0" hidden></p>
+    <div class="actions">${on?(left!==null&&left<=7&&!req?`<button class="btn sm" type="submit" data-req="1">Renew for 30 days</button>`:"")+`<button class="btn ghost sm" type="submit">Save offer</button>`
+      :req?`<button class="btn sm" type="submit">Save offer</button>`:`<button class="btn sm" type="submit" data-req="1">Request featured placement</button><button class="btn ghost sm" type="submit">Save offer for later</button>`}</div></form>`}
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="promo"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),offer=String(fd.get("offer")||"").trim(),details=String(fd.get("details")||"").trim();
+  const wantReq=!!(e.submitter&&e.submitter.dataset.req),el=f.querySelector(".prerr");
+  if(wantReq&&!offer){if(el){el.textContent="Add your offer first. It's what agents see next to the Featured label.";el.hidden=false}f.querySelector("#pr-offer").focus();return}
+  const row={promo_offer:offer||null,promo_details:details||null};if(wantReq)row.promo_requested_at=new Date().toISOString();
+  S.promoOpen=true;
+  guard(async()=>{fail((await sb.from("vendors").update(row).eq("id",v.id)).error,"offer");await S.db.reload()},wantReq?"Request sent. I'll email you a payment link.":"Offer saved.")},true);

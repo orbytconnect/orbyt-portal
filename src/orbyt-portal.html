@@ -619,6 +619,17 @@ const roleKey=()=>S.role.replace(/[^A-Za-z0-9_\-.~@+]/g,"_");
 const doneMap=()=>(S.taskstate[roleKey()]||{}).done||{};
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2800)}
 
+// featured placement: on, and not past its end date
+// Ashleigh's Vendors list: request, paid, and end date in one cell
+function promoCell(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
+  return `${on?`<div class="small">Until ${esc(fmtDate(v.featuredUntil)||"you end it")}</div>`:""}${req?`<div><span class="pill comparing">${on?"Renewal requested":"Requested"}</span></div>`:""}
+    <div><button class="linkbtn" style="white-space:nowrap" data-act="feature" data-id="${esc(v.id)}">${on?"Add 30 days":"Mark promo paid"}</button></div>${on?`<div><button class="linkbtn" data-act="feature" data-mode="end" data-id="${esc(v.id)}">End promo</button></div>`:""}`}
+function featuredNow(v){if(!v||!v.featured)return false;if(!v.featuredUntil)return true;const t=new Date();const d=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");return v.featuredUntil>=d}
+// what agents see for a featured vendor: the label and the vendor's own offer
+function promoTag(vid){const v=typeof vid==="string"?vendorById(vid):vid;if(!featuredNow(v))return"";
+  return `<div class="promotag"><span class="pill featured">Featured</span>${v.promoOffer?` <span class="small strong">${esc(v.promoOffer)}</span>`:""}</div>`}
+function offerBlock(v){if(!featuredNow(v)||!(v.promoOffer||v.promoDetails))return"";
+  return `<div class="callout offer" style="margin:0"><div class="eyebrow">Featured · Offer for Orbyt agents${kind()==="orbyt"&&v.featuredUntil?" · until "+esc(fmtDate(v.featuredUntil)):""}</div>${v.promoOffer?`<div class="strong">${esc(v.promoOffer)}</div>`:""}${v.promoDetails?`<p class="small" style="margin:0">${esc(v.promoDetails)}</p>`:""}</div>`}
 function rating(vid){const rs=S.reviews.filter(r=>r.vendorId===vid&&r.approved);if(!rs.length)return null;return{avg:rs.reduce((s,r)=>s+r.rating,0)/rs.length,n:rs.length}}
 const ratingHtml=vid=>{const r=rating(vid);return r?`<span class="rating"><b>★ ${r.avg.toFixed(1)}</b> <span class="small">(${r.n})</span></span>`:`<span class="small">No reviews yet</span>`};
 
@@ -680,7 +691,7 @@ function matchesFor(p,cat,exclude=[],n=3){
     if(p.budget&&tier){const gap=Math.abs(TIERS.indexOf(tier)-TIERS.indexOf(p.budget));
       if(gap===0){score+=own?1:1.5;top.push("Prices fit a "+BUDGETS[p.budget].toLowerCase()+" budget"+(own?" (their own estimate)":""))}else if(gap===2)score-=own?1:1.5}
     if(p.agent&&favIds(p.agent).includes(v.id)){score+=2.5;top.unshift("One of "+firstName(p.agent)+"'s favorites")}
-    if(v.featured)score+=.5;
+    if(featuredNow(v))score+=.5;
     let warn="";const ld=leadDays(v),dl=daysTo(p.targetDate);
     if(ld&&dl!==null&&!p.listed&&dl<ld){score-=1.5;warn="Usually needs "+v.leadTime.toLowerCase()+" of lead time"}
     return{v,score,why:[...top,...why],warn};
@@ -841,7 +852,7 @@ function vendorCard(v){
   const dist=[5,4,3,2,1].map(n=>[n,all.filter(r=>r.rating===n).length]);
   const line=(label,val)=>val?`<div class="cline"><span class="eyebrow">${label}</span><span class="cval" id="cv-${label.toLowerCase()}">${esc(val)}</span><button class="btn ghost sm" data-act="copy" data-text="${esc(val)}" data-label="${label}">Copy</button></div>`:"";
   return `<div class="scrim" data-act="vclose"></div><div class="vcard" role="dialog" aria-modal="true" aria-labelledby="vc-title">
-    <div class="vchead"><div style="min-width:0"><div class="eyebrow">${esc(vsv(v).join(", "))} ${v.featured?'<span class="pill featured">Featured</span>':""} ${v.approved===false?'<span class="pill late">Needs review</span>':""}</div><h2 id="vc-title" style="font-weight:500;margin-top:4px">${esc(v.name)}</h2></div>
+    <div class="vchead"><div style="min-width:0"><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Featured</span>':""} ${v.approved===false?'<span class="pill late">Needs review</span>':""}</div><h2 id="vc-title" style="font-weight:500;margin-top:4px">${esc(v.name)}</h2></div>
       <button class="xbtn" id="vc-close" data-act="vclose" aria-label="Close">×</button></div>
     ${agent&&S.canWrite?`<div><button class="btn ${fav?"":"ghost"} sm" data-act="fav" data-id="${esc(v.id)}" aria-pressed="${!!fav}">${fav?"♥ In your favorites":"♡ Save to favorites"}</button></div>`:""}
     <div class="clines">${line("Phone",phone)}${line("Email",email)}${!phone&&!email?`<p class="small" style="margin:0">No contact info on file yet. Reach out to Ashleigh and she'll connect you.</p>`:""}</div>
@@ -850,7 +861,7 @@ function vendorCard(v){
     <div class="vfacts"><div class="wide"><span class="eyebrow">Works in</span><div>${esc((v.areas||[]).join(", ")||"Not set")}</div></div>
       ${withYou!==null?`<div><span class="eyebrow">Jobs with you</span><div class="num">${withYou}</div></div>`:""}
       ${favBy!==null?`<div><span class="eyebrow">Agent favorite</span><div class="num">${favBy} ${favBy===1?"agent":"agents"}</div></div>`:""}</div>
-    ${kind()==="orbyt"?workBlock(v)+notesBlock(v)+pricingBlock(v)+formBlock(v):profileBlock(v)}
+    ${offerBlock(v)}${kind()==="orbyt"?workBlock(v)+notesBlock(v)+pricingBlock(v)+formBlock(v):profileBlock(v)}
     ${kind()==="orbyt"?(()=>{const mine=S.reviews.filter(r=>r.vendorId===v.id).sort((a,b)=>(a.approved?1:0)-(b.approved?1:0)||String(b.createdAt).localeCompare(String(a.createdAt)));
       return mine.length?`<div><span class="eyebrow">Reviews · approve or hide them here</span><div class="revlist" style="margin-top:6px">${mine.map(r=>revItem(r,false)).join("")}</div></div>`:""})()
     :revs.length?`<div><span class="eyebrow">What agents say</span><div class="vrevs">${revs.map(r=>`<blockquote><span class="rating"><b>${"★".repeat(r.rating)}</b></span> ${esc(r.comment||"")}<div class="small">${esc(r.agent||"Agent")}, ${ago(r.createdAt)}</div></blockquote>`).join("")}</div></div>`:""}
@@ -976,7 +987,7 @@ function upNext(agent,openN){
   const when=p.targetDate?`Lists ${fmtDate(p.targetDate)}${d!==null&&d>=0?` · ${d===0?"today":d+(d===1?" day":" days")+" away"}`:" · date passed"}`:"";
   let body="";
   if(n.kind==="compare"){const fd=n.bids.filter(b=>b.availableFrom),fast=fd.length>1?fd.map(b=>b.availableFrom).sort()[0]:null;
-    body=`<div class="unrows">${n.bids.map(b=>{const v=vendorById(b.vendorId);return `<div class="unrow"><div style="min-width:0"><span class="strong">${vLink(b)}</span> <span class="small">${v?ratingHtml(v.id):""}</span>${b.note?`<div class="small">${esc(b.note)}</div>`:""}</div>
+    body=`<div class="unrows">${n.bids.map(b=>{const v=vendorById(b.vendorId);return `<div class="unrow"><div style="min-width:0"><span class="strong">${vLink(b)}</span> <span class="small">${v?ratingHtml(v.id):""}</span>${promoTag(b.vendorId)}${b.note?`<div class="small">${esc(b.note)}</div>`:""}</div>
       <div class="num unamt">${money(b.amount)}<div class="small">${esc(timeline(b))}${fast!==null&&b.availableFrom===fast?" · soonest":""}</div></div>
       <div class="small">${b.pdfId?pdfLink(b):""}${vendorDocs(b.vendorId)?`<div>${vendorDocs(b.vendorId)}</div>`:""}</div>
       <div><button class="btn sm" data-act="select" data-id="${esc(b.id)}">Add to team</button></div></div>`}).join("")}</div>
@@ -1022,7 +1033,7 @@ function vendorView(){
   if(!["tasks","projects"].includes(S.tab))S.tab="tasks";
   const T=vendorTasks(v.id);const openN=splitTasks(T).open.length;
   const mine=S.bids.filter(b=>b.vendorId===v.id&&projById(b.projectId));
-  let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${v.featured?'<span class="pill featured">Featured</span>':""}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for signing up. I'll reach out to say hi and check your references before your first introduction.</p>`:""}
+  let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Featured</span>':""}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for signing up. I'll reach out to say hi and check your references before your first introduction.</p>`:""}
     <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
@@ -1664,6 +1675,9 @@ function pmInvoicing(){
 }
 function orbytAlerts(){
   const A=[];
+  for(const v of S.vendors){if(!v.promoRequestedAt||(featuredNow(v)&&v.promoRequestedAt<=(v.featuredUntil||"")))continue;
+    A.push({id:"promo-"+v.id+"-"+v.promoRequestedAt,cls:"k-bid",label:"Featured request",title:`${v.name} wants to be featured`,
+      meta:(v.promoOffer?"Offer: "+v.promoOffer+" · ":"")+"send a $20 payment link, then Mark promo paid · "+ago(v.promoRequestedAt),when:v.promoRequestedAt,act:{a:"vcard",id:v.id,label:"See their offer"}})}
   for(const p of S.projects){if(p.listed)continue;
     const groups={};for(const[c,x]of Object.entries(p.addedServices||{})){if(!x||!x.by||x.by==="Ashleigh"||!(p.categories||[]).includes(c))continue;(groups[x.at]=groups[x.at]||{x,cats:[]}).cats.push(c)}
     for(const[at,gr]of Object.entries(groups)){const pending=gr.cats.filter(c=>!isBooked(p.id,c)&&!bidsFor(p.id,c).some(b=>b.introducedAt&&b.introducedAt>=at));
@@ -2051,7 +2065,7 @@ function pickForm(p,c,bids){
     return `<div class="cand ${val("sel-"+id)?"on":""}">
       <div class="candhead"><label class="pickrow"><input type="checkbox" data-pick data-vid="${esc(id)}" name="sel-${esc(id)}" id="pk-${ib}-${vk}" ${val("sel-"+id)?"checked":""}><span class="strong">${esc(v.name)}</span></label>
         <button class="linkbtn" type="button" data-act="unpick" data-key="${esc(key)}" data-id="${esc(id)}" aria-label="Remove ${esc(v.name)} from this list">Remove</button></div>
-      <div class="pills">${sug?`<span class="pill fav">Suggested by ${esc(ag)}</span>`:fav?`<span class="pill fav">♥ ${esc(ag)}'s favorite</span>`:""}${v.available===false?'<span class="pill late">Paused</span>':""}${v.featured?'<span class="pill featured">Featured</span>':""}${tierPill(st)||statedPill(v)}${!vsv(v).includes(c)?`<span class="pill">${esc(vsv(v).join(", "))}</span>`:""}</div>
+      <div class="pills">${sug?`<span class="pill fav">Suggested by ${esc(ag)}</span>`:fav?`<span class="pill fav">♥ ${esc(ag)}'s favorite</span>`:""}${v.available===false?'<span class="pill late">Paused</span>':""}${featuredNow(v)?'<span class="pill featured">Featured</span>':""}${tierPill(st)||statedPill(v)}${!vsv(v).includes(c)?`<span class="pill">${esc(vsv(v).join(", "))}</span>`:""}</div>
       ${priceItems(v,c).length||vPricing(v).minimum?`<div class="small">${esc([priceItems(v,c).length?"Typical: "+priceItems(v,c).slice(0,2).map(priceItemText).join(" · "):"",minText(v)].filter(Boolean).join(" · "))}</div>`:""}
       ${w.length?`<ul class="why">${w.slice(0,4).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${mm.warn?`<div class="small warntext">${esc(mm.warn)}</div>`:""}
       ${vnotes(id)[0]?`<div class="candnote"><span class="strong">Your note:</span> ${esc(vnotes(id)[0].text.length>110?vnotes(id)[0].text.slice(0,110)+"…":vnotes(id)[0].text)}</div>`:""}
@@ -2103,7 +2117,7 @@ function projectDetail(p,mode){
     const shown=bids;
     if(shown.length){
       h+=`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Bid</th><th>Timeline</th><th>Notes</th><th>PDF</th><th></th></tr></thead><tbody>${shown.map(b=>{const v=vendorById(b.vendorId);
-        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>
+        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}
           ${b.introNote?`<div class="intronote">${b.introducedBy==="auto"?"":isOrbyt?"Your note: ":"From Ashleigh: "}“${esc(b.introNote)}”</div>`:""}
           ${b.availChecked&&b.status==="requested"?`<div class="small">${isOrbyt?"Availability checked":"Ashleigh confirmed they're available"}</div>`:""}</td>
         <td class="money">${b.status==="requested"?'<span class="small">Waiting</span>':money(b.amount)}</td>
@@ -2182,7 +2196,7 @@ function rosterView(){
   const f=S.rf,q=f.q.trim().toLowerCase();
   const vs=all.filter(v=>(!q||v.name.toLowerCase().includes(q)||(vPhone(v)+" "+vEmail(v)).toLowerCase().includes(q))&&(!f.cat||vsv(v).includes(f.cat))&&(!f.area||(v.areas||[]).includes(f.area))
     &&(!f.status||(f.status==="review"?v.approved===false:f.status==="taking"?v.available!==false&&v.approved!==false:v.available===false))&&(!f.cred||(f.cred==="yes"?v.licensed&&v.insured:!(v.licensed&&v.insured)))
-    &&(!f.promo||(f.promo==="featured"?v.featured:!v.featured))&&(!f.rating||((rating(v.id)||{avg:0}).avg>=Number(f.rating)))
+    &&(!f.promo||(f.promo==="featured"?featuredNow(v):!featuredNow(v)))&&(!f.rating||((rating(v.id)||{avg:0}).avg>=Number(f.rating)))
     &&(!f.price||(f.price==="none"?!(priceStats(v.id)||{}).tier:(priceStats(v.id)||{}).tier===f.price)));
   const on=q||f.cat||f.area||f.status||f.cred||f.promo||f.rating||f.price;
   const sel=(id,label,val,opts)=>`<label class="field"><span>${label}</span><select id="${id}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${v===val?"selected":""}>${esc(t)}</option>`).join("")}</select></label>`;
@@ -2200,13 +2214,13 @@ function rosterView(){
     <div class="actions" style="margin-bottom:12px"><span class="small num">Showing ${vs.length} of ${all.length} vendors</span>${on?`<button class="linkbtn" data-act="rclear">Clear filters</button>`:""}</div>`;
   if(!vs.length)return h+`<p class="small">No vendors match those filters.</p>`;
   return h+`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Service</th><th>Areas</th><th>Rating</th><th>Pricing</th><th>Licensed and insured</th><th>Taking work</th><th>Booked</th><th></th></tr></thead><tbody>${vs.map(v=>`<tr>
-    <td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${vnotes(v.id).length?` <span class="small" title="You have notes on this vendor">· ${vnotes(v.id).length} ${vnotes(v.id).length===1?"note":"notes"}</span>`:""} ${v.approved===false?'<span class="pill late">Needs review</span>':""} ${v.featured?'<span class="pill featured">Featured</span>':""} ${v.sample?'<span class="pill example">Example</span>':""}${vPhone(v)||vEmail(v)?`<div class="small">${esc([vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div>`:""}</td>
+    <td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${vnotes(v.id).length?` <span class="small" title="You have notes on this vendor">· ${vnotes(v.id).length} ${vnotes(v.id).length===1?"note":"notes"}</span>`:""} ${v.approved===false?'<span class="pill late">Needs review</span>':""} ${featuredNow(v)?'<span class="pill featured">Featured</span>':""} ${v.sample?'<span class="pill example">Example</span>':""}${vPhone(v)||vEmail(v)?`<div class="small">${esc([vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div>`:""}</td>
     <td>${esc(vsv(v).join(", "))}</td><td class="small" style="max-width:200px" title="${esc((v.areas||[]).join(", "))}">${esc(areasShort(v.areas))}</td><td>${ratingHtml(v.id)}${(()=>{const k=S.reviews.filter(r=>r.vendorId===v.id&&!r.approved).length;return k?`<div><button class="pill comparing" style="border:0;cursor:pointer;margin-top:4px" data-act="vcard" data-id="${esc(v.id)}">${k} to approve</button></div>`:""})()}</td>
     <td>${(()=>{const st=priceStats(v.id);return st?`${st.tier?tierPill(st):'<span class="small">Not enough bids yet</span>'}<div class="small num" style="margin-top:4px">Avg ${money(st.avgAmt)} · ${st.n} ${st.n===1?"bid":"bids"}${st.decided?` · won ${st.won} of ${st.decided}`:""}</div>`:'<span class="small">No bids yet</span>'})()}</td>
     <td>${v.licensed&&v.insured?"Yes":'<span style="color:var(--warn)">Check</span>'}</td>
     <td>${S.canWrite?`<button class="linkbtn" style="color:var(--ink);text-decoration:none" data-act="avail" data-id="${esc(v.id)}"><span class="dot ${v.available!==false?"on":""}"></span>${v.available!==false?"Yes":"Paused"}</button>`:v.available!==false?"Yes":"Paused"}</td>
     <td class="num">${S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected").length}</td>
-    <td style="white-space:nowrap">${S.canWrite?(v.approved===false?`<button class="btn sm" data-act="vcard" data-id="${esc(v.id)}">Review</button>`:`<button class="linkbtn" data-act="feature" data-id="${esc(v.id)}">${v.featured?"End promo":"Mark promo paid"}</button>`):""}</td></tr>`).join("")}</tbody></table></div>
+    <td style="min-width:120px">${S.canWrite?(v.approved===false?`<button class="btn sm" data-act="vcard" data-id="${esc(v.id)}">Review</button>`:promoCell(v)):""}</td></tr>`).join("")}</tbody></table></div>
     <p class="small">Gold "Featured" marks a vendor who paid for a promo. Ratings come from approved reviews and count toward matches. Pricing compares each vendor's bids to the other bids on the same job, and only you see it. When a project has a budget, vendors whose pricing fits it rank higher.</p>`;
 }
 
@@ -2528,7 +2542,11 @@ document.addEventListener("click",e=>{
   else if(a==="listed")guard(()=>col("projects").doc(t.dataset.id).update({listed:t.dataset.v==="1",listedAt:t.dataset.v==="1"?now():null}),t.dataset.v==="1"?"Marked as listed":"Back on the active list");
   else if(a==="pm"){const p=projById(t.dataset.id);guard(()=>col("projects").doc(p.id).update({pm:!p.pm}))}
   else if(a==="avail"){const v=vendorById(t.dataset.id);guard(()=>col("vendors").doc(v.id).update({available:v.available===false}))}
-  else if(a==="feature"){const v=vendorById(t.dataset.id);guard(()=>col("vendors").doc(v.id).update({featured:!v.featured}))}
+  else if(a==="feature"){const v=vendorById(t.dataset.id);const on=featuredNow(v);
+    if(t.dataset.mode==="end")guard(()=>col("vendors").doc(v.id).update({featured:false,featuredUntil:null}),"Promo ended.");
+    else{const base=on&&v.featuredUntil?new Date(v.featuredUntil+"T12:00:00"):new Date();base.setDate(base.getDate()+30);
+      const until=base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0");
+      guard(()=>col("vendors").doc(v.id).update({featured:true,featuredUntil:until}),`Featured until ${fmtDate(until)}. ${v.name} gets a confirmation email.`)}}
   else if(a==="approve")guard(()=>col("reviews").doc(t.dataset.id).update({approved:t.dataset.v==="1"}),t.dataset.v==="1"?"Review approved":"Review hidden");
   else if(a==="loadsamples")guard(loadSamples,"Example data loaded");
   else if(a==="clearsamples")guard(async()=>{

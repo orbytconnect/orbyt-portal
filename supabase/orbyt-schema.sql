@@ -2324,7 +2324,7 @@ $$;
 revoke execute on function public.client_quotes(text) from public;
 grant execute on function public.client_quotes(text) to anon, authenticated;
 
--- ---------- update 15: featured placement ----------
+-- ---------- update 15: special offers (stored as featured placement) ----------
 
 alter table public.vendors      add column if not exists promo_offer        text check (promo_offer is null or length(promo_offer) <= 90);
 alter table public.vendors      add column if not exists promo_details      text check (promo_details is null or length(promo_details) <= 400);
@@ -2336,12 +2336,12 @@ alter table public.vendor_admin add column if not exists promo_reminded_for date
 create or replace function public.vendors_promo_notify() returns trigger language plpgsql security definer set search_path = '' as $$
 begin
   if new.promo_requested_at is not null and new.promo_requested_at is distinct from old.promo_requested_at then
-    perform public.orbyt_email(array[public.admin_email()], 'Featured placement request: ' || new.name,
-      new.name || ' wants to be featured',
-      public.ep(public.h(new.name) || ' asked for featured placement, $20 for 30 days.')
+    perform public.orbyt_email(array[public.admin_email()], 'Special offer request: ' || new.name,
+      new.name || ' wants to run a special offer',
+      public.ep(public.h(new.name) || ' asked to run a special offer for Orbyt clients, $20 for 30 days.')
       || case when coalesce(new.promo_offer, '') <> '' then public.ep('Their offer: <b>' || public.h(new.promo_offer) || '</b>'
            || case when coalesce(new.promo_details, '') <> '' then '<br>' || public.h(new.promo_details) else '' end) else '' end
-      || public.ep('Send them a $20 payment link at ' || public.h(coalesce(new.email, 'their email')) || '. Once it''s paid, click Mark promo paid on their row in your Vendors tab.'),
+      || public.ep('Send them a $20 payment link at ' || public.h(coalesce(new.email, 'their email')) || '. Once it''s paid, click Mark offer paid on their row in your Vendors tab.'),
       'Open your dashboard', 'admin_promo_request');
   end if;
   return new;
@@ -2361,10 +2361,10 @@ begin
   if new.featured and new.featured_until is not null and new.featured_until is distinct from old.featured_until
      and new.featured_until >= current_date then
     select * into v from public.vendors where id = new.vendor_id;
-    perform public.orbyt_email(array[public.vendor_email(new.vendor_id)], 'You''re featured on Orbyt until ' || public.date_text(new.featured_until),
-      'You''re featured',
-      public.ep('Thanks! Your payment is in, and ' || public.h(v.name) || ' is featured until <b>' || public.date_text(new.featured_until) || '</b>.')
-      || public.ep('Agents see a Featured label and your offer on your profile and next to your quotes'
+    perform public.orbyt_email(array[public.vendor_email(new.vendor_id)], 'Your Orbyt special offer is live until ' || public.date_text(new.featured_until),
+      'Your special offer is live',
+      public.ep('Thanks! Your payment is in, and your special offer is live until <b>' || public.date_text(new.featured_until) || '</b>.')
+      || public.ep('Agents see it next to your quotes and on your profile, so they can pass the deal on to their clients'
          || case when coalesce(v.promo_offer, '') <> '' then ': <b>' || public.h(v.promo_offer) || '</b>' else '' end || '.')
       || public.ep('You can change your offer anytime from your dashboard.'),
       'Open your dashboard', 'vendor_promo_on');
@@ -2386,9 +2386,9 @@ declare r record; n integer := 0; ended text := '';
 begin
   for r in select a.vendor_id, a.featured_until, v.name from public.vendor_admin a join public.vendors v on v.id = a.vendor_id
             where a.featured and a.featured_until = current_date + 5 and a.promo_reminded_for is distinct from a.featured_until loop
-    perform public.orbyt_email(array[public.vendor_email(r.vendor_id)], 'Your Orbyt featured placement ends ' || public.date_text(r.featured_until),
-      'Your featured placement ends soon',
-      public.ep(public.h(r.name) || ' is featured until <b>' || public.date_text(r.featured_until) || '</b>. Want another 30 days? Tap Renew on your dashboard and I''ll send a payment link.'),
+    perform public.orbyt_email(array[public.vendor_email(r.vendor_id)], 'Your Orbyt special offer ends ' || public.date_text(r.featured_until),
+      'Your special offer ends soon',
+      public.ep('Your special offer runs until <b>' || public.date_text(r.featured_until) || '</b>. Want another 30 days? Tap Renew on your dashboard and I''ll send a payment link.'),
       'Open your dashboard', 'vendor_promo_renew');
     update public.vendor_admin set promo_reminded_for = r.featured_until where vendor_id = r.vendor_id;
     n := n + 1;
@@ -2400,8 +2400,8 @@ begin
     n := n + 1;
   end loop;
   if ended <> '' then
-    perform public.orbyt_email(array[public.admin_email()], 'Featured placement ended', 'Featured placement ended',
-      public.ep('These promotions ran their 30 days and switched off:')
+    perform public.orbyt_email(array[public.admin_email()], 'Special offers ended', 'Special offers ended',
+      public.ep('These special offers ran their 30 days and switched off:')
       || '<ul style="font-size:15px;line-height:1.6;margin:0 0 16px;padding-left:20px">' || ended || '</ul>',
       'Open your dashboard', 'admin_promo_ended');
   end if;
@@ -2414,5 +2414,5 @@ begin
   create extension if not exists pg_cron;
   perform cron.schedule('orbyt-promo', '15 16 * * *', 'select public.promo_run()');
 exception when others then
-  raise warning 'Daily featured placement checks were not scheduled (%). In Supabase, turn on the pg_cron extension under Database, Extensions, then run this script again.', sqlerrm;
+  raise warning 'Daily special offer checks were not scheduled (%). In Supabase, turn on the pg_cron extension under Database, Extensions, then run this script again.', sqlerrm;
 end $$;

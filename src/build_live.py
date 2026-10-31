@@ -120,7 +120,7 @@ sub("""  if(S.quoteView&&S.session)h+=quoteViewer();""", """  if(S.quoteView&&S.
   else if(S.myDetails&&S.session&&typeof myDetailsView==="function")h+=myDetailsView();""")
 sub("""<button class="btn ghost sm" data-act="signout">Sign out</button>`;""", """${myAgreementBtn()}<button class="btn ghost sm" data-act="signout">Sign out</button>`;""")
 sub("""v.insured?"Insurance checked":"Insurance not checked"}</p>""", """v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}${kind()==="orbyt"?insuranceAdminLine(v)+businessLine(v)+reviewReqLine(v):""}""")
-sub("""${v.approved===false?'<span class="pill late">Needs review</span>':""} ${featuredNow(v)?'<span class="pill featured">Featured</span>':""} ${v.sample?""", """${v.approved===false?'<span class="pill late">Needs review</span>':""}${agreementPill(v)} ${featuredNow(v)?'<span class="pill featured">Featured</span>':""} ${v.sample?""")
+sub("""${v.approved===false?'<span class="pill late">Needs review</span>':""} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.sample?""", """${v.approved===false?'<span class="pill late">Needs review</span>':""}${agreementPill(v)} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.sample?""")
 sub("Approved. They can be matched now.", "Approved. Next time they sign in, they'll see the fees, then they're ready for introductions.")
 sub(".vcard.wide{width:min(720px,calc(100% - 32px))}", """.vcard.wide{width:min(720px,calc(100% - 32px))}
 .agbox{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 22px}.agbox.tall{max-height:68vh}

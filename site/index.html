@@ -701,13 +701,13 @@ function toast(m){const t=document.createElement("div");t.className="toast";t.te
 // Ashleigh's Vendors list: request, paid, and end date in one cell
 function promoCell(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
   return `${on?`<div class="small">Until ${esc(fmtDate(v.featuredUntil)||"you end it")}</div>`:""}${req?`<div><span class="pill comparing">${on?"Renewal requested":"Requested"}</span></div>`:""}
-    <div><button class="linkbtn" style="white-space:nowrap" data-act="feature" data-id="${esc(v.id)}">${on?"Add 30 days":"Mark promo paid"}</button></div>${on?`<div><button class="linkbtn" data-act="feature" data-mode="end" data-id="${esc(v.id)}">End promo</button></div>`:""}`}
+    <div><button class="linkbtn" style="white-space:nowrap" data-act="feature" data-id="${esc(v.id)}">${on?"Add 30 days":"Mark offer paid"}</button></div>${on?`<div><button class="linkbtn" data-act="feature" data-mode="end" data-id="${esc(v.id)}">End offer</button></div>`:""}`}
 function featuredNow(v){if(!v||!v.featured)return false;if(!v.featuredUntil)return true;const t=new Date();const d=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");return v.featuredUntil>=d}
 // what agents see for a featured vendor: the label and the vendor's own offer
 function promoTag(vid){const v=typeof vid==="string"?vendorById(vid):vid;if(!featuredNow(v))return"";
-  return `<div class="promotag"><span class="pill featured">Featured</span>${v.promoOffer?` <span class="small strong">${esc(v.promoOffer)}</span>`:""}</div>`}
+  return `<div class="promotag"><span class="pill featured">Special offer</span>${v.promoOffer?` <span class="small strong">${esc(v.promoOffer)}</span>`:""}</div>`}
 function offerBlock(v){if(!featuredNow(v)||!(v.promoOffer||v.promoDetails))return"";
-  return `<div class="callout offer" style="margin:0"><div class="eyebrow">Featured · Offer for Orbyt agents${kind()==="orbyt"&&v.featuredUntil?" · until "+esc(fmtDate(v.featuredUntil)):""}</div>${v.promoOffer?`<div class="strong">${esc(v.promoOffer)}</div>`:""}${v.promoDetails?`<p class="small" style="margin:0">${esc(v.promoDetails)}</p>`:""}</div>`}
+  return `<div class="callout offer" style="margin:0"><div class="eyebrow">Special offer for Orbyt clients${kind()==="orbyt"&&v.featuredUntil?" · until "+esc(fmtDate(v.featuredUntil)):""}</div>${v.promoOffer?`<div class="strong">${esc(v.promoOffer)}</div>`:""}${v.promoDetails?`<p class="small" style="margin:0">${esc(v.promoDetails)}</p>`:""}</div>`}
 function rating(vid){const rs=S.reviews.filter(r=>r.vendorId===vid&&r.approved);if(!rs.length)return null;return{avg:rs.reduce((s,r)=>s+r.rating,0)/rs.length,n:rs.length}}
 const ratingHtml=vid=>{const r=rating(vid);return r?`<span class="rating"><b>★ ${r.avg.toFixed(1)}</b> <span class="small">(${r.n})</span></span>`:`<span class="small">No reviews yet</span>`};
 
@@ -769,7 +769,7 @@ function matchesFor(p,cat,exclude=[],n=3){
     if(p.budget&&tier){const gap=Math.abs(TIERS.indexOf(tier)-TIERS.indexOf(p.budget));
       if(gap===0){score+=own?1:1.5;top.push("Prices fit a "+BUDGETS[p.budget].toLowerCase()+" budget"+(own?" (their own estimate)":""))}else if(gap===2)score-=own?1:1.5}
     if(p.agent&&favIds(p.agent).includes(v.id)){score+=2.5;top.unshift("One of "+firstName(p.agent)+"'s favorites")}
-    if(featuredNow(v))score+=.5;
+    
     let warn="";const ld=leadDays(v),dl=daysTo(p.targetDate);
     if(ld&&dl!==null&&!p.listed&&dl<ld){score-=1.5;warn="Usually needs "+v.leadTime.toLowerCase()+" of lead time"}
     return{v,score,why:[...top,...why],warn};
@@ -932,7 +932,7 @@ function vendorCard(v){
   const dist=[5,4,3,2,1].map(n=>[n,all.filter(r=>r.rating===n).length]);
   const line=(label,val)=>val?`<div class="cline"><span class="eyebrow">${label}</span><span class="cval" id="cv-${label.toLowerCase()}">${esc(val)}</span><button class="btn ghost sm" data-act="copy" data-text="${esc(val)}" data-label="${label}">Copy</button></div>`:"";
   return `<div class="scrim" data-act="vclose"></div><div class="vcard" role="dialog" aria-modal="true" aria-labelledby="vc-title">
-    <div class="vchead"><div style="min-width:0"><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Featured</span>':""} ${v.approved===false?'<span class="pill late">Needs review</span>':""}</div><h2 id="vc-title" style="font-weight:500;margin-top:4px">${esc(v.name)}</h2></div>
+    <div class="vchead"><div style="min-width:0"><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.approved===false?'<span class="pill late">Needs review</span>':""}</div><h2 id="vc-title" style="font-weight:500;margin-top:4px">${esc(v.name)}</h2></div>
       <button class="xbtn" id="vc-close" data-act="vclose" aria-label="Close">×</button></div>
     ${agent&&S.canWrite?`<div><button class="btn ${fav?"":"ghost"} sm" data-act="fav" data-id="${esc(v.id)}" aria-pressed="${!!fav}">${fav?"♥ In your favorites":"♡ Save to favorites"}</button></div>`:""}
     <div class="clines">${line("Phone",phone)}${line("Email",email)}${!phone&&!email?`<p class="small" style="margin:0">No contact info on file yet. Reach out to Ashleigh and she'll connect you.</p>`:""}</div>
@@ -1113,7 +1113,7 @@ function vendorView(){
   if(!["tasks","projects"].includes(S.tab))S.tab="tasks";
   const T=vendorTasks(v.id);const openN=splitTasks(T).open.length;
   const mine=S.bids.filter(b=>b.vendorId===v.id&&projById(b.projectId));
-  let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Featured</span>':""}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for signing up. I'll reach out to say hi and check your references before your first introduction.</p>`:""}
+  let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for signing up. I'll reach out to say hi and check your references before your first introduction.</p>`:""}
     <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
@@ -1757,8 +1757,8 @@ function pmInvoicing(){
 function orbytAlerts(){
   const A=[];
   for(const v of S.vendors){if(!v.promoRequestedAt||(featuredNow(v)&&v.promoRequestedAt<=(v.featuredUntil||"")))continue;
-    A.push({id:"promo-"+v.id+"-"+v.promoRequestedAt,cls:"k-bid",label:"Featured request",title:`${v.name} wants to be featured`,
-      meta:(v.promoOffer?"Offer: "+v.promoOffer+" · ":"")+"send a $20 payment link, then Mark promo paid · "+ago(v.promoRequestedAt),when:v.promoRequestedAt,act:{a:"vcard",id:v.id,label:"See their offer"}})}
+    A.push({id:"promo-"+v.id+"-"+v.promoRequestedAt,cls:"k-bid",label:"Special offer request",title:`${v.name} wants to run a special offer`,
+      meta:(v.promoOffer?"Offer: "+v.promoOffer+" · ":"")+"send a $20 payment link, then Mark offer paid · "+ago(v.promoRequestedAt),when:v.promoRequestedAt,act:{a:"vcard",id:v.id,label:"See their offer"}})}
   for(const p of S.projects){if(p.listed)continue;
     const groups={};for(const[c,x]of Object.entries(p.addedServices||{})){if(!x||!x.by||x.by==="Ashleigh"||!(p.categories||[]).includes(c))continue;(groups[x.at]=groups[x.at]||{x,cats:[]}).cats.push(c)}
     for(const[at,gr]of Object.entries(groups)){const pending=gr.cats.filter(c=>!isBooked(p.id,c)&&!bidsFor(p.id,c).some(b=>b.introducedAt&&b.introducedAt>=at));
@@ -2146,7 +2146,7 @@ function pickForm(p,c,bids){
     return `<div class="cand ${val("sel-"+id)?"on":""}">
       <div class="candhead"><label class="pickrow"><input type="checkbox" data-pick data-vid="${esc(id)}" name="sel-${esc(id)}" id="pk-${ib}-${vk}" ${val("sel-"+id)?"checked":""}><span class="strong">${esc(v.name)}</span></label>
         <button class="linkbtn" type="button" data-act="unpick" data-key="${esc(key)}" data-id="${esc(id)}" aria-label="Remove ${esc(v.name)} from this list">Remove</button></div>
-      <div class="pills">${sug?`<span class="pill fav">Suggested by ${esc(ag)}</span>`:fav?`<span class="pill fav">♥ ${esc(ag)}'s favorite</span>`:""}${v.available===false?'<span class="pill late">Paused</span>':""}${featuredNow(v)?'<span class="pill featured">Featured</span>':""}${tierPill(st)||statedPill(v)}${!vsv(v).includes(c)?`<span class="pill">${esc(vsv(v).join(", "))}</span>`:""}</div>
+      <div class="pills">${sug?`<span class="pill fav">Suggested by ${esc(ag)}</span>`:fav?`<span class="pill fav">♥ ${esc(ag)}'s favorite</span>`:""}${v.available===false?'<span class="pill late">Paused</span>':""}${featuredNow(v)?'<span class="pill featured">Special offer</span>':""}${tierPill(st)||statedPill(v)}${!vsv(v).includes(c)?`<span class="pill">${esc(vsv(v).join(", "))}</span>`:""}</div>
       ${priceItems(v,c).length||vPricing(v).minimum?`<div class="small">${esc([priceItems(v,c).length?"Typical: "+priceItems(v,c).slice(0,2).map(priceItemText).join(" · "):"",minText(v)].filter(Boolean).join(" · "))}</div>`:""}
       ${w.length?`<ul class="why">${w.slice(0,4).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${mm.warn?`<div class="small warntext">${esc(mm.warn)}</div>`:""}
       ${vnotes(id)[0]?`<div class="candnote"><span class="strong">Your note:</span> ${esc(vnotes(id)[0].text.length>110?vnotes(id)[0].text.slice(0,110)+"…":vnotes(id)[0].text)}</div>`:""}
@@ -2288,21 +2288,21 @@ function rosterView(){
     ${sel("rs-status","Status",f.status,[["","Everyone"],["taking","Taking work"],["paused","Paused"],["review","Needs review"]])}
     ${sel("rs-cred","Licensed and insured",f.cred,[["","Everyone"],["yes","Yes"],["check","Needs a check"]])}
     ${sel("rs-rating","Rating",f.rating,[["","Any rating"],["4.5","4.5 stars and up"],["4","4 stars and up"],["3","3 stars and up"]])}
-    ${sel("rs-promo","Promo",f.promo,[["","Everyone"],["featured","Featured"],["none","Not featured"]])}
+    ${sel("rs-promo","Special offer",f.promo,[["","Everyone"],["featured","Special offer"],["none","No offer"]])}
     ${sel("rs-price","Pricing",f.price,[["","Any pricing"],["budget","Budget-friendly"],["mid","Mid-range"],["premium","Premium"],["none","Not enough bids yet"]])}</div>
     ${f.cat?(()=>{const am=pricedBids().filter(b=>b.category===f.cat).map(b=>b.amount).sort((x,y)=>x-y);if(!am.length)return"";const h2=am.length>>1,med=am.length%2?am[h2]:(am[h2-1]+am[h2])/2;
       return `<div class="callout" style="margin:0 0 12px"><p><span class="strong">${esc(f.cat)} bids so far:</span> ${money(am[0])} to ${money(am[am.length-1])}, typically ${money(med)}, across ${new Set(pricedBids().filter(b=>b.category===f.cat).map(b=>b.projectId)).size} projects.</p><p class="small">Job sizes vary, so the pricing tiers below compare each vendor to the other bids on the same job.</p></div>`})():""}
     <div class="actions" style="margin-bottom:12px"><span class="small num">Showing ${vs.length} of ${all.length} vendors</span>${on?`<button class="linkbtn" data-act="rclear">Clear filters</button>`:""}</div>`;
   if(!vs.length)return h+`<p class="small">No vendors match those filters.</p>`;
   return h+`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Service</th><th>Areas</th><th>Rating</th><th>Pricing</th><th>Licensed and insured</th><th>Taking work</th><th>Booked</th><th></th></tr></thead><tbody>${vs.map(v=>`<tr>
-    <td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${vnotes(v.id).length?` <span class="small" title="You have notes on this vendor">· ${vnotes(v.id).length} ${vnotes(v.id).length===1?"note":"notes"}</span>`:""} ${v.approved===false?'<span class="pill late">Needs review</span>':""}${agreementPill(v)} ${featuredNow(v)?'<span class="pill featured">Featured</span>':""} ${v.sample?'<span class="pill example">Example</span>':""}${vPhone(v)||vEmail(v)?`<div class="small">${esc([vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div>`:""}</td>
+    <td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${vnotes(v.id).length?` <span class="small" title="You have notes on this vendor">· ${vnotes(v.id).length} ${vnotes(v.id).length===1?"note":"notes"}</span>`:""} ${v.approved===false?'<span class="pill late">Needs review</span>':""}${agreementPill(v)} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.sample?'<span class="pill example">Example</span>':""}${vPhone(v)||vEmail(v)?`<div class="small">${esc([vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div>`:""}</td>
     <td>${esc(vsv(v).join(", "))}</td><td class="small" style="max-width:200px" title="${esc((v.areas||[]).join(", "))}">${esc(areasShort(v.areas))}</td><td>${ratingHtml(v.id)}${(()=>{const k=S.reviews.filter(r=>r.vendorId===v.id&&!r.approved).length;return k?`<div><button class="pill comparing" style="border:0;cursor:pointer;margin-top:4px" data-act="vcard" data-id="${esc(v.id)}">${k} to approve</button></div>`:""})()}</td>
     <td>${(()=>{const st=priceStats(v.id);return st?`${st.tier?tierPill(st):'<span class="small">Not enough bids yet</span>'}<div class="small num" style="margin-top:4px">Avg ${money(st.avgAmt)} · ${st.n} ${st.n===1?"bid":"bids"}${st.decided?` · won ${st.won} of ${st.decided}`:""}</div>`:'<span class="small">No bids yet</span>'})()}</td>
     <td>${v.licensed&&v.insured?"Yes":'<span style="color:var(--warn)">Check</span>'}</td>
     <td>${S.canWrite?`<button class="linkbtn" style="color:var(--ink);text-decoration:none" data-act="avail" data-id="${esc(v.id)}"><span class="dot ${v.available!==false?"on":""}"></span>${v.available!==false?"Yes":"Paused"}</button>`:v.available!==false?"Yes":"Paused"}</td>
     <td class="num">${S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected").length}</td>
     <td style="min-width:120px">${S.canWrite?(v.approved===false?`<button class="btn sm" data-act="vcard" data-id="${esc(v.id)}">Review</button>`:promoCell(v)):""}</td></tr>`).join("")}</tbody></table></div>
-    <p class="small">Gold "Featured" marks a vendor who paid for a promo. Ratings come from approved reviews and count toward matches. Pricing compares each vendor's bids to the other bids on the same job, and only you see it. When a project has a budget, vendors whose pricing fits it rank higher.</p>`;
+    <p class="small">Gold "Special offer" marks a vendor running a paid offer for Orbyt clients. It doesn't affect matching. Ratings come from approved reviews and count toward matches. Pricing compares each vendor's bids to the other bids on the same job, and only you see it. When a project has a budget, vendors whose pricing fits it rank higher.</p>`;
 }
 
 function revItem(r,showVendor){const p=projById(r.projectId);const v=vendorById(r.vendorId);
@@ -2624,10 +2624,10 @@ document.addEventListener("click",e=>{
   else if(a==="pm"){const p=projById(t.dataset.id);guard(()=>col("projects").doc(p.id).update({pm:!p.pm}))}
   else if(a==="avail"){const v=vendorById(t.dataset.id);guard(()=>col("vendors").doc(v.id).update({available:v.available===false}))}
   else if(a==="feature"){const v=vendorById(t.dataset.id);const on=featuredNow(v);
-    if(t.dataset.mode==="end")guard(()=>col("vendors").doc(v.id).update({featured:false,featuredUntil:null}),"Promo ended.");
+    if(t.dataset.mode==="end")guard(()=>col("vendors").doc(v.id).update({featured:false,featuredUntil:null}),"Special offer ended.");
     else{const base=on&&v.featuredUntil?new Date(v.featuredUntil+"T12:00:00"):new Date();base.setDate(base.getDate()+30);
       const until=base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0");
-      guard(()=>col("vendors").doc(v.id).update({featured:true,featuredUntil:until}),`Featured until ${fmtDate(until)}. ${v.name} gets a confirmation email.`)}}
+      guard(()=>col("vendors").doc(v.id).update({featured:true,featuredUntil:until}),`Special offer live until ${fmtDate(until)}. ${v.name} gets a confirmation email.`)}}
   else if(a==="approve")guard(()=>col("reviews").doc(t.dataset.id).update({approved:t.dataset.v==="1"}),t.dataset.v==="1"?"Review approved":"Review hidden");
   else if(a==="loadsamples")guard(loadSamples,"Example data loaded");
   else if(a==="clearsamples")guard(async()=>{
@@ -3454,7 +3454,7 @@ function feesSection(){
         <p class="small" style="margin:0">Each portion is charged at its own rate, like tax brackets. $25 minimum, $600 cap per job.</p></div>
       <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">On later jobs with that agent or their clients. $15 minimum, $100 cap per job.</p></div>
       <div class="feecard"><span class="eyebrow">Never a fee on</span><p class="small" style="margin:0">Staging extensions while a home is on the market, jobs cancelled before work starts, or anything the client doesn't pay you.</p>
-        <span class="eyebrow" style="margin-top:10px;display:block">Optional</span><p class="small" style="margin:0">Featured placement, $20 for 30 days.</p></div></div>
+        <span class="eyebrow" style="margin-top:10px;display:block">Optional</span><p class="small" style="margin:0">Special offer for Orbyt clients, $20 for 30 days.</p></div></div>
     <p class="small"><b>Example:</b> a $3,000 first job is $120 on the first $1,000 plus $160 on the next $2,000, for a $280 fee. The same job as a repeat is $60.</p>
     ${feeCalc()}
     <p class="small" style="margin:0"><b>When it's due:</b> report your final invoice amount within 5 business days of finishing a job (you can do it right on the job in the portal). Orbyt sends an invoice, due 15 days after the job wraps. Fees more than 30 days past due add 1.5% a month, and new introductions pause until they're paid.</p></section>`}
@@ -3489,7 +3489,7 @@ function signupFees(){
     <div class="feecard"><span class="eyebrow">First job with a new agent</span><table class="agtable"><tbody><tr><td>First $1,000</td><td>12%</td></tr><tr><td>$1,001 to $5,000</td><td>8%</td></tr><tr><td>Above $5,000</td><td>5%</td></tr></tbody></table>
       <p class="small" style="margin:0">Each portion at its own rate, like tax brackets. $25 minimum, $600 cap per job.</p></div>
     <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">Later jobs with that agent or their clients. $15 minimum, $100 cap per job.</p></div>
-    <div class="feecard"><span class="eyebrow">Good to know</span><p class="small" style="margin:0">Nothing to join and no monthly fee. Optional featured placement is $20 for 30 days. Fees more than 30 days past due add 1.5% a month, and new intros pause until they're paid.</p></div></div>`}
+    <div class="feecard"><span class="eyebrow">Good to know</span><p class="small" style="margin:0">Nothing to join and no monthly fee. An optional special offer for Orbyt clients is $20 for 30 days. Fees more than 30 days past due add 1.5% a month, and new intros pause until they're paid.</p></div></div>`}
 // the business name in the authority line follows what's typed
 document.addEventListener("input",e=>{const el=e.target;if(!el.matches||!el.matches("input[data-bizname]"))return;const f=el.closest("form");
   f&&f.querySelectorAll(".bizname").forEach(b=>b.textContent=el.value.trim()||"[Legal business name]")},true);
@@ -3908,7 +3908,7 @@ function vendorFolds(v){
   if(typeof reviewInviteCard==="function"&&v.approved!==false){const sent=typeof rrFor==="function"?rrFor(v.id):[];
     parts.push(fold("rr","Reviews from past clients",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Invite agents you've worked with",reviewInviteCard(v),!!S.rrMore))}
   if(v.approved!==false){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
-    parts.push(fold("promo","Featured placement",on?`<span class="pill featured">Featured until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"","$20 for 30 days, with your own offer",promoCard(v),!!S.promoOpen))}
+    parts.push(fold("promo","Special offer",on?`<span class="pill featured">Live until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"","Share a deal with Orbyt clients, $20 for 30 days",promoCard(v),!!S.promoOpen))}
   parts.push(fold("refer","Refer someone to Orbyt",refCountPill(),"A ready-made message to send",referralCard("vendor"),false));
   return `<section class="section folds"><div class="sechead" style="margin-bottom:8px"><div><h2>Your profile</h2><span class="small">Finish these when you have a minute. Tap one to open it.</span></div></div>${parts.join("")}</section>`}
 function agentFolds(){if(kind()!=="agent"||!S.canWrite)return"";
@@ -3999,23 +3999,23 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="myava
   const v=vendorById(myVendorId());if(!v)return;const want=t.dataset.v==="1";if((v.available!==false)===want)return;
   guard(async()=>{fail((await sb.from("vendors").update({available:want}).eq("id",v.id)).error,"availability");await S.db.reload()},want?"You're taking new work again.":"Paused. No new requests until you switch back.")},true);
 
-/* ---------- vendors: featured placement with their own offer ---------- */
+/* ---------- vendors: a special offer for Orbyt clients (internally: featured) ---------- */
 function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
   const left=on&&v.featuredUntil?Math.round((new Date(v.featuredUntil+"T12:00:00")-new Date())/864e5):null;
-  const status=on?`<p class="small" style="margin:0"><span class="strong">You're featured until ${esc(fmtDate(v.featuredUntil))}.</span> Agents see a Featured label and your offer on your profile and next to your quotes, and you're listed first among equally good matches.${req?" Your renewal request is in. I'll send a payment link.":""}</p>`
-    :req?`<p class="small" style="margin:0"><span class="strong">Request sent.</span> I'll email you a $20 payment link. Your 30 days start once it's paid. You can still change your offer below.</p>`
-    :`<p class="small" style="margin:0">Stand out to agents for 30 days for $20. You get a Featured label and your offer on your profile and next to your quotes, and you're listed first among equally good matches. Matches still go to the best fit for each home, so great work and reviews matter most.</p>`;
+  const status=on?`<p class="small" style="margin:0"><span class="strong">Your special offer is live until ${esc(fmtDate(v.featuredUntil))}.</span> Agents see it next to your quotes and on your profile, so they can pass the deal on to their clients.${req?" Your renewal request is in. I'll send a payment link.":""}</p>`
+    :req?`<p class="small" style="margin:0"><span class="strong">Request sent.</span> I'll email you a $20 payment link. Your offer goes live for 30 days once it's paid. You can still change it below.</p>`
+    :`<p class="small" style="margin:0">Run a special offer for Orbyt clients for 30 days, for $20. Agents see your offer next to your quotes and on your profile, so they can pass the deal on. It doesn't change how I match. That's always the best fit for each home.</p>`;
   return `<form class="form inner" data-form="promo" novalidate>${status}
     <label class="field"><span>Your offer for Orbyt agents and their clients</span><input type="text" id="pr-offer" name="offer" maxlength="90" value="${esc(v.promoOffer||"")}" placeholder="10% off move-in cleans booked through Orbyt"></label>
     <label class="field"><span>Details (optional)</span><textarea id="pr-details" name="details" rows="2" maxlength="400" placeholder="Good through December. Homes up to 3,000 sq ft.">${esc(v.promoDetails||"")}</textarea></label>
-    <p class="small" style="margin:0">A discount, a free add-on, faster scheduling, or whatever fits your service. Make it something you'll honor for anyone who books through Orbyt while you're featured.</p>
+    <p class="small" style="margin:0">A discount, a free add-on, faster scheduling, or whatever fits your service. Make it something you'll honor for anyone who books through Orbyt while it's live.</p>
     <p class="small warntext prerr" role="alert" style="margin:0" hidden></p>
     <div class="actions">${on?(left!==null&&left<=7&&!req?`<button class="btn sm" type="submit" data-req="1">Renew for 30 days</button>`:"")+`<button class="btn ghost sm" type="submit">Save offer</button>`
-      :req?`<button class="btn sm" type="submit">Save offer</button>`:`<button class="btn sm" type="submit" data-req="1">Request featured placement</button><button class="btn ghost sm" type="submit">Save offer for later</button>`}</div></form>`}
+      :req?`<button class="btn sm" type="submit">Save offer</button>`:`<button class="btn sm" type="submit" data-req="1">Request my special offer</button><button class="btn ghost sm" type="submit">Save offer for later</button>`}</div></form>`}
 document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="promo"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
   const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),offer=String(fd.get("offer")||"").trim(),details=String(fd.get("details")||"").trim();
   const wantReq=!!(e.submitter&&e.submitter.dataset.req),el=f.querySelector(".prerr");
-  if(wantReq&&!offer){if(el){el.textContent="Add your offer first. It's what agents see next to the Featured label.";el.hidden=false}f.querySelector("#pr-offer").focus();return}
+  if(wantReq&&!offer){if(el){el.textContent="Add your offer first. It's what agents see next to your quotes.";el.hidden=false}f.querySelector("#pr-offer").focus();return}
   const row={promo_offer:offer||null,promo_details:details||null};if(wantReq)row.promo_requested_at=new Date().toISOString();
   S.promoOpen=true;
   guard(async()=>{fail((await sb.from("vendors").update(row).eq("id",v.id)).error,"offer");await S.db.reload()},wantReq?"Request sent. I'll email you a payment link.":"Offer saved.")},true);

@@ -543,6 +543,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 .htc .hcperk{display:inline-block;margin-top:.07in;background:#E6D9A8;color:#18314F;font-size:8.5pt;font-weight:500;border-radius:999px;padding:3px 10px}
 .hcpagelogo{max-height:64px;max-width:240px;object-fit:contain;justify-self:start}
 .hcopts label{border-radius:14px}
+.availtoggle{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:10px}.availtoggle .seg{margin:0}
 .candlinks{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 .myrevs{display:grid;gap:10px}.myrev{margin:0;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.myrev .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .hcpot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
@@ -744,7 +745,7 @@ const minText=v=>vPricing(v).minimum?"Minimum "+vPricing(v).minimum:"";
 const priceItemText=x=>[x.what,[x.price,x.unit&&x.unit!=="per job"?x.unit:""].filter(Boolean).join(" ")].filter(Boolean).join(": ");
 const tierPill=st=>st&&st.tier?`<span class="pill price" title="Usually ${pctText(st.ratio)} on the same job">${TIER_LABEL[st.tier]}</span>`:"";
 function matchesFor(p,cat,exclude=[],n=3){
-  return S.vendors.filter(v=>v.approved!==false&&vsv(v).includes(cat)&&!exclude.includes(v.id)&&(typeof insOk!=="function"||insOk(v))).map(v=>{
+  return S.vendors.filter(v=>v.approved!==false&&v.available!==false&&vsv(v).includes(cat)&&!exclude.includes(v.id)&&(typeof insOk!=="function"||insOk(v))).map(v=>{
     let score=0;const why=[],top=[];
     if((v.areas||[]).includes(p.area)){score+=3;why.push("Works in "+p.area)}
     if(v.available!==false){score+=2;why.push("Taking new work")}
@@ -1101,7 +1102,7 @@ function vendorView(){
   const T=vendorTasks(v.id);const openN=splitTasks(T).open.length;
   const mine=S.bids.filter(b=>b.vendorId===v.id&&projById(b.projectId));
   let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${v.featured?'<span class="pill featured">Featured</span>':""}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for signing up. I'll reach out to say hi and check your references before your first introduction.</p>`:""}
-    <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p></div>
+    <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
   h+=vendorStats(v,mine);
@@ -2130,7 +2131,7 @@ function pickForm(p,c,bids){
     return `<div class="cand ${val("sel-"+id)?"on":""}">
       <div class="candhead"><label class="pickrow"><input type="checkbox" data-pick data-vid="${esc(id)}" name="sel-${esc(id)}" id="pk-${ib}-${vk}" ${val("sel-"+id)?"checked":""}><span class="strong">${esc(v.name)}</span></label>
         <button class="linkbtn" type="button" data-act="unpick" data-key="${esc(key)}" data-id="${esc(id)}" aria-label="Remove ${esc(v.name)} from this list">Remove</button></div>
-      <div class="pills">${sug?`<span class="pill fav">Suggested by ${esc(ag)}</span>`:fav?`<span class="pill fav">♥ ${esc(ag)}'s favorite</span>`:""}${v.featured?'<span class="pill featured">Featured</span>':""}${tierPill(st)||statedPill(v)}${!vsv(v).includes(c)?`<span class="pill">${esc(vsv(v).join(", "))}</span>`:""}</div>
+      <div class="pills">${sug?`<span class="pill fav">Suggested by ${esc(ag)}</span>`:fav?`<span class="pill fav">♥ ${esc(ag)}'s favorite</span>`:""}${v.available===false?'<span class="pill late">Paused</span>':""}${v.featured?'<span class="pill featured">Featured</span>':""}${tierPill(st)||statedPill(v)}${!vsv(v).includes(c)?`<span class="pill">${esc(vsv(v).join(", "))}</span>`:""}</div>
       ${priceItems(v,c).length||vPricing(v).minimum?`<div class="small">${esc([priceItems(v,c).length?"Typical: "+priceItems(v,c).slice(0,2).map(priceItemText).join(" · "):"",minText(v)].filter(Boolean).join(" · "))}</div>`:""}
       ${w.length?`<ul class="why">${w.slice(0,4).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${mm.warn?`<div class="small warntext">${esc(mm.warn)}</div>`:""}
       ${vnotes(id)[0]?`<div class="candnote"><span class="strong">Your note:</span> ${esc(vnotes(id)[0].text.length>110?vnotes(id)[0].text.slice(0,110)+"…":vnotes(id)[0].text)}</div>`:""}
@@ -2142,7 +2143,7 @@ function pickForm(p,c,bids){
     <div class="sechead" style="margin:0"><h3>${bids.length?"Introduce more vendors":"Pick who to introduce"}</h3><span class="small">${p.budget?"Budget: "+BUDGETS[p.budget]:"Set a budget above to factor in pricing"}</span></div>
     ${ids.length?`<div class="cands">${ids.map(cand).join("")}</div>`:`<p class="small" style="margin:0">No more ${esc(c.toLowerCase())} vendors to suggest. Add someone from the roster below.</p>`}
     <div class="pickfoot"><label class="field"><span>Add someone else from the roster</span><select name="add" id="pk-add-${ib}"><option value="">Choose a vendor</option>
-      ${same.length?`<optgroup label="${esc(c)}">${same.map(v=>`<option value="${esc(v.id)}" ${typeof insOk==="function"&&!insOk(v)?"disabled":""}>${esc(v.name)}${typeof insOk==="function"&&!insOk(v)?" (waiting on insurance)":""}</option>`).join("")}</optgroup>`:""}
+      ${same.length?`<optgroup label="${esc(c)}">${same.map(v=>`<option value="${esc(v.id)}" ${typeof insOk==="function"&&!insOk(v)?"disabled":""}>${esc(v.name)}${v.available===false?" (paused)":""}${typeof insOk==="function"&&!insOk(v)?" (waiting on insurance)":""}</option>`).join("")}</optgroup>`:""}
       ${other.length?`<optgroup label="Other services">${other.map(v=>`<option value="${esc(v.id)}" ${typeof insOk==="function"&&!insOk(v)?"disabled":""}>${esc(v.name)} (${esc(vsv(v).join(", "))})${typeof insOk==="function"&&!insOk(v)?" (waiting on insurance)":""}</option>`).join("")}</optgroup>`:""}</select></label>
       <button class="btn" type="submit">Introduce selected</button></div>
     <p class="small" style="margin:0">${esc(ag)} sees who you introduce and your notes. Each vendor gets a bid request labeled "Introduced by Ashleigh."</p></form>`;
@@ -3185,22 +3186,23 @@ function signupView(m){
     <h1>${m==="agent"?"The right team for every listing":"More of the work you're good at"}</h1>
     <p class="small" style="margin:0">${m==="agent"?"Tell me where you list and I'll start lining up vendors matched to your homes.":"I'll check your references and reach out before your first introduction."}</p>
     <form class="authform" data-proto="signup" data-kind="${m}" novalidate>
+      <p class="small" style="margin:0">Every field is required unless it says optional.</p>
       ${m==="vendor"?`<label class="field"><span>Company name</span><input type="text" id="su-company" name="company" required></label>`:""}
       <div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
-        <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone"></label>
-        ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage"></label>`:`<label class="field"><span>Website</span><input type="text" id="su-web" name="web" placeholder="yourbusiness.com"></label>`}</div>
-      ${m==="vendor"?`<div class="grid"><label class="field"><span>Instagram (optional)</span><input type="text" id="su-ig" name="instagram" placeholder="@yourbusiness"></label>
-        <label class="field"><span>Portfolio link (optional)</span><input type="text" id="su-port" name="portfolio" placeholder="Google Drive, Houzz, Dropbox or anywhere"></label></div>
-        <p class="small" style="margin:0">Have a portfolio PDF? You can upload it from your dashboard once you're approved.</p>`:""}
+        <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
+        ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label>`:`<label class="field"><span>Website</span><input type="text" id="su-web" name="web" placeholder="yourbusiness.com"></label>`}</div>
+      ${m==="vendor"?`<div class="grid"><label class="field"><span>Instagram</span><input type="text" id="su-ig" name="instagram" placeholder="@yourbusiness"></label>
+        <label class="field"><span>Portfolio link</span><input type="text" id="su-port" name="portfolio" placeholder="Google Drive, Houzz, Dropbox or anywhere"></label></div>
+        <p class="small" style="margin:0">Add at least one of your website, Instagram or a portfolio link, so I can see your work. You can upload a portfolio PDF and a business overview from your dashboard once you're approved.</p>`:""}
       ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}${moreChecks("svc","su-ms")}</div>
         <label class="field"><span>Anything else? (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything not listed above"></label>
         <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>`:""}
       <div class="field"><span>${m==="agent"?"Where do you list homes?":"Where do you work?"}</span>${ck("area",AREAS)}</div>
       ${m==="vendor"?`<div class="grid">${sel("years","Years in business",YEARS)}${sel("team","Team size",TEAM)}${sel("lead","Typical lead time",LEAD)}</div>
         <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="su-refs" name="references"></textarea></label>
-        <label class="field"><span>How did you hear about Orbyt?</span><input type="text" id="su-heard" name="heard"></label>`:""}
+        <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>`:""}
       <div class="grid"><label class="field"><span>Create a password (8+ characters)</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}
       ${m==="vendor"?`<div class="reviewagree"><div class="eyebrow">Review and agree</div>
@@ -3310,12 +3312,20 @@ document.addEventListener("submit",async e=>{
       const{data,error}=await sb.auth.updateUser({password:pass});if(error)return done(friendlyAuthError(error));toast("Password saved");S.recovering=false;S.authMode="signin";try{history.replaceState(null,"",location.pathname)}catch(_){}await enter(data.user);return}
     if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
-      const err=!first||!last?"Add your first and last name.":!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)?"Enter a valid email.":m==="vendor"&&!String(fd.get("company")||"").trim()?"Add your company name."
-        :m==="vendor"&&!svcs.length?"Pick or type at least one service you offer.":pass.length<8?"Use a password with at least 8 characters.":pass!==pass2?"Those passwords don't match. Type them again."
-        :m==="vendor"&&!String(fd.get("legal")||"").trim()?"Add your legal business name.":m==="vendor"&&!fd.get("btype")?"Choose your business type."
-        :m==="vendor"&&!String(fd.get("title")||"").trim()?"Add your title.":!fd.get("terms")?`Check the box to agree to the ${TERMS[m].title}.`
-        :m==="vendor"&&!fd.get("authority")?"Check the box to confirm you have authority to agree for the business.":"";
-      if(err)return done(err);
+      const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,"");
+      // [problem, message, field to jump to]
+      const checks=[[V&&!g("company"),"Add your company name.","#su-company"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
+        [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[digits.length<10,"Add a mobile phone number, with area code.","#su-phone"],
+        [!V&&!g("brokerage"),"Add your brokerage.","#su-brokerage"],
+        [V&&!g("web")&&!g("instagram")&&!g("portfolio"),"Add your website, Instagram or a portfolio link, so I can see your work.","#su-web"],
+        [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!areas.length,V?"Pick at least one area you work in.":"Pick at least one area where you list homes.","#su-area-0"],
+        [V&&!g("years"),"Choose your years in business.","#su-years"],[V&&!g("team"),"Choose your team size.","#su-team"],[V&&!g("lead"),"Choose your typical lead time.","#su-lead"],
+        [V&&g("references").length<10,"Add 2 to 3 agent references, with names and phone numbers or emails.","#su-refs"],
+        [pass.length<8,"Use a password with at least 8 characters.","#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
+        [V&&!g("legal"),"Add your legal business name.","#su-legal"],[V&&!fd.get("btype"),"Choose your business type.","#su-btype"],[V&&!g("title"),"Add your title.","#su-title"],
+        [!fd.get("terms"),`Check the box to agree to the ${TERMS[m].title}.`,"#su-terms"],[V&&!fd.get("authority"),"Check the box to confirm you have authority to agree for the business.","#su-auth"]];
+      const hit=checks.find(c=>c[0]);
+      if(hit){done(hit[1]);const el=hit[2]&&f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}
       const meta={ref:S.ref||"",role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();
       else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),website:String(fd.get("web")||"").trim(),instagram:igHandle(fd.get("instagram")),portfolio_url:String(fd.get("portfolio")||"").trim(),services:svcs,years_in_business:String(fd.get("years")||""),
@@ -3959,6 +3969,15 @@ document.addEventListener("click",async e=>{const t=e.target.closest('[data-act=
   if(t.dataset.act==="myrevs"){const d=document.querySelector('details.fold[data-fold="myrev"]');if(d){d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"})}return}
   const r=S.reviews.find(x=>x.id===t.dataset.id);if(!r)return;const txt=revQuote(r);
   try{await navigator.clipboard.writeText(txt);toast("Review copied")}catch(_){window.prompt("Copy this review:",txt)}},true);
+
+/* ---------- vendors: taking new work, or paused ---------- */
+function availToggle(v){if(kind()!=="vendor"||!S.canWrite||v.approved===false)return"";const on=v.available!==false;
+  return `<div class="availtoggle"><span class="small strong">Taking new work?</span><div class="seg" role="group" aria-label="Taking new work">
+    <button class="segbtn ${on?"on":""}" type="button" data-act="myavail" data-v="1" aria-pressed="${on}">Yes</button><button class="segbtn ${on?"":"on"}" type="button" data-act="myavail" data-v="0" aria-pressed="${!on}">Paused</button></div>
+    <span class="small">${on?"I'll keep matching you to new jobs.":"I won't send new requests while you're paused. Jobs you already have stay as they are."}</span></div>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="myavail"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  const v=vendorById(myVendorId());if(!v)return;const want=t.dataset.v==="1";if((v.available!==false)===want)return;
+  guard(async()=>{fail((await sb.from("vendors").update({available:want}).eq("id",v.id)).error,"availability");await S.db.reload()},want?"You're taking new work again.":"Paused. No new requests until you switch back.")},true);
 
 
 /* ---------- home team cards: a printable card agents give buyer clients, and the request page behind its QR code ---------- */

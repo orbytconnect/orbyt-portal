@@ -668,7 +668,7 @@ const minText=v=>vPricing(v).minimum?"Minimum "+vPricing(v).minimum:"";
 const priceItemText=x=>[x.what,[x.price,x.unit&&x.unit!=="per job"?x.unit:""].filter(Boolean).join(" ")].filter(Boolean).join(": ");
 const tierPill=st=>st&&st.tier?`<span class="pill price" title="Usually ${pctText(st.ratio)} on the same job">${TIER_LABEL[st.tier]}</span>`:"";
 function matchesFor(p,cat,exclude=[],n=3){
-  return S.vendors.filter(v=>v.approved!==false&&vsv(v).includes(cat)&&!exclude.includes(v.id)&&(typeof insOk!=="function"||insOk(v))).map(v=>{
+  return S.vendors.filter(v=>v.approved!==false&&v.available!==false&&vsv(v).includes(cat)&&!exclude.includes(v.id)&&(typeof insOk!=="function"||insOk(v))).map(v=>{
     let score=0;const why=[],top=[];
     if((v.areas||[]).includes(p.area)){score+=3;why.push("Works in "+p.area)}
     if(v.available!==false){score+=2;why.push("Taking new work")}
@@ -1023,7 +1023,7 @@ function vendorView(){
   const T=vendorTasks(v.id);const openN=splitTasks(T).open.length;
   const mine=S.bids.filter(b=>b.vendorId===v.id&&projById(b.projectId));
   let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${v.featured?'<span class="pill featured">Featured</span>':""}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for signing up. I'll reach out to say hi and check your references before your first introduction.</p>`:""}
-    <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p></div>
+    <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
   h+=vendorStats(v,mine);
@@ -2051,7 +2051,7 @@ function pickForm(p,c,bids){
     return `<div class="cand ${val("sel-"+id)?"on":""}">
       <div class="candhead"><label class="pickrow"><input type="checkbox" data-pick data-vid="${esc(id)}" name="sel-${esc(id)}" id="pk-${ib}-${vk}" ${val("sel-"+id)?"checked":""}><span class="strong">${esc(v.name)}</span></label>
         <button class="linkbtn" type="button" data-act="unpick" data-key="${esc(key)}" data-id="${esc(id)}" aria-label="Remove ${esc(v.name)} from this list">Remove</button></div>
-      <div class="pills">${sug?`<span class="pill fav">Suggested by ${esc(ag)}</span>`:fav?`<span class="pill fav">♥ ${esc(ag)}'s favorite</span>`:""}${v.featured?'<span class="pill featured">Featured</span>':""}${tierPill(st)||statedPill(v)}${!vsv(v).includes(c)?`<span class="pill">${esc(vsv(v).join(", "))}</span>`:""}</div>
+      <div class="pills">${sug?`<span class="pill fav">Suggested by ${esc(ag)}</span>`:fav?`<span class="pill fav">♥ ${esc(ag)}'s favorite</span>`:""}${v.available===false?'<span class="pill late">Paused</span>':""}${v.featured?'<span class="pill featured">Featured</span>':""}${tierPill(st)||statedPill(v)}${!vsv(v).includes(c)?`<span class="pill">${esc(vsv(v).join(", "))}</span>`:""}</div>
       ${priceItems(v,c).length||vPricing(v).minimum?`<div class="small">${esc([priceItems(v,c).length?"Typical: "+priceItems(v,c).slice(0,2).map(priceItemText).join(" · "):"",minText(v)].filter(Boolean).join(" · "))}</div>`:""}
       ${w.length?`<ul class="why">${w.slice(0,4).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}${mm.warn?`<div class="small warntext">${esc(mm.warn)}</div>`:""}
       ${vnotes(id)[0]?`<div class="candnote"><span class="strong">Your note:</span> ${esc(vnotes(id)[0].text.length>110?vnotes(id)[0].text.slice(0,110)+"…":vnotes(id)[0].text)}</div>`:""}
@@ -2063,7 +2063,7 @@ function pickForm(p,c,bids){
     <div class="sechead" style="margin:0"><h3>${bids.length?"Introduce more vendors":"Pick who to introduce"}</h3><span class="small">${p.budget?"Budget: "+BUDGETS[p.budget]:"Set a budget above to factor in pricing"}</span></div>
     ${ids.length?`<div class="cands">${ids.map(cand).join("")}</div>`:`<p class="small" style="margin:0">No more ${esc(c.toLowerCase())} vendors to suggest. Add someone from the roster below.</p>`}
     <div class="pickfoot"><label class="field"><span>Add someone else from the roster</span><select name="add" id="pk-add-${ib}"><option value="">Choose a vendor</option>
-      ${same.length?`<optgroup label="${esc(c)}">${same.map(v=>`<option value="${esc(v.id)}" ${typeof insOk==="function"&&!insOk(v)?"disabled":""}>${esc(v.name)}${typeof insOk==="function"&&!insOk(v)?" (waiting on insurance)":""}</option>`).join("")}</optgroup>`:""}
+      ${same.length?`<optgroup label="${esc(c)}">${same.map(v=>`<option value="${esc(v.id)}" ${typeof insOk==="function"&&!insOk(v)?"disabled":""}>${esc(v.name)}${v.available===false?" (paused)":""}${typeof insOk==="function"&&!insOk(v)?" (waiting on insurance)":""}</option>`).join("")}</optgroup>`:""}
       ${other.length?`<optgroup label="Other services">${other.map(v=>`<option value="${esc(v.id)}" ${typeof insOk==="function"&&!insOk(v)?"disabled":""}>${esc(v.name)} (${esc(vsv(v).join(", "))})${typeof insOk==="function"&&!insOk(v)?" (waiting on insurance)":""}</option>`).join("")}</optgroup>`:""}</select></label>
       <button class="btn" type="submit">Introduce selected</button></div>
     <p class="small" style="margin:0">${esc(ag)} sees who you introduce and your notes. Each vendor gets a bid request labeled "Introduced by Ashleigh."</p></form>`;

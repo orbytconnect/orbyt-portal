@@ -27,10 +27,10 @@ const hcSaved=()=>Array.isArray(D.home_cards)?D.home_cards.find(x=>x.agent_id===
 const hcMe=()=>(D.profiles||[]).find(p=>p.id===S.uid)||{};
 function hcDefaults(){
   const feat=[];for(const c of hcServices()){if(feat.length>=6)break;const vs=hcVendorsFor(c);if(vs.length)feat.push({c,v:vs[0].id,what:HC_SPEC[c]||""})}
-  return{featured:feat,also:HC_ALSO_DEFAULT.filter(c=>!feat.some(f=>f.c===c)),intro:HC_INTRO,welcome:"Welcome home",priority:true,showPhone:true}}
+  return{featured:feat,also:HC_ALSO_DEFAULT.filter(c=>!feat.some(f=>f.c===c)),intro:HC_INTRO,welcome:"Welcome home",priority:true,showPhone:true,closing:[]}}
 function hcState(){
   if(!S.hc){const sv=hcSaved(),st=sv&&sv.settings&&typeof sv.settings==="object"?sv.settings:null,d=hcDefaults();
-    S.hc=st?{...d,...st,featured:Array.isArray(st.featured)?st.featured:d.featured,also:Array.isArray(st.also)?st.also:d.also}:d}
+    S.hc=st?{...d,...st,featured:Array.isArray(st.featured)?st.featured:d.featured,also:Array.isArray(st.also)?st.also:d.also,closing:Array.isArray(st.closing)?st.closing:[]}:d}
   return S.hc}
 const hcLogo=()=>S.hc&&S.hc.logo!==undefined?S.hc.logo:((hcSaved()||{}).logo||"");
 const hcSlug=()=>{const sv=hcSaved();if(sv)return sv.slug;const f=String(hcMe().full_name||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").split("-")[0];return f.length>1?f:"agent"};
@@ -45,6 +45,10 @@ function qrSvg(text){
 function orbytLogoSrc(){const im=document.querySelector("picture.logo img");return im?im.getAttribute("src")||"":""}
 const nb=s=>esc(s).replace(/ /g,"&nbsp;");
 
+// closing partners on the card: one line, names only
+const hcClosingList=h=>typeof CLOSING==="undefined"?[]:CLOSING.map(c=>{const x=(h.closing||[]).find(y=>y&&y.c===c);const v=x&&vendorById(x.v);return v?{c,v}:null}).filter(Boolean);
+function hcClosingHtml(h){const cl=hcClosingList(h);if(!cl.length)return"";
+  return `<div class="hcmore hccl"><div class="hcey" style="font-size:7.5pt">Closing partners</div><div class="hclist hcclgrid">${cl.map(x=>`<div><b>${esc(x.c==="Homeowners insurance"?"Insurance":x.c)}</b> ${esc(x.v.name)}</div>`).join("")}</div></div>`}
 // the card itself: 5 by 7 inches, the same markup for the preview and for printing
 function hcCardHtml(h){
   const me=hcMe(),logo=hcLogo(),slug=(hcSaved()||{}).slug||hcSlug();
@@ -52,9 +56,9 @@ function hcCardHtml(h){
     return `<div class="hct"><div class="hcc">${esc(hcLabel(f.c))}</div><div class="hcn">${esc(v?v.name:"Pick a pro")}</div>${r?`<div class="hcs">★ ${r.avg.toFixed(1)} from agents</div>`:""}${f.what?`<div class="hcw">${esc(f.what)}</div>`:""}</div>`}).join("");
   const also=(h.also||[]).filter(c=>!(h.featured||[]).some(f=>f.c===c)).map(c=>nb(hcLabel(c))).join(" · ");
   const who=[`<b>${esc(me.full_name||roleVal()||"")}</b>`,esc(me.brokerage||""),h.showPhone!==false?esc(me.phone||""):""].filter(Boolean).join(" · ");
-  return `<div class="htc"><div class="hctop"><div class="hcey">${esc(h.welcome||"Welcome home")}</div>${logo?`<img class="hclg" src="${esc(logo)}" alt="">`:""}</div><h1>Your home team</h1>
+  return `<div class="htc${hcClosingList(h).length?" hctight":""}"><div class="hctop"><div class="hcey">${esc(h.welcome||"Welcome home")}</div>${logo?`<img class="hclg" src="${esc(logo)}" alt="">`:""}</div><h1>Your home team</h1>
     <div class="hcfrom">${esc(h.intro||HC_INTRO)}<br>${who}</div>
-    <div class="hcrule"></div><div class="hcgrid">${tiles}</div>
+    <div class="hcrule"></div><div class="hcgrid">${tiles}</div>${hcClosingHtml(h)}
     ${also?`<div class="hcmore"><div class="hcey" style="font-size:7.5pt">Also on call</div><div class="hclist">${also}</div></div>`:""}
     <div class="hcfoot"><span>Each pro joined Orbyt with references from local agents.</span>${orbytLogoSrc()?`<img src="${esc(orbytLogoSrc())}" alt="Orbyt">`:"Orbyt"}</div>
     <div class="hcband"><div class="hcqr">${qrSvg(hcUrl(slug))}</div><div><h2>Need one of them?</h2>
@@ -85,6 +89,9 @@ function hcView(agent){
         <div class="actions" style="margin-top:6px"><label class="btn ghost sm hcfile">${logo?"Replace logo":"Upload logo"}<input type="file" id="hc-logo" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label>${logo?`<button class="linkbtn" type="button" data-act="hclogodel">Remove</button>`:""}</div>
         <p class="small" style="margin:0">A PNG with a clear background looks best.</p></fieldset>
       <fieldset class="field hcfs"><legend class="legend">Six pros on the card</legend><p class="small" style="margin:0 0 6px">Pick from pros you've saved to favorites (marked ★) or worked with on a project. Anything else your client needs, I'll match from the network.</p>${rows}</fieldset>
+      ${typeof CLOSING!=="undefined"?`<fieldset class="field hcfs"><legend class="legend">Closing partners (optional)</legend><p class="small" style="margin:0 0 6px">Lenders, title, escrow and insurance you trust. ${esc(closingNote)}</p>
+        <div class="grid">${CLOSING.map((c,i)=>{const cur=(h.closing||[]).find(x=>x&&x.c===c)||{},fav=favIds(agent),ps=S.vendors.filter(v=>isPartner(v)&&vsv(v).includes(c)).sort((a,b)=>(fav.includes(b.id)-fav.includes(a.id))||a.name.localeCompare(b.name));
+          return `<label class="field"><span>${esc(c)}</span><select class="hc-cl" id="hc-cl-${i}" data-c="${esc(c)}"><option value="">Leave off</option>${ps.map(v=>`<option value="${esc(v.id)}" ${cur.v===v.id?"selected":""}>${esc(v.name)}${fav.includes(v.id)?" ★":""}</option>`).join("")}</select>${ps.length?"":`<small class="small">Save a ${esc(c.toLowerCase())} contact to your favorites to add one</small>`}</label>`}).join("")}</div></fieldset>`:""}
       <fieldset class="field hcfs"><legend class="legend">Also on call</legend><div class="checks">${alsoOpts}</div></fieldset>
       <label class="checkrow"><input type="checkbox" id="hc-priority" name="priority" ${h.priority!==false?"checked":""}> Show "Booking through me gets you priority scheduling"</label>
       <label class="checkrow"><input type="checkbox" id="hc-phone" name="showPhone" ${h.showPhone!==false?"checked":""}> Show my phone number</label>
@@ -95,13 +102,16 @@ function hcView(agent){
         :`<p class="small" style="margin:0">Save the card to turn on your request page at ${esc(hcShort())}.</p>`}
     </form>
     <div class="hcside"><div class="small" style="margin-bottom:6px">Preview · prints 5 × 7 in</div><div class="hcprev" id="hcprev">${hcCardHtml(h)}</div></div></div>`}
-function hcFit(){const w=$("#hcprev");if(!w)return;const c=w.querySelector(".htc");if(!c)return;const s=Math.min(1,w.clientWidth/480);c.style.transform=`scale(${s})`;w.style.height=(672*s)+"px"}
+// if a long welcome, names or extra sections push the card past 7 inches, tighten it step by step
+function hcShrink(c){if(!c)return;c.classList.remove("fit1","fit2","fit3");for(const k of ["fit1","fit2","fit3"]){if(c.scrollHeight<=c.clientHeight+1)break;c.classList.add(k)}}
+function hcFit(){const w=$("#hcprev");if(!w)return;const c=w.querySelector(".htc");if(!c)return;hcShrink(c);const s=Math.min(1,w.clientWidth/480);c.style.transform=`scale(${s})`;w.style.height=(672*s)+"px"}
 window.addEventListener("resize",()=>hcFit());
 function hcRead(f){const h=hcState();
   h.welcome=f.querySelector("#hc-welcome").value.trim();h.intro=f.querySelector("#hc-intro").value.trim();
   h.priority=f.querySelector("#hc-priority").checked;h.showPhone=f.querySelector("#hc-phone").checked;
   h.featured=[0,1,2,3,4,5].map(i=>({c:(f.querySelector("#hc-svc-"+i)||{}).value||"",v:(f.querySelector("#hc-v-"+i)||{}).value||"",what:((f.querySelector("#hc-what-"+i)||{}).value||"").trim()})).filter(x=>x.c);
-  h.also=[...f.querySelectorAll(".hc-also:checked")].map(x=>x.value);return h}
+  h.also=[...f.querySelectorAll(".hc-also:checked")].map(x=>x.value);
+  h.closing=[...f.querySelectorAll(".hc-cl")].filter(x=>x.value).map(x=>({c:x.dataset.c,v:x.value}));return h}
 function hcPreview(){const p=$("#hcprev");if(p){p.innerHTML=hcCardHtml(S.hc);hcFit()}}
 document.addEventListener("input",e=>{const f=e.target.closest('form[data-form="hcard"]');if(!f||e.target.type==="file")return;hcRead(f);hcPreview()});
 document.addEventListener("change",e=>{const f=e.target.closest('form[data-form="hcard"]');if(!f)return;
@@ -138,6 +148,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="hcpri
 function hcPrint(){
   document.getElementById("htcprint")?.remove();document.getElementById("htcprintcss")?.remove();
   const box=document.createElement("div");box.id="htcprint";box.innerHTML=hcCardHtml(hcState());document.body.appendChild(box);
+  const pv=document.querySelector("#hcprev .htc"),pc=box.querySelector(".htc");if(pv&&pc)["fit1","fit2","fit3"].forEach(k=>pc.classList.toggle(k,pv.classList.contains(k)));
   const st=document.createElement("style");st.id="htcprintcss";
   st.textContent="#htcprint{display:none}@media print{@page{size:5in 7in;margin:0}html,body{margin:0!important;padding:0!important;background:#F6F4EA!important}body>*:not(#htcprint){display:none!important}#htcprint{display:block!important}#htcprint .htc{transform:none!important}}";
   document.head.appendChild(st);
@@ -154,7 +165,7 @@ async function renderCardRequestPage(slug){
   const{data,error}=await sb.rpc("home_card_get",{p_slug:slug});
   if(error||!data){$("#app").innerHTML=reviewCard("Home team","This page isn't active",`<p>Reach out to your agent directly, and they can set up what you need.</p>`);return}
   const first=String(data.agent||"your agent").split(" ")[0];
-  const feat=(data.featured||[]).filter(f=>f&&f.c),also=(data.also||[]).filter(c=>!feat.some(f=>f.c===c));
+  const feat=(data.featured||[]).filter(f=>f&&f.c),also=(data.also||[]).filter(c=>!feat.some(f=>f.c===c)),closing=(data.closing||[]).filter(f=>f&&f.c);
   const opt=(c,sub)=>`<label><input type="checkbox" name="svc" value="${esc(c)}"> <span>${esc(hcLabel(c))}${sub?`<span class="small"> · ${esc(sub)}</span>`:""}</span></label>`;
   $("#app").innerHTML=`<section class="auth one"><div class="authcard">
     ${data.logo?`<img class="hcpagelogo" src="${esc(data.logo)}" alt="${esc(data.brokerage||data.agent||"")}">`:""}
@@ -162,6 +173,7 @@ async function renderCardRequestPage(slug){
     <p class="small" style="margin:0">Pick what you need, and ${esc(first)} will set up the intro and a quote with a trusted local pro.${data.priority?` Booking through ${esc(first)} gets you priority scheduling.`:""}</p>
     <form class="authform" data-form="hcrequest" data-slug="${esc(slug)}" novalidate>
       <fieldset class="field" style="border:0;padding:0;margin:0"><legend class="legend">What do you need?</legend><div class="checks hcopts">${feat.map(f=>opt(f.c,f.name)).join("")}${also.map(c=>opt(c)).join("")}</div></fieldset>
+      ${closing.length?`<fieldset class="field" style="border:0;padding:0;margin:0"><legend class="legend">Buying or refinancing?</legend><div class="checks hcopts">${closing.map(f=>opt(f.c,f.name)).join("")}</div></fieldset>`:""}
       <label class="field"><span>Anything else? (optional)</span><input type="text" id="hr-other" name="other" maxlength="40" placeholder="Fence repair"></label>
       <label class="field"><span>Home address</span><input type="text" id="hr-address" name="address" autocomplete="street-address" maxlength="200"></label>
       <label class="field"><span>When?</span><select id="hr-when" name="when">${HC_WHEN.map(w=>`<option>${esc(w)}</option>`).join("")}</select></label>

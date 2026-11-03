@@ -541,10 +541,15 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 .htc h2{font-family:Jost,sans-serif;font-size:14pt;font-weight:500;margin:0 0 .04in;color:#F6F4EA;text-transform:none;letter-spacing:normal}
 .htc .hcband p{font-size:9pt;line-height:1.45;margin:0;color:#DDE3EA}.htc .hcurl{color:#E6D9A8;font-weight:500}
 .htc .hcperk{display:inline-block;margin-top:.07in;background:#E6D9A8;color:#18314F;font-size:8.5pt;font-weight:500;border-radius:999px;padding:3px 10px}
+.htc.hctight .hcband{height:1.52in}.htc .hctop .hcey{line-height:1.35}.htc.hctight .hcgrid{gap:.08in .22in}.htc .hcclgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 .22in}.htc .hcclgrid div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.htc .hcclgrid b{font-weight:500;color:#A8871F}
+.htc.fit1 .hcgrid{gap:.06in .22in}.htc.fit1 .hcn{font-size:10pt}.htc.fit1 .hcfrom{font-size:9.5pt}.htc.fit1 .hcmore{margin-top:.08in;padding-top:.05in}.htc.fit1 .hcband{height:1.45in}
+.htc.fit2 .hcw{display:none}.htc.fit3 .hcfoot span{display:none}.htc.fit3 h1{font-size:23pt}.htc.hctight .hcrule{margin:.12in .42in .1in}.htc.hctight .hcmore{margin-top:.1in;padding-top:.07in}
 .hcpagelogo{max-height:64px;max-width:240px;object-fit:contain;justify-self:start}
 .hcopts label{border-radius:14px}
 .availtoggle{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:10px}.availtoggle .seg{margin:0}
 .promotag{margin-top:4px}.callout.offer{border-color:var(--gold,#A8871F)}
+.introlist{display:grid;gap:10px}.introcard{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.introcard .note{margin:8px 0 0}
+.closingsec .closingrow{padding:10px 0;border-top:1px solid var(--line)}.closingsec .closingrow:first-of-type{border-top:0}.introrow{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin:4px 0}.introform{margin-top:8px}
 .candlinks{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 .myrevs{display:grid;gap:10px}.myrev{margin:0;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.myrev .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .hcpot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
@@ -699,7 +704,7 @@ function toast(m){const t=document.createElement("div");t.className="toast";t.te
 
 // featured placement: on, and not past its end date
 // Ashleigh's Vendors list: request, paid, and end date in one cell
-function promoCell(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
+function promoCell(v){if(typeof isPartner==="function"&&isPartner(v))return`<span class="small">Closing partner</span>`;const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
   return `${on?`<div class="small">Until ${esc(fmtDate(v.featuredUntil)||"you end it")}</div>`:""}${req?`<div><span class="pill comparing">${on?"Renewal requested":"Requested"}</span></div>`:""}
     <div><button class="linkbtn" style="white-space:nowrap" data-act="feature" data-id="${esc(v.id)}">${on?"Add 30 days":"Mark offer paid"}</button></div>${on?`<div><button class="linkbtn" data-act="feature" data-mode="end" data-id="${esc(v.id)}">End offer</button></div>`:""}`}
 function featuredNow(v){if(!v||!v.featured)return false;if(!v.featuredUntil)return true;const t=new Date();const d=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");return v.featuredUntil>=d}
@@ -958,7 +963,7 @@ function notesBlock(v){
 function formBlock(v){
   const link=(u,label)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(label)}</a>`:"";
   const web=safeUrl(v.web),port=safeUrl(v.portfolioUrl),coi=v.coiId?blobHref(v.coiId):safeUrl(v.coiUrl),photos=(v.photoIds||[]).slice(0,5);
-  const F=[["Name",esc(v.contactName||"")],["Company name",esc(v.name)],["Email",esc(vEmail(v))],["Mobile phone",esc(vPhone(v))],["Website",web?link(web,v.web):esc(v.web||"")],
+  const F=[...(typeof isPartner==="function"&&isPartner(v)?[["Closing partner license",esc(v.license||"")]]:[]),["Name",esc(v.contactName||"")],["Company name",esc(v.name)],["Email",esc(vEmail(v))],["Mobile phone",esc(vPhone(v))],["Website",web?link(web,v.web):esc(v.web||"")],
     ["Services you offer",esc(vsv(v).join(", "))],["Service area",esc(v.areaNote||(v.areas||[]).join(", "))],["Years in business",esc(v.years||"")],["Team size",esc(v.team||"")],
     ["Certificate of insurance",coi?link(coi,"Open certificate"):""],["How much they work with agents",esc(v.worksWithAgents||"")],["Agent references",esc(v.references||"")],
     ["Typical lead time",esc(v.leadTime||"")],["Portfolio",photos.length?`<div class="thumbs">${photos.map(id=>`<a href="${esc(blobHref(id))}" target="_blank" rel="noopener"><img src="${esc(blobHref(id))}" alt="Recent work by ${esc(v.name)}"></a>`).join("")}</div>`:""],
@@ -1027,7 +1032,7 @@ function agentView(){
   if(S.tab==="tasks")return h+tasksView(T,"When a vendor sends a bid or a list date gets close, it shows up here.")+(typeof agentFolds==="function"?agentFolds():"");
   if(S.tab==="favorites"){
     if(!favs.length)return h+`<div class="emptystate"><h2>No favorites yet</h2><p>Click any vendor's name to open their card, then choose "Save to favorites." Ashleigh sees your favorites and puts them first when she matches your listings.</p></div>`;
-    const groups=CATS.filter(c=>favs.some(v=>vsv(v).includes(c)));
+    const groups=[...CATS,...(typeof CLOSING!=="undefined"?CLOSING:[])].filter(c=>favs.some(v=>vsv(v).includes(c)));
     if(typeof hcView==="function"&&S.canWrite)h+=`<div class="callout hccallout" style="margin-bottom:16px"><div><span class="strong">Share your favorites with buyers</span><div class="small">Print a home team card with these pros' names and ratings, and a code that sends requests back to you. No vendor contact details on it.</div></div><button class="btn ghost sm" data-act="hcmake">Make a home team card</button></div>`;
     return h+groups.map(c=>`<div class="section"><h2>${esc(c)}</h2><div class="favgrid">${favs.filter(v=>vsv(v).includes(c)).map(v=>{const jobs=S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected"&&projById(b.projectId)?.agent===agent).length;
       return `<div class="favcard"><div class="row"><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${S.canWrite?`<button class="linkbtn" data-act="fav" data-id="${esc(v.id)}">Remove</button>`:""}</div>
@@ -1109,6 +1114,7 @@ function sortTh(key,label){const on=S.sort.key===key;return `<th><button data-ac
 /* vendor */
 function vendorView(){
   const v=vendorById(roleVal());
+  if(v&&typeof isPartner==="function"&&isPartner(v))return partnerView(v);
   if(!v)return `<div class="emptystate" style="margin-top:28px"><h2>Your profile is almost ready</h2><p>Ashleigh is finishing your vendor profile. Email ashleigh@orbytconnect.com if this doesn't clear up within a day.</p></div>`;
   if(!["tasks","projects"].includes(S.tab))S.tab="tasks";
   const T=vendorTasks(v.id);const openN=splitTasks(T).open.length;
@@ -1794,6 +1800,7 @@ function orbytAlerts(){
   for(const v of S.vendors.filter(v=>v.approved===false))A.push({id:"vrev-"+v.id,cls:"k-ink",label:"Vendor sign-up",title:`${v.name} wants to join (${vsv(v).join(", ")})`,
     meta:[v.areaNote||v.areas?.join(", "),v.source,v.createdAt?ago(v.createdAt):""].filter(Boolean).join(" · "),when:v.createdAt||"",act:{a:"vcard",id:v.id,label:"Review"},auto:false});
   if(typeof insuranceAlerts==="function")A.push(...insuranceAlerts());
+  if(typeof closingAlerts==="function")A.push(...closingAlerts());
   return A;
 }
 function alertsView(){
@@ -2178,6 +2185,7 @@ function projectDetail(p,mode){
   if(p.notes)h+=`<p class="note">${esc(p.notes)}</p>`;
   if(mode==="agent"&&typeof hcProjectBtn==="function")h+=hcProjectBtn(p);
   if(mode!=="vendor")h+=teamPanel(p,isOrbyt);
+  if(typeof closingPanel==="function")h+=closingPanel(p,mode);
   if((p.categories||[]).length>1&&!p.listed)h+=`<details class="timingwrap" data-p="${esc(p.id)}" ${S.openTiming===p.id?"open":""}><summary>Order of work <span class="small">· ${seqSteps(p).map(g=>esc(g.join(" + "))).join(" → ")}</span></summary>${S.openForm==="order:"+p.id?orderEditor(p):timingBlock(p,null)+(canReorder(p)?`<div class="actions" style="margin-top:8px"><button class="btn ghost sm" data-act="ordedit" data-id="${esc(p.id)}">Change the order</button></div>`:"")}</details>`;
   for(const c of p.categories||[]){
     const bids=bidsFor(p.id,c).sort((a,b)=>(a.status==="requested")-(b.status==="requested")||String(a.submittedAt||"").localeCompare(String(b.submittedAt||"")));
@@ -2281,7 +2289,7 @@ function rosterView(){
     &&(!f.price||(f.price==="none"?!(priceStats(v.id)||{}).tier:(priceStats(v.id)||{}).tier===f.price)));
   const on=q||f.cat||f.area||f.status||f.cred||f.promo||f.rating||f.price;
   const sel=(id,label,val,opts)=>`<label class="field"><span>${label}</span><select id="${id}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${v===val?"selected":""}>${esc(t)}</option>`).join("")}</select></label>`;
-  const usedCats=CATS.filter(c=>all.some(v=>vsv(v).includes(c)));
+  const usedCats=[...CATS,...(typeof CLOSING!=="undefined"?CLOSING:[])].filter(c=>all.some(v=>vsv(v).includes(c)));
   h+=`<div class="rfilters"><label class="field rsearch"><span>Search</span><input type="text" id="rs-q" value="${esc(f.q)}" placeholder="Name or contact"></label>
     ${sel("rs-cat","Service",f.cat,[["","All services"],...usedCats.map(c=>[c,c])])}
     ${sel("rs-area","Area",f.area,[["","All areas"],...AREAS.map(a=>[a,a])])}
@@ -2298,7 +2306,7 @@ function rosterView(){
     <td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${vnotes(v.id).length?` <span class="small" title="You have notes on this vendor">· ${vnotes(v.id).length} ${vnotes(v.id).length===1?"note":"notes"}</span>`:""} ${v.approved===false?'<span class="pill late">Needs review</span>':""}${agreementPill(v)} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.sample?'<span class="pill example">Example</span>':""}${vPhone(v)||vEmail(v)?`<div class="small">${esc([vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div>`:""}</td>
     <td>${esc(vsv(v).join(", "))}</td><td class="small" style="max-width:200px" title="${esc((v.areas||[]).join(", "))}">${esc(areasShort(v.areas))}</td><td>${ratingHtml(v.id)}${(()=>{const k=S.reviews.filter(r=>r.vendorId===v.id&&!r.approved).length;return k?`<div><button class="pill comparing" style="border:0;cursor:pointer;margin-top:4px" data-act="vcard" data-id="${esc(v.id)}">${k} to approve</button></div>`:""})()}</td>
     <td>${(()=>{const st=priceStats(v.id);return st?`${st.tier?tierPill(st):'<span class="small">Not enough bids yet</span>'}<div class="small num" style="margin-top:4px">Avg ${money(st.avgAmt)} · ${st.n} ${st.n===1?"bid":"bids"}${st.decided?` · won ${st.won} of ${st.decided}`:""}</div>`:'<span class="small">No bids yet</span>'})()}</td>
-    <td>${v.licensed&&v.insured?"Yes":'<span style="color:var(--warn)">Check</span>'}</td>
+    <td>${typeof isPartner==="function"&&isPartner(v)?(v.licensed?"Licensed":'<span style="color:var(--warn)">Check license</span>')+(v.license?`<div class="small">${esc(v.license)}</div>`:""):v.licensed&&v.insured?"Yes":'<span style="color:var(--warn)">Check</span>'}</td>
     <td>${S.canWrite?`<button class="linkbtn" style="color:var(--ink);text-decoration:none" data-act="avail" data-id="${esc(v.id)}"><span class="dot ${v.available!==false?"on":""}"></span>${v.available!==false?"Yes":"Paused"}</button>`:v.available!==false?"Yes":"Paused"}</td>
     <td class="num">${S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected").length}</td>
     <td style="min-width:120px">${S.canWrite?(v.approved===false?`<button class="btn sm" data-act="vcard" data-id="${esc(v.id)}">Review</button>`:promoCell(v)):""}</td></tr>`).join("")}</tbody></table></div>
@@ -2335,6 +2343,7 @@ function newProjectForm(agent){
     <label class="field np-lp"><span>Expected list price ($)</span><input type="number" id="np-lp" name="listPrice" min="0" step="1000" inputmode="numeric" placeholder="1,250,000"></label></div>
     <div class="field"><span>Services needed</span><div class="checks">${CATS.map((c,i)=>`<label><input type="checkbox" id="np-cat-${i}" name="cat" value="${c}">${c}</label>`).join("")}</div>${moreChecks("cat","np-ms")}
       <div><button class="linkbtn" type="button" data-act="fullprep">Full-service listing prep (checks staging, cleaning, photography, landscaping and painting)</button></div></div>
+    ${typeof CLOSING!=="undefined"?`<div class="field"><span>Closing partners (optional)</span><div class="checks">${CLOSING.map((c,i)=>`<label><input type="checkbox" id="np-cl-${i}" name="closing" value="${c}">${c}</label>`).join("")}</div><small class="small">Lender, title, escrow or insurance contacts for your client. ${closingNote}</small></div>`:""}
     <div class="grid"><label class="field"><span>Something else? Separate with commas</span><input type="text" id="np-other" name="otherCats" placeholder="Anything not listed above"></label>
     ${PM_ON?`<label class="field"><span>Interested in project management?</span><select id="np-pmi" name="pmInterest"><option value="" selected disabled hidden>Choose one</option><option value="yes">Yes</option><option value="maybe">Maybe, tell me more</option><option value="no">Not right now</option></select></label>`:""}</div>
     <label class="field"><span>Anything I should know? Vendors see this too</span><textarea id="np-notes" name="notes" placeholder="Gate code, pets, what your client cares about most"></textarea></label>
@@ -2642,10 +2651,10 @@ document.addEventListener("submit",e=>{
   const f=e.target.closest("form[data-form]");if(!f)return;e.preventDefault();
   const fd=new FormData(f),k=f.dataset.form;
   if(k==="mytask")guard(async()=>{await col("mytasks").add({title:fd.get("title").trim(),projectId:fd.get("projectId")||"",due:fd.get("due")||"",done:false,createdAt:now()})},"Task added");
-  else if(k==="newproject"){const cats=[...new Set([...fd.getAll("cat"),...splitCats(fd.get("otherCats"))])];if(!cats.length){toast("Pick at least one service the home needs.");return}
+  else if(k==="newproject"){const cats=[...new Set([...fd.getAll("cat"),...splitCats(fd.get("otherCats"))])],closing=fd.getAll("closing").map(String);if(!cats.length&&!closing.length){toast("Pick at least one service or closing partner.");return}
     const auto=matchMode()==="auto",who=kind();
     guard(async()=>{const data={address:fd.get("address").trim(),area:fd.get("area"),agent:fd.get("agent").trim(),agentPhone:fd.get("agentPhone").trim(),agentEmail:fd.get("agentEmail").trim(),client:fd.get("client").trim(),clientType:fd.get("clientType"),
-      targetDate:fd.get("targetDate")||"",budget:fd.get("budget")||"",...(fd.get("sqft")?{sqft:Math.round(Number(fd.get("sqft")))}:{}),...(fd.get("listPrice")&&fd.get("clientType")!=="Buyer"?{listPrice:Number(fd.get("listPrice"))}:{}),brokerage:(fd.get("brokerage")||"").trim(),pmInterest:fd.get("pmInterest")||"",createdBy:kind(),categories:cats,notes:fd.get("notes").trim(),listed:false,createdAt:now(),members:kind()==="agent"&&fd.get("useTeam")?defaultTeamOf(fd.get("agent")).map(m=>({...m,addedBy:fd.get("agent"),addedAt:now(),fromDefault:true})):[]};
+      targetDate:fd.get("targetDate")||"",budget:fd.get("budget")||"",...(fd.get("sqft")?{sqft:Math.round(Number(fd.get("sqft")))}:{}),...(fd.get("listPrice")&&fd.get("clientType")!=="Buyer"?{listPrice:Number(fd.get("listPrice"))}:{}),brokerage:(fd.get("brokerage")||"").trim(),pmInterest:fd.get("pmInterest")||"",createdBy:kind(),categories:cats,...(closing.length?{closing}:{}),notes:fd.get("notes").trim(),listed:false,createdAt:now(),members:kind()==="agent"&&fd.get("useTeam")?defaultTeamOf(fd.get("agent")).map(m=>({...m,addedBy:fd.get("agent"),addedAt:now(),fromDefault:true})):[]};
       const ref=await col("projects").add(data);
       if(auto&&kind()==="orbyt")for(const c of cats)for(const m of matchesFor({id:ref.id,...data},c,[],3))await col("bids").add({projectId:ref.id,category:c,vendorId:m.v.id,status:"requested",requestedAt:now(),introducedAt:now(),introducedBy:"auto",introNote:"",availChecked:false});
       S.openProject=ref.id;S.openForm=null},
@@ -2895,7 +2904,7 @@ const portalHome=()=>location.origin+"/";
 const D={};                       // raw rows, by table
 const TABLES=["profiles","vendors","vendor_admin","vendor_private","vendor_notes","projects","project_private","project_admin",
   "project_members","default_shares","bids","invoices","reviews","favorites","task_checks","client_links","my_tasks","time_logs",
-  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards"];
+  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards","intros"];
 const nz=v=>v===""||v===undefined?null:v;
 const camel=s=>s.replace(/_([a-z])/g,(m,c)=>c.toUpperCase());
 const snake=s=>s.replace(/[A-Z]/g,c=>"_"+c.toLowerCase());
@@ -2914,7 +2923,7 @@ async function fetchAll(t){
   if(t==="review_requests"){if(!S.uid)return undefined;const{data,error}=await sb.rpc("review_requests_list");return error?undefined:(data||[])}
   let out=[],from=0;
   for(;;){const{data,error}=await sb.from(t).select("*").range(from,from+999);
-    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
+    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"||t==="intros"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
     out=out.concat(data||[]);if(!data||data.length<1000)return out;from+=1000}
 }
 
@@ -2924,7 +2933,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
     return{id:v.id,userId:v.user_id,name:v.name,contactName:v.contact_name||"",email:v.email||"",phone:v.phone||"",web:v.website||"",
       services:v.services||[],category:(v.services||[])[0]||"",areas:normAreas(v.areas||[]),areaNote:v.area_note||"",years:v.years_in_business||"",
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
-      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",overviewPdfName:v.overview_pdf_name||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
+      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",kind:v.kind||"vendor",license:v.license_number||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",overviewPdfName:v.overview_pdf_name||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
       pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
       legalName:p.legal_name||"",dba:p.dba||"",businessType:p.business_type||"",signerTitle:p.signer_title||"",marketingOptOut:!!p.marketing_opt_out,
@@ -2933,7 +2942,7 @@ function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D
   return(D.projects||[]).map(p=>{const pp=PP[p.id]||{},pa=PA[p.id]||{};
     return{id:p.id,agent:p.agent_name,agentId:p.agent_id,agentEmail:p.agent_email||"",agentPhone:p.agent_phone||"",brokerage:p.brokerage||"",
       address:p.address,area:normArea(p.area||""),clientType:p.client_type,targetDate:p.target_date||"",categories:p.categories||[],notes:p.notes||"",
-      addedServices:p.added_services||{},listed:!!p.listed,listedAt:p.listed_at,workOrder:p.work_order||null,source:p.source||"",createdBy:p.created_by||"",createdAt:p.created_at,
+      addedServices:p.added_services||{},closing:p.closing||[],listed:!!p.listed,listedAt:p.listed_at,workOrder:p.work_order||null,source:p.source||"",createdBy:p.created_by||"",createdAt:p.created_at,
       client:pp.client_name||"",clientEmail:pp.client_email||"",clientPhone:pp.client_phone||"",budget:pp.budget||"",listPrice:pp.list_price==null?null:Number(pp.list_price),sqft:p.sqft||null,pmInterest:pp.pm_interest||"",optionRequests:pp.option_requests||{},
       pm:!!pa.pm,pmInvoice:pa.pm_invoice||null,completed:!!pa.completed,completedAt:pa.completed_at,
       members:(D.project_members||[]).filter(m=>m.project_id===p.id).sort((a,b)=>String(a.added_at).localeCompare(String(b.added_at)))
@@ -3018,7 +3027,7 @@ const VENDOR_MAP={name:"name",contactName:"contact_name",email:"email",phone:"ph
   years:"years_in_business",team:"team_size",leadTime:"lead_time",worksWithAgents:"works_with_agents",portfolioUrl:"portfolio_url",available:"available",source:"source"};
 const VADMIN_MAP={approved:"approved",featured:"featured",featuredUntil:"featured_until",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
 const VPRIV_MAP={pricing:"pricing",references:"references_text",heard:"heard_about",signupNotes:"signup_notes",promoInterest:"promo_interest",coiUrl:"coi_url"};
-const PROJ_MAP={sqft:"sqft",agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
+const PROJ_MAP={sqft:"sqft",closing:"closing",agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
   targetDate:"target_date",categories:"categories",notes:"notes",addedServices:"added_services",listed:"listed",listedAt:"listed_at",workOrder:"work_order",source:"source",createdBy:"created_by"};
 const PPRIV_MAP={listPrice:"list_price",client:"client_name",budget:"budget",pmInterest:"pm_interest",optionRequests:"option_requests"};
 const PADMIN_MAP={pm:"pm",pmInvoice:"pm_invoice",completed:"completed",completedAt:"completed_at"};
@@ -3183,9 +3192,11 @@ function authView(){
       <label class="field"><span>Type it again</span><input type="password" id="np-pass2" name="password2" autocomplete="new-password" required></label>${showPw("np-show")}${err}
       <button class="btn" type="submit">Save password</button></form>`);
   if(m==="agent"||m==="vendor")return signupView(m);
+  if(m==="partner"&&typeof partnerSignupView==="function")return partnerSignupView();
   if(m==="join")return card("Join Orbyt","How will you use Orbyt?",`<p class="small" style="margin:0">Pick one to get started. Every match is made by a real person.</p>
     <div class="demolist"><button class="demoacct" data-act="authmode" data-m="agent"><span class="strong">I'm an agent</span><span class="small">The right team for every listing</span></button>
-      <button class="demoacct" data-act="authmode" data-m="vendor"><span class="strong">I'm a vendor partner</span><span class="small">More of the work you're good at, less chasing it</span></button></div>
+      <button class="demoacct" data-act="authmode" data-m="vendor"><span class="strong">I'm a vendor partner</span><span class="small">More of the work you're good at, less chasing it</span></button>
+      <button class="demoacct" data-act="authmode" data-m="partner"><span class="strong">I'm a closing partner</span><span class="small">Lender, title, escrow or insurance</span></button></div>
     <p class="small" style="margin:0">Already have an account? <button class="linkbtn" data-act="authmode" data-m="signin">Sign in</button></p>`);
   return `<section class="auth"><div class="authcard"><div class="eyebrow">Welcome back</div><h1>Sign in to Orbyt</h1>
       <form class="authform" data-proto="signin" novalidate>
@@ -3196,7 +3207,8 @@ function authView(){
     <div class="authcard demo"><div class="eyebrow">New to Orbyt?</div><h2>We know people.</h2>
       <p class="small" style="margin:0">Agents get vendors matched to each home. Vendor partners get warm intros to agents who need their work. Every match is made by a real person.</p>
       <div class="demolist"><button class="demoacct" data-act="authmode" data-m="agent"><span class="strong">Join as an agent</span><span class="small">The right team for every listing</span></button>
-        <button class="demoacct" data-act="authmode" data-m="vendor"><span class="strong">Join as a vendor partner</span><span class="small">More of the work you're good at</span></button></div></div></section>`;
+        <button class="demoacct" data-act="authmode" data-m="vendor"><span class="strong">Join as a vendor partner</span><span class="small">More of the work you're good at</span></button>
+        <button class="demoacct" data-act="authmode" data-m="partner"><span class="strong">Join as a closing partner</span><span class="small">Lender, title, escrow or insurance</span></button></div></div></section>`;
 }
 function signupView(m){
   const ck=(name,list)=>`<div class="checks">${list.map((x,i)=>`<label><input type="checkbox" id="su-${name}-${i}" name="${name}" value="${esc(x)}">${esc(x)}</label>`).join("")}</div>`;
@@ -3329,6 +3341,7 @@ document.addEventListener("submit",async e=>{
       return done(error?friendlyAuthError(error):"","If that email has an account, a reset link is on its way.")}
     if(kindOf==="newpass"){if(pass.length<8)return done("Use a password with at least 8 characters.");if(pass!==pass2)return done("Those passwords don't match. Type them again.");
       const{data,error}=await sb.auth.updateUser({password:pass});if(error)return done(friendlyAuthError(error));toast("Password saved");S.recovering=false;S.authMode="signin";try{history.replaceState(null,"",location.pathname)}catch(_){}await enter(data.user);return}
+    if(kindOf==="signup"&&f.dataset.kind==="partner"&&typeof partnerSignup==="function")return await partnerSignup(f,fd,email,pass,pass2,done,btn);
     if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
       const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,"");
@@ -3375,8 +3388,8 @@ async function liveBoot(){
   // links from orbytconnect.com: ?join=agent or ?join=vendor opens that sign-up form
   // clean links: /join, /join/agent and /join/vendor (the older ?join=... links still work)
   const rf=String(q.get("ref")||"").toLowerCase();if(/^[0-9a-f]{8}$/.test(rf)){S.ref=rf;try{sessionStorage.setItem("orbyt-ref",rf)}catch(_){}}else{try{S.ref=sessionStorage.getItem("orbyt-ref")||""}catch(_){}}
-  const path=location.pathname.replace(/\/+$/,"").toLowerCase(),pm=path.match(/^\/join(?:\/(agent|vendor))?$/);
-  const join=q.get("join")||(pm&&pm[1]);if(join==="agent"||join==="vendor")S.authMode=join;else if(q.has("join")||pm)S.authMode="join";
+  const path=location.pathname.replace(/\/+$/,"").toLowerCase(),pm=path.match(/^\/join(?:\/(agent|vendor|partner))?$/);
+  const join=q.get("join")||(pm&&pm[1]);if(join==="agent"||join==="vendor"||join==="partner")S.authMode=join;else if(q.has("join")||pm)S.authMode="join";
   if(recovering){S.authMode="newpass";S.recovering=true}
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.recovering=true;S.authReady=true;S.session=null;render()}});
   const{data:{session}}=await sb.auth.getSession();
@@ -3427,7 +3440,10 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="agsta
 /* ---------- Terms of Use: a checkbox, no signature. Fees shown up front. ---------- */
 const TERMS={
   vendor:{version:"vendor-terms-2026-10-25",title:"Orbyt Vendor Terms of Use",path:"terms/vendor.html"},
-  agent:{version:"agent-terms-2026-10-25",title:"Orbyt Agent Terms of Use",path:"terms/agent.html"}};
+  agent:{version:"agent-terms-2026-10-25",title:"Orbyt Agent Terms of Use",path:"terms/agent.html"},
+  partner:{version:"partner-terms-2026-11-03",title:"Orbyt Closing Partner Terms",path:"terms/partner.html"}};
+// closing partners sign in as vendors but agree to their own terms
+const termsRole=()=>{const r=myRole();return r==="vendor"&&typeof isPartner==="function"&&isPartner(vendorById(myVendorId()))?"partner":r};
 const termsUrl=r=>new URL(TERMS[r].path,portalHome()).href;
 const termsLink=(r,label)=>`<a href="${esc(termsUrl(r))}" target="_blank" rel="noopener">${esc(label||TERMS[r].title)}</a>`;
 const myRole=()=>kind()==="vendor"?"vendor":kind()==="agent"?"agent":"";
@@ -3436,7 +3452,7 @@ const acceptancesFor=uid=>(D.terms_acceptances||[]).filter(a=>uid&&a.user_id===u
 const currentAcceptance=(uid,r)=>acceptancesFor(uid).find(a=>a.version===TERMS[r].version);
 function needsTerms(){const r=myRole();if(!r||!S.uid||!Array.isArray(D.terms_acceptances))return false;
   if(r==="vendor"){const v=vendorById(myVendorId());if(!v||v.approved===false)return false}
-  return !currentAcceptance(S.uid,r)}
+  return !currentAcceptance(S.uid,termsRole())}
 const feesKey=()=>"orbyt-fees-seen-"+S.uid;
 function feesSeen(){try{return localStorage.getItem(feesKey())==="1"}catch(_){return true}}
 function markFeesSeen(){try{localStorage.setItem(feesKey(),"1")}catch(_){}}
@@ -3463,6 +3479,11 @@ const SHORT={
     "You contract with and bill the client directly, in your own name, and you're responsible for your work. Add Orbyt's short client notice (Schedule 2) to your quotes.",
     "Keep your licenses current and carry general liability insurance of at least $1M per occurrence and $2M aggregate. Depending on your services, Orbyt also needs to be named as an additional insured (Schedule 3).",
     "You cover claims about your work, Orbyt's liability is limited, and most disputes go to individual arbitration in San Diego."],
+  partner:["Orbyt introduces you to agents in the network whose clients need what you offer. You reach out, and the agent connects you with their client.",
+    "Orbyt is never paid for introductions or closings, and you never give anyone anything for a referral. Clients are always free to choose any provider.",
+    "Founding partners are free. If Orbyt adds a paid membership, it will be a flat fee with 30 days' notice, and you can choose not to continue.",
+    "Keep your licenses current, follow the rules for your industry, and contact a client only with the agent's or the client's permission.",
+    "Orbyt's liability is limited, and disputes go to individual arbitration in San Diego."],
   agent:["Orbyt doesn't charge agents for introductions. Vendors pay Orbyt a fee on work that comes from them.",
     "Vendors are independent businesses. You or your client hire and pay them directly, and they're responsible for their work.",
     "Let your clients know the vendor is independent and Orbyt doesn't guarantee their work. Suggested wording is in Schedule 1.",
@@ -3493,17 +3514,22 @@ function signupFees(){
 // the business name in the authority line follows what's typed
 document.addEventListener("input",e=>{const el=e.target;if(!el.matches||!el.matches("input[data-bizname]"))return;const f=el.closest("form");
   f&&f.querySelectorAll(".bizname").forEach(b=>b.textContent=el.value.trim()||"[Legal business name]")},true);
-const termsForm=r=>{const v=r==="vendor"?vendorById(myVendorId()):null;
-  return `<form class="form" data-form="acceptterms" novalidate><h2>${r==="vendor"?"Vendor":"Agent"} Terms of Use</h2>
+const termsForm=r=>{const v=r!=="agent"?vendorById(myVendorId()):null;
+  return `<form class="form" data-form="acceptterms" novalidate><h2>${esc(TERMS[r].title.replace(/^Orbyt /,""))}</h2>
     <p class="small" style="margin:0">Read the full ${termsLink(r,"Terms of Use")}. They open in a new tab, where you can print or save a copy.</p>
-    ${r==="vendor"?bizFields("tm",v):""}
+    ${r!=="agent"?bizFields("tm",v):""}
     <label class="checkrow top"><input type="checkbox" id="tm-ok" name="ok"> <span>I've read and agree to the ${termsLink(r)}${r==="vendor"?", including the fees above":""}.</span></label>
-    ${r==="vendor"?authorityBox("tm",v&&v.legalName):""}
+    ${r!=="agent"?authorityBox("tm",v&&v.legalName):""}
     <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",portalHome()).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>
     <p class="small warntext tmerr" role="alert" style="margin:0" hidden></p>
     <div class="actions"><button class="btn" type="submit">Agree and continue</button><button class="btn ghost" type="button" data-act="signout">Sign out</button></div></form>`};
 function termsGate(){
-  const r=myRole(),done=!!currentAcceptance(S.uid,r);
+  const r=termsRole(),done=!!currentAcceptance(S.uid,r);
+  if(r==="partner"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
+    return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>You're approved, ${esc(first)}</h1>
+      <p>You're a founding closing partner, free of charge. Here's how introductions work${done?".":", and the terms to agree to."}</p></div></section>
+      ${shortVersion("partner")}${done?`<div class="actions" style="margin-bottom:28px"><button class="btn" data-act="feesok">Sounds good, take me to my dashboard</button>
+        <span class="small">You agreed to the ${termsLink("partner")} when you signed up.</span></div>`:termsForm("partner")}`}
   if(r==="vendor"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
     return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>You're approved, ${esc(first)}</h1>
       <p>${done?"Before your first introduction, here's a quick look at what Orbyt costs and how it works.":"Before your first introduction, here's exactly what Orbyt costs, and the terms to agree to."}</p></div></section>
@@ -3514,11 +3540,11 @@ function termsGate(){
     <p>Before you start, please read and agree to the Agent Terms of Use.</p></div></section>${shortVersion("agent")}${termsForm("agent")}`;
 }
 document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="acceptterms"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
-  const r=myRole();if(!r)return;const el=f.querySelector(".tmerr"),fd=new FormData(f);
-  const bad=r==="vendor"&&bizErr(fd)?bizErr(fd):!fd.get("ok")?`Check the box to agree to the ${TERMS[r].title}.`:"";
+  const r=termsRole();if(!r)return;const el=f.querySelector(".tmerr"),fd=new FormData(f);
+  const bad=r!=="agent"&&bizErr(fd)?bizErr(fd):!fd.get("ok")?`Check the box to agree to the ${TERMS[r].title}.`:"";
   if(bad){if(el){el.textContent=bad;el.hidden=false}return}
   const args={p_version:TERMS[r].version,p_user_agent:navigator.userAgent.slice(0,300)};
-  guard(async()=>{let res=await sb.rpc("accept_terms",r==="vendor"?{...args,p_details:bizData(fd)}:args);
+  guard(async()=>{let res=await sb.rpc("accept_terms",r!=="agent"?{...args,p_details:bizData(fd)}:args);
     // before update 10 is run, the database only knows the two-field version
     if(res.error&&r==="vendor"&&/function|p_details|schema cache/i.test(res.error.message||""))res=await sb.rpc("accept_terms",args);
     fail(res.error,"terms");
@@ -4049,10 +4075,10 @@ const hcSaved=()=>Array.isArray(D.home_cards)?D.home_cards.find(x=>x.agent_id===
 const hcMe=()=>(D.profiles||[]).find(p=>p.id===S.uid)||{};
 function hcDefaults(){
   const feat=[];for(const c of hcServices()){if(feat.length>=6)break;const vs=hcVendorsFor(c);if(vs.length)feat.push({c,v:vs[0].id,what:HC_SPEC[c]||""})}
-  return{featured:feat,also:HC_ALSO_DEFAULT.filter(c=>!feat.some(f=>f.c===c)),intro:HC_INTRO,welcome:"Welcome home",priority:true,showPhone:true}}
+  return{featured:feat,also:HC_ALSO_DEFAULT.filter(c=>!feat.some(f=>f.c===c)),intro:HC_INTRO,welcome:"Welcome home",priority:true,showPhone:true,closing:[]}}
 function hcState(){
   if(!S.hc){const sv=hcSaved(),st=sv&&sv.settings&&typeof sv.settings==="object"?sv.settings:null,d=hcDefaults();
-    S.hc=st?{...d,...st,featured:Array.isArray(st.featured)?st.featured:d.featured,also:Array.isArray(st.also)?st.also:d.also}:d}
+    S.hc=st?{...d,...st,featured:Array.isArray(st.featured)?st.featured:d.featured,also:Array.isArray(st.also)?st.also:d.also,closing:Array.isArray(st.closing)?st.closing:[]}:d}
   return S.hc}
 const hcLogo=()=>S.hc&&S.hc.logo!==undefined?S.hc.logo:((hcSaved()||{}).logo||"");
 const hcSlug=()=>{const sv=hcSaved();if(sv)return sv.slug;const f=String(hcMe().full_name||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").split("-")[0];return f.length>1?f:"agent"};
@@ -4067,6 +4093,10 @@ function qrSvg(text){
 function orbytLogoSrc(){const im=document.querySelector("picture.logo img");return im?im.getAttribute("src")||"":""}
 const nb=s=>esc(s).replace(/ /g,"&nbsp;");
 
+// closing partners on the card: one line, names only
+const hcClosingList=h=>typeof CLOSING==="undefined"?[]:CLOSING.map(c=>{const x=(h.closing||[]).find(y=>y&&y.c===c);const v=x&&vendorById(x.v);return v?{c,v}:null}).filter(Boolean);
+function hcClosingHtml(h){const cl=hcClosingList(h);if(!cl.length)return"";
+  return `<div class="hcmore hccl"><div class="hcey" style="font-size:7.5pt">Closing partners</div><div class="hclist hcclgrid">${cl.map(x=>`<div><b>${esc(x.c==="Homeowners insurance"?"Insurance":x.c)}</b> ${esc(x.v.name)}</div>`).join("")}</div></div>`}
 // the card itself: 5 by 7 inches, the same markup for the preview and for printing
 function hcCardHtml(h){
   const me=hcMe(),logo=hcLogo(),slug=(hcSaved()||{}).slug||hcSlug();
@@ -4074,9 +4104,9 @@ function hcCardHtml(h){
     return `<div class="hct"><div class="hcc">${esc(hcLabel(f.c))}</div><div class="hcn">${esc(v?v.name:"Pick a pro")}</div>${r?`<div class="hcs">★ ${r.avg.toFixed(1)} from agents</div>`:""}${f.what?`<div class="hcw">${esc(f.what)}</div>`:""}</div>`}).join("");
   const also=(h.also||[]).filter(c=>!(h.featured||[]).some(f=>f.c===c)).map(c=>nb(hcLabel(c))).join(" · ");
   const who=[`<b>${esc(me.full_name||roleVal()||"")}</b>`,esc(me.brokerage||""),h.showPhone!==false?esc(me.phone||""):""].filter(Boolean).join(" · ");
-  return `<div class="htc"><div class="hctop"><div class="hcey">${esc(h.welcome||"Welcome home")}</div>${logo?`<img class="hclg" src="${esc(logo)}" alt="">`:""}</div><h1>Your home team</h1>
+  return `<div class="htc${hcClosingList(h).length?" hctight":""}"><div class="hctop"><div class="hcey">${esc(h.welcome||"Welcome home")}</div>${logo?`<img class="hclg" src="${esc(logo)}" alt="">`:""}</div><h1>Your home team</h1>
     <div class="hcfrom">${esc(h.intro||HC_INTRO)}<br>${who}</div>
-    <div class="hcrule"></div><div class="hcgrid">${tiles}</div>
+    <div class="hcrule"></div><div class="hcgrid">${tiles}</div>${hcClosingHtml(h)}
     ${also?`<div class="hcmore"><div class="hcey" style="font-size:7.5pt">Also on call</div><div class="hclist">${also}</div></div>`:""}
     <div class="hcfoot"><span>Each pro joined Orbyt with references from local agents.</span>${orbytLogoSrc()?`<img src="${esc(orbytLogoSrc())}" alt="Orbyt">`:"Orbyt"}</div>
     <div class="hcband"><div class="hcqr">${qrSvg(hcUrl(slug))}</div><div><h2>Need one of them?</h2>
@@ -4107,6 +4137,9 @@ function hcView(agent){
         <div class="actions" style="margin-top:6px"><label class="btn ghost sm hcfile">${logo?"Replace logo":"Upload logo"}<input type="file" id="hc-logo" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label>${logo?`<button class="linkbtn" type="button" data-act="hclogodel">Remove</button>`:""}</div>
         <p class="small" style="margin:0">A PNG with a clear background looks best.</p></fieldset>
       <fieldset class="field hcfs"><legend class="legend">Six pros on the card</legend><p class="small" style="margin:0 0 6px">Pick from pros you've saved to favorites (marked ★) or worked with on a project. Anything else your client needs, I'll match from the network.</p>${rows}</fieldset>
+      ${typeof CLOSING!=="undefined"?`<fieldset class="field hcfs"><legend class="legend">Closing partners (optional)</legend><p class="small" style="margin:0 0 6px">Lenders, title, escrow and insurance you trust. ${esc(closingNote)}</p>
+        <div class="grid">${CLOSING.map((c,i)=>{const cur=(h.closing||[]).find(x=>x&&x.c===c)||{},fav=favIds(agent),ps=S.vendors.filter(v=>isPartner(v)&&vsv(v).includes(c)).sort((a,b)=>(fav.includes(b.id)-fav.includes(a.id))||a.name.localeCompare(b.name));
+          return `<label class="field"><span>${esc(c)}</span><select class="hc-cl" id="hc-cl-${i}" data-c="${esc(c)}"><option value="">Leave off</option>${ps.map(v=>`<option value="${esc(v.id)}" ${cur.v===v.id?"selected":""}>${esc(v.name)}${fav.includes(v.id)?" ★":""}</option>`).join("")}</select>${ps.length?"":`<small class="small">Save a ${esc(c.toLowerCase())} contact to your favorites to add one</small>`}</label>`}).join("")}</div></fieldset>`:""}
       <fieldset class="field hcfs"><legend class="legend">Also on call</legend><div class="checks">${alsoOpts}</div></fieldset>
       <label class="checkrow"><input type="checkbox" id="hc-priority" name="priority" ${h.priority!==false?"checked":""}> Show "Booking through me gets you priority scheduling"</label>
       <label class="checkrow"><input type="checkbox" id="hc-phone" name="showPhone" ${h.showPhone!==false?"checked":""}> Show my phone number</label>
@@ -4117,13 +4150,16 @@ function hcView(agent){
         :`<p class="small" style="margin:0">Save the card to turn on your request page at ${esc(hcShort())}.</p>`}
     </form>
     <div class="hcside"><div class="small" style="margin-bottom:6px">Preview · prints 5 × 7 in</div><div class="hcprev" id="hcprev">${hcCardHtml(h)}</div></div></div>`}
-function hcFit(){const w=$("#hcprev");if(!w)return;const c=w.querySelector(".htc");if(!c)return;const s=Math.min(1,w.clientWidth/480);c.style.transform=`scale(${s})`;w.style.height=(672*s)+"px"}
+// if a long welcome, names or extra sections push the card past 7 inches, tighten it step by step
+function hcShrink(c){if(!c)return;c.classList.remove("fit1","fit2","fit3");for(const k of ["fit1","fit2","fit3"]){if(c.scrollHeight<=c.clientHeight+1)break;c.classList.add(k)}}
+function hcFit(){const w=$("#hcprev");if(!w)return;const c=w.querySelector(".htc");if(!c)return;hcShrink(c);const s=Math.min(1,w.clientWidth/480);c.style.transform=`scale(${s})`;w.style.height=(672*s)+"px"}
 window.addEventListener("resize",()=>hcFit());
 function hcRead(f){const h=hcState();
   h.welcome=f.querySelector("#hc-welcome").value.trim();h.intro=f.querySelector("#hc-intro").value.trim();
   h.priority=f.querySelector("#hc-priority").checked;h.showPhone=f.querySelector("#hc-phone").checked;
   h.featured=[0,1,2,3,4,5].map(i=>({c:(f.querySelector("#hc-svc-"+i)||{}).value||"",v:(f.querySelector("#hc-v-"+i)||{}).value||"",what:((f.querySelector("#hc-what-"+i)||{}).value||"").trim()})).filter(x=>x.c);
-  h.also=[...f.querySelectorAll(".hc-also:checked")].map(x=>x.value);return h}
+  h.also=[...f.querySelectorAll(".hc-also:checked")].map(x=>x.value);
+  h.closing=[...f.querySelectorAll(".hc-cl")].filter(x=>x.value).map(x=>({c:x.dataset.c,v:x.value}));return h}
 function hcPreview(){const p=$("#hcprev");if(p){p.innerHTML=hcCardHtml(S.hc);hcFit()}}
 document.addEventListener("input",e=>{const f=e.target.closest('form[data-form="hcard"]');if(!f||e.target.type==="file")return;hcRead(f);hcPreview()});
 document.addEventListener("change",e=>{const f=e.target.closest('form[data-form="hcard"]');if(!f)return;
@@ -4160,6 +4196,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="hcpri
 function hcPrint(){
   document.getElementById("htcprint")?.remove();document.getElementById("htcprintcss")?.remove();
   const box=document.createElement("div");box.id="htcprint";box.innerHTML=hcCardHtml(hcState());document.body.appendChild(box);
+  const pv=document.querySelector("#hcprev .htc"),pc=box.querySelector(".htc");if(pv&&pc)["fit1","fit2","fit3"].forEach(k=>pc.classList.toggle(k,pv.classList.contains(k)));
   const st=document.createElement("style");st.id="htcprintcss";
   st.textContent="#htcprint{display:none}@media print{@page{size:5in 7in;margin:0}html,body{margin:0!important;padding:0!important;background:#F6F4EA!important}body>*:not(#htcprint){display:none!important}#htcprint{display:block!important}#htcprint .htc{transform:none!important}}";
   document.head.appendChild(st);
@@ -4176,7 +4213,7 @@ async function renderCardRequestPage(slug){
   const{data,error}=await sb.rpc("home_card_get",{p_slug:slug});
   if(error||!data){$("#app").innerHTML=reviewCard("Home team","This page isn't active",`<p>Reach out to your agent directly, and they can set up what you need.</p>`);return}
   const first=String(data.agent||"your agent").split(" ")[0];
-  const feat=(data.featured||[]).filter(f=>f&&f.c),also=(data.also||[]).filter(c=>!feat.some(f=>f.c===c));
+  const feat=(data.featured||[]).filter(f=>f&&f.c),also=(data.also||[]).filter(c=>!feat.some(f=>f.c===c)),closing=(data.closing||[]).filter(f=>f&&f.c);
   const opt=(c,sub)=>`<label><input type="checkbox" name="svc" value="${esc(c)}"> <span>${esc(hcLabel(c))}${sub?`<span class="small"> · ${esc(sub)}</span>`:""}</span></label>`;
   $("#app").innerHTML=`<section class="auth one"><div class="authcard">
     ${data.logo?`<img class="hcpagelogo" src="${esc(data.logo)}" alt="${esc(data.brokerage||data.agent||"")}">`:""}
@@ -4184,6 +4221,7 @@ async function renderCardRequestPage(slug){
     <p class="small" style="margin:0">Pick what you need, and ${esc(first)} will set up the intro and a quote with a trusted local pro.${data.priority?` Booking through ${esc(first)} gets you priority scheduling.`:""}</p>
     <form class="authform" data-form="hcrequest" data-slug="${esc(slug)}" novalidate>
       <fieldset class="field" style="border:0;padding:0;margin:0"><legend class="legend">What do you need?</legend><div class="checks hcopts">${feat.map(f=>opt(f.c,f.name)).join("")}${also.map(c=>opt(c)).join("")}</div></fieldset>
+      ${closing.length?`<fieldset class="field" style="border:0;padding:0;margin:0"><legend class="legend">Buying or refinancing?</legend><div class="checks hcopts">${closing.map(f=>opt(f.c,f.name)).join("")}</div></fieldset>`:""}
       <label class="field"><span>Anything else? (optional)</span><input type="text" id="hr-other" name="other" maxlength="40" placeholder="Fence repair"></label>
       <label class="field"><span>Home address</span><input type="text" id="hr-address" name="address" autocomplete="street-address" maxlength="200"></label>
       <label class="field"><span>When?</span><select id="hr-when" name="when">${HC_WHEN.map(w=>`<option>${esc(w)}</option>`).join("")}</select></label>
@@ -4211,6 +4249,129 @@ document.addEventListener("submit",async e=>{const f=e.target.closest('form[data
   const first=(f.querySelector('button[type="submit"]').textContent||"").replace(/^Send to /,"");
   $("#app").innerHTML=reviewCard("Request sent","Thanks, "+esc(g("name").split(" ")[0])+"!",`<p>${esc(first)} has your request. You'll hear back soon with the intro and next steps.</p><p class="small">Need something else later? Use this same page anytime.</p>`);window.scrollTo({top:0})},true);
 document.addEventListener("input",e=>{const f=e.target.closest('form[data-form="hcrequest"]');if(!f)return;const er=f.querySelector(".hrerr");if(er&&!er.hidden){er.hidden=true;er.textContent=""}});
+
+
+/* ---------- closing partners: lenders, title, escrow and homeowners insurance ----------
+   They join free under the Closing Partner Terms, never pay per introduction or closing, and use a light intro flow
+   (no bids, quotes, job fees, insurance tiers or special offers). */
+const CLOSING=["Lender","Title","Escrow","Homeowners insurance"];
+const CLOSING_HINT={"Lender":"Mortgage lenders and loan officers","Title":"Title companies and title officers","Escrow":"Escrow companies and officers","Homeowners insurance":"Home and hazard insurance"};
+const isPartner=v=>!!v&&v.kind==="closing";
+const introsFor=(pid,c)=>(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.project_id===pid&&(!c||i.category===c));
+const partnersFor=c=>S.vendors.filter(v=>isPartner(v)&&v.approved!==false&&vsv(v).includes(c));
+const closingNote=`Orbyt isn't paid for these introductions, and your client is always free to choose any provider.`;
+
+/* sign-up: portal.orbytconnect.com/join/partner */
+function partnerSignupView(){
+  const ck=(name,list,hint)=>`<div class="checks">${list.map((x,i)=>`<label><input type="checkbox" id="su-${name}-${i}" name="${name}" value="${esc(x)}">${esc(x)}${hint&&hint[x]?`<span class="small"> · ${esc(hint[x])}</span>`:""}</label>`).join("")}</div>`;
+  return `<section class="auth one"><div class="authcard"><div class="eyebrow">For closing partners</div>
+    <h1>Lenders, title, escrow and insurance</h1>
+    <p class="small" style="margin:0">Join Orbyt's network of closing partners for San Diego agents. Founding partners are free, and Orbyt is never paid for introductions or closings.</p>
+    <form class="authform" data-proto="signup" data-kind="partner" novalidate>
+      <p class="small" style="margin:0">Every field is required unless it says optional.</p>
+      <label class="field"><span>Company name</span><input type="text" id="su-company" name="company" required></label>
+      <div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
+        <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
+        <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
+        <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
+        <label class="field"><span>Website (optional)</span><input type="text" id="su-web" name="web" placeholder="yourbusiness.com"></label>
+        <label class="field"><span>License number</span><input type="text" id="su-license" name="license" placeholder="NMLS, DRE, DFPI or Dept. of Insurance"></label></div>
+      <div class="field"><span>What do you offer?</span>${ck("svc",CLOSING,CLOSING_HINT)}</div>
+      <div class="field"><span>Where do you work?</span>${ck("area",AREAS)}</div>
+      <div class="grid"><label class="field"><span>Years in business</span><select id="su-years" name="years"><option value="">Choose one</option>${YEARS.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label></div>
+      <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="su-refs" name="references"></textarea></label>
+      <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>
+      <div class="grid"><label class="field"><span>Create a password (8+ characters)</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
+        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}
+      <div class="reviewagree"><div class="eyebrow">Review and agree</div>
+        <h2>Free for founding partners</h2><p class="small" style="margin:0">No sign-up fee, no monthly fee, and never a fee per introduction or closing. If Orbyt adds a paid membership later, it will be a flat fee, you'll get 30 days' notice, and you can choose not to continue.</p>
+        ${keyHighlights("partner")}
+        <h2>Your business</h2>${bizFields("su")}
+        <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink("partner")}.</span></label>
+        ${authorityBox("su")}
+        <label class="checkrow top"><input type="checkbox" id="su-optout" name="optout"> <span>If you'd rather not receive Orbyt updates and announcements, tick this box.</span></label></div>
+      <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",portalHome()).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>${authMsg()}
+      <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
+    </form></div></section>`}
+async function partnerSignup(f,fd,email,pass,pass2,done,btn){
+  const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=fd.getAll("area").map(String);
+  const checks=[[!g("company"),"Add your company name.","#su-company"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
+    [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[g("phone").replace(/\D/g,"").length<10,"Add a mobile phone number, with area code.","#su-phone"],
+    [g("license").length<3,"Add your license number (NMLS, DRE, DFPI or Department of Insurance).","#su-license"],
+    [!svcs.length,"Pick what you offer.","#su-svc-0"],[!areas.length,"Pick at least one area you work in.","#su-area-0"],[!g("years"),"Choose your years in business.","#su-years"],
+    [g("references").length<10,"Add 2 to 3 agent references, with names and phone numbers or emails.","#su-refs"],
+    [pass.length<8,"Use a password with at least 8 characters.","#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
+    [!g("legal"),"Add your legal business name.","#su-legal"],[!fd.get("btype"),"Choose your business type.","#su-btype"],[!g("title"),"Add your title.","#su-title"],
+    [!fd.get("terms"),`Check the box to agree to the ${TERMS.partner.title}.`,"#su-terms"],[!fd.get("authority"),"Check the box to confirm you have authority to agree for the business.","#su-auth"]];
+  const hit=checks.find(c=>c[0]);
+  if(hit){done(hit[1]);const el=f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}
+  const meta={ref:S.ref||"",role:"vendor",partner_kind:"closing",license:g("license"),full_name:first+" "+last,phone:g("phone"),areas,terms_version:TERMS.partner.version,user_agent:navigator.userAgent.slice(0,300),
+    ...bizData(fd),marketing_opt_out:!!fd.get("optout"),company:g("company"),website:g("web"),services:svcs,years_in_business:g("years"),references:g("references"),heard_about:g("heard")};
+  const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
+  if(error)return done(friendlyAuthError(error));
+  if(data.session){S.authErr="";await enter(data.user);return}
+  S.pendingEmail=email;S.authMode="checkemail";S.authErr="";if(btn)btn.disabled=false;render()}
+
+/* the partner's dashboard: introductions, then their profile */
+function partnerView(v){
+  const mine=(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.vendor_id===v.id).sort((a,b)=>String(b.introduced_at).localeCompare(String(a.introduced_at)));
+  const open=mine.filter(i=>!i.reached_out_at),past=mine.filter(i=>i.reached_out_at);
+  const card=i=>{const tel=String(i.agent_phone||"").replace(/[^\d+]/g,"");
+    return `<div class="introcard"><div class="eyebrow">${esc(i.category)} · ${esc(ago(i.introduced_at))}</div>
+      <div class="strong">${esc(i.agent_name||"Agent")}${i.brokerage?`<span class="small">, ${esc(i.brokerage)}</span>`:""}</div>
+      <div class="small">${esc(i.address||"")}${i.area?" · "+esc(i.area):""}</div>${i.note?`<p class="note">${esc(i.note)}</p>`:""}
+      <div class="actions">${tel?`<a class="btn ghost sm" href="tel:${esc(tel)}">Call ${esc(i.agent_phone)}</a>`:""}${i.agent_email?`<a class="btn ghost sm" href="mailto:${esc(i.agent_email)}">Email</a>`:""}
+        ${i.reached_out_at?`<span class="pill set">Reached out ${esc(fmtDate(String(i.reached_out_at).slice(0,10)))}</span>`:S.canWrite?`<button class="btn sm" data-act="reachedout" data-id="${esc(i.id)}">I've reached out</button>`:""}</div></div>`};
+  let h=`<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for joining. I'll check your license and references and reach out before your first introduction.</p>`:""}
+    <p>When an agent in the network needs what you do, I'll introduce you here and by email. Reach out to the agent, then mark it below. You're a founding partner, so there's no fee.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
+    <div>${ratingHtml(v.id)}</div></section>`;
+  if(!Array.isArray(D.intros))return h+`<div class="emptystate"><h2>Almost ready</h2><p>Introductions switch on with the next Orbyt update. Check back soon.</p></div>`;
+  h+=`<section class="section"><div class="sechead"><h2>New introductions</h2></div>${open.length?`<div class="introlist">${open.map(card).join("")}</div>`:`<p class="small">No new introductions right now. When an agent asks for ${esc(vsv(v).map(x=>x.toLowerCase()).join(" or "))} help, you'll get an email and it shows up here.</p>`}
+    ${past.length?`<details class="fold" style="margin-top:12px"><summary><span class="foldtitle">Past introductions</span><span class="pill">${past.length}</span></summary><div class="foldbody"><div class="introlist">${past.map(card).join("")}</div></div></details>`:""}</section>`;
+  if(v.approved===false)return h;
+  const parts=[fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false),
+    fold("port","Business overview and portfolio","","What agents see when I introduce you",portfolioCard(v),false)];
+  if(typeof reviewInviteCard==="function"){const sent=typeof rrFor==="function"?rrFor(v.id):[];parts.push(fold("rr","Reviews from agents you've worked with",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Invite agents you've worked with",reviewInviteCard(v),!!S.rrMore))}
+  parts.push(fold("refer","Refer someone to Orbyt",refCountPill(),"A ready-made message to send",referralCard("vendor"),false));
+  return h+`<section class="section folds"><div class="sechead" style="margin-bottom:8px"><div><h2>Your profile</h2><span class="small">Tap one to open it.</span></div></div>${parts.join("")}</section>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="reachedout"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  guard(async()=>{fail((await sb.from("intros").update({reached_out_at:new Date().toISOString()}).eq("id",t.dataset.id)).error,"introduction");await S.db.reload()},"Marked. Thanks for reaching out.")},true);
+
+/* projects: the closing partner section, for agents and for Ashleigh */
+function closingPanel(p,mode){
+  if(mode==="vendor"||!p)return"";const list=p.closing||[],isO=mode==="orbyt",ready=Array.isArray(D.intros);
+  const left=CLOSING.filter(c=>!list.includes(c));
+  if(!list.length&&!(mode==="agent"&&S.canWrite&&ready))return"";
+  const rowFor=c=>{const ins=introsFor(p.id,c);
+    const shown=ins.map(i=>{const v=vendorById(i.vendor_id);const tel=v?String(v.phone||"").replace(/[^\d+]/g,""):"";
+      return `<div class="introrow"><div style="min-width:0">${v?`<button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>`:`<span class="strong">Partner</span>`}${v&&v.contactName?`<span class="small"> · ${esc(v.contactName)}</span>`:""}
+        <div class="small">${[v&&v.phone?`<a href="tel:${esc(tel)}">${esc(v.phone)}</a>`:"",v&&v.email?`<a href="mailto:${esc(v.email)}">${esc(v.email)}</a>`:"",v?vendorDocs(v.id):""].filter(Boolean).join(" · ")}</div>
+        ${i.note?`<div class="intronote">${isO?"Your note: ":"From Ashleigh: "}“${esc(i.note)}”</div>`:""}</div>
+        <div class="small">Introduced ${esc(ago(i.introduced_at))}${i.reached_out_at?`<div><span class="pill set">They reached out</span></div>`:""}</div></div>`}).join("");
+    let pick="";
+    if(isO&&S.canWrite&&ready){const ps=partnersFor(c).filter(v=>!ins.some(i=>i.vendor_id===v.id)),ar=p.area;
+      const sorted=ps.sort((a,b)=>((b.areas||[]).includes(ar)-(a.areas||[]).includes(ar))||(b.available!==false)-(a.available!==false)||a.name.localeCompare(b.name));
+      const k=(p.id+c).replace(/[^a-z0-9]/gi,"");
+      pick=sorted.length?`<form class="form inner introform" data-form="intro" data-p="${esc(p.id)}" data-c="${esc(c)}"><div class="grid">
+          <label class="field"><span>${ins.length?"Introduce another":"Introduce"}</span><select id="in-v-${k}" name="vendorId">${sorted.map(v=>`<option value="${esc(v.id)}">${esc(v.name)}${(v.areas||[]).includes(ar)?" · works in "+esc(String(ar).split(" / ")[0]):""}${v.available===false?" (paused)":""}</option>`).join("")}</select></label>
+          <label class="field"><span>Note for both of them (optional)</span><input type="text" id="in-n-${k}" name="note" placeholder="First-time buyer, wants to close by March"></label></div>
+          <div class="actions"><button class="btn sm" type="submit">Introduce</button><span class="small">They each get an email with the other's contact details.</span></div></form>`
+        :`<p class="small" style="margin:0">${ins.length?"No other approved":"No approved"} ${esc(c.toLowerCase())} partners yet.</p>`}
+    return `<div class="closingrow"><div class="eyebrow">${esc(c)}</div>${shown||(isO?"":`<p class="small" style="margin:0">Ashleigh is lining up a ${esc(c.toLowerCase())} contact. You'll get an email when she makes the intro.</p>`)}${pick}</div>`};
+  const add=mode==="agent"&&S.canWrite&&ready&&left.length?`<div class="actions"><label class="field" style="margin:0"><span>Add a closing partner</span><select id="cl-add-${esc(p.id)}">${left.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></label><button class="btn ghost sm" data-act="addclosing" data-id="${esc(p.id)}">Ask for an intro</button></div>`:"";
+  return `<section class="cat closingsec"><div class="cathead"><div><h3>Closing partners</h3><span class="small">${esc(closingNote)}</span></div></div>
+    ${list.map(rowFor).join("")}${!list.length&&mode==="agent"?`<p class="small" style="margin:0">Need a lender, title, escrow or insurance contact for this client? Ask and I'll introduce someone from the network.</p>`:""}${add}</section>`}
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="intro"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const fd=new FormData(f),vid=String(fd.get("vendorId")||""),note=String(fd.get("note")||"").trim();if(!vid)return;
+  guard(async()=>{fail((await sb.from("intros").insert({project_id:f.dataset.p,category:f.dataset.c,vendor_id:vid,note:note||null})).error,"introduction");await S.db.reload()},"Introduced. They each got an email.")},true);
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="addclosing"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  const p=projById(t.dataset.id),sel=document.getElementById("cl-add-"+t.dataset.id);if(!p||!sel)return;const c=sel.value;
+  guard(async()=>{fail((await sb.from("projects").update({closing:[...new Set([...(p.closing||[]),c])]}).eq("id",p.id)).error,"project");await S.db.reload()},`Asked. Ashleigh will introduce a ${c.toLowerCase()} contact.`)},true);
+// Ashleigh's dashboard: closing partner requests waiting on an intro
+function closingAlerts(){const A=[];if(!Array.isArray(D.intros))return A;
+  for(const p of S.projects)for(const c of p.closing||[])if(!introsFor(p.id,c).length)
+    A.push({id:"closing-"+p.id+"-"+c,cls:"k-warn",label:"Closing partner",title:`${firstName(p.agent)} needs ${c.toLowerCase()} for ${p.address}`,meta:(client(p)?client(p)+" · ":"")+ago(p.createdAt),when:p.createdAt,act:{a:"openmatch",id:p.id,label:"Introduce"}});
+  return A}
 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.quoteView){S.quoteView=null;render()}});
 liveBoot();

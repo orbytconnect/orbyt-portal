@@ -11,7 +11,7 @@ const portalHome=()=>location.origin+"/";
 const D={};                       // raw rows, by table
 const TABLES=["profiles","vendors","vendor_admin","vendor_private","vendor_notes","projects","project_private","project_admin",
   "project_members","default_shares","bids","invoices","reviews","favorites","task_checks","client_links","my_tasks","time_logs",
-  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards"];
+  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards","intros"];
 const nz=v=>v===""||v===undefined?null:v;
 const camel=s=>s.replace(/_([a-z])/g,(m,c)=>c.toUpperCase());
 const snake=s=>s.replace(/[A-Z]/g,c=>"_"+c.toLowerCase());
@@ -30,7 +30,7 @@ async function fetchAll(t){
   if(t==="review_requests"){if(!S.uid)return undefined;const{data,error}=await sb.rpc("review_requests_list");return error?undefined:(data||[])}
   let out=[],from=0;
   for(;;){const{data,error}=await sb.from(t).select("*").range(from,from+999);
-    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
+    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"||t==="intros"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
     out=out.concat(data||[]);if(!data||data.length<1000)return out;from+=1000}
 }
 
@@ -40,7 +40,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
     return{id:v.id,userId:v.user_id,name:v.name,contactName:v.contact_name||"",email:v.email||"",phone:v.phone||"",web:v.website||"",
       services:v.services||[],category:(v.services||[])[0]||"",areas:normAreas(v.areas||[]),areaNote:v.area_note||"",years:v.years_in_business||"",
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
-      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",overviewPdfName:v.overview_pdf_name||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
+      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",kind:v.kind||"vendor",license:v.license_number||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",overviewPdfName:v.overview_pdf_name||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
       pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
       legalName:p.legal_name||"",dba:p.dba||"",businessType:p.business_type||"",signerTitle:p.signer_title||"",marketingOptOut:!!p.marketing_opt_out,
@@ -49,7 +49,7 @@ function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D
   return(D.projects||[]).map(p=>{const pp=PP[p.id]||{},pa=PA[p.id]||{};
     return{id:p.id,agent:p.agent_name,agentId:p.agent_id,agentEmail:p.agent_email||"",agentPhone:p.agent_phone||"",brokerage:p.brokerage||"",
       address:p.address,area:normArea(p.area||""),clientType:p.client_type,targetDate:p.target_date||"",categories:p.categories||[],notes:p.notes||"",
-      addedServices:p.added_services||{},listed:!!p.listed,listedAt:p.listed_at,workOrder:p.work_order||null,source:p.source||"",createdBy:p.created_by||"",createdAt:p.created_at,
+      addedServices:p.added_services||{},closing:p.closing||[],listed:!!p.listed,listedAt:p.listed_at,workOrder:p.work_order||null,source:p.source||"",createdBy:p.created_by||"",createdAt:p.created_at,
       client:pp.client_name||"",clientEmail:pp.client_email||"",clientPhone:pp.client_phone||"",budget:pp.budget||"",listPrice:pp.list_price==null?null:Number(pp.list_price),sqft:p.sqft||null,pmInterest:pp.pm_interest||"",optionRequests:pp.option_requests||{},
       pm:!!pa.pm,pmInvoice:pa.pm_invoice||null,completed:!!pa.completed,completedAt:pa.completed_at,
       members:(D.project_members||[]).filter(m=>m.project_id===p.id).sort((a,b)=>String(a.added_at).localeCompare(String(b.added_at)))
@@ -134,7 +134,7 @@ const VENDOR_MAP={name:"name",contactName:"contact_name",email:"email",phone:"ph
   years:"years_in_business",team:"team_size",leadTime:"lead_time",worksWithAgents:"works_with_agents",portfolioUrl:"portfolio_url",available:"available",source:"source"};
 const VADMIN_MAP={approved:"approved",featured:"featured",featuredUntil:"featured_until",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
 const VPRIV_MAP={pricing:"pricing",references:"references_text",heard:"heard_about",signupNotes:"signup_notes",promoInterest:"promo_interest",coiUrl:"coi_url"};
-const PROJ_MAP={sqft:"sqft",agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
+const PROJ_MAP={sqft:"sqft",closing:"closing",agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
   targetDate:"target_date",categories:"categories",notes:"notes",addedServices:"added_services",listed:"listed",listedAt:"listed_at",workOrder:"work_order",source:"source",createdBy:"created_by"};
 const PPRIV_MAP={listPrice:"list_price",client:"client_name",budget:"budget",pmInterest:"pm_interest",optionRequests:"option_requests"};
 const PADMIN_MAP={pm:"pm",pmInvoice:"pm_invoice",completed:"completed",completedAt:"completed_at"};
@@ -299,9 +299,11 @@ function authView(){
       <label class="field"><span>Type it again</span><input type="password" id="np-pass2" name="password2" autocomplete="new-password" required></label>${showPw("np-show")}${err}
       <button class="btn" type="submit">Save password</button></form>`);
   if(m==="agent"||m==="vendor")return signupView(m);
+  if(m==="partner"&&typeof partnerSignupView==="function")return partnerSignupView();
   if(m==="join")return card("Join Orbyt","How will you use Orbyt?",`<p class="small" style="margin:0">Pick one to get started. Every match is made by a real person.</p>
     <div class="demolist"><button class="demoacct" data-act="authmode" data-m="agent"><span class="strong">I'm an agent</span><span class="small">The right team for every listing</span></button>
-      <button class="demoacct" data-act="authmode" data-m="vendor"><span class="strong">I'm a vendor partner</span><span class="small">More of the work you're good at, less chasing it</span></button></div>
+      <button class="demoacct" data-act="authmode" data-m="vendor"><span class="strong">I'm a vendor partner</span><span class="small">More of the work you're good at, less chasing it</span></button>
+      <button class="demoacct" data-act="authmode" data-m="partner"><span class="strong">I'm a closing partner</span><span class="small">Lender, title, escrow or insurance</span></button></div>
     <p class="small" style="margin:0">Already have an account? <button class="linkbtn" data-act="authmode" data-m="signin">Sign in</button></p>`);
   return `<section class="auth"><div class="authcard"><div class="eyebrow">Welcome back</div><h1>Sign in to Orbyt</h1>
       <form class="authform" data-proto="signin" novalidate>
@@ -312,7 +314,8 @@ function authView(){
     <div class="authcard demo"><div class="eyebrow">New to Orbyt?</div><h2>We know people.</h2>
       <p class="small" style="margin:0">Agents get vendors matched to each home. Vendor partners get warm intros to agents who need their work. Every match is made by a real person.</p>
       <div class="demolist"><button class="demoacct" data-act="authmode" data-m="agent"><span class="strong">Join as an agent</span><span class="small">The right team for every listing</span></button>
-        <button class="demoacct" data-act="authmode" data-m="vendor"><span class="strong">Join as a vendor partner</span><span class="small">More of the work you're good at</span></button></div></div></section>`;
+        <button class="demoacct" data-act="authmode" data-m="vendor"><span class="strong">Join as a vendor partner</span><span class="small">More of the work you're good at</span></button>
+        <button class="demoacct" data-act="authmode" data-m="partner"><span class="strong">Join as a closing partner</span><span class="small">Lender, title, escrow or insurance</span></button></div></div></section>`;
 }
 function signupView(m){
   const ck=(name,list)=>`<div class="checks">${list.map((x,i)=>`<label><input type="checkbox" id="su-${name}-${i}" name="${name}" value="${esc(x)}">${esc(x)}</label>`).join("")}</div>`;
@@ -445,6 +448,7 @@ document.addEventListener("submit",async e=>{
       return done(error?friendlyAuthError(error):"","If that email has an account, a reset link is on its way.")}
     if(kindOf==="newpass"){if(pass.length<8)return done("Use a password with at least 8 characters.");if(pass!==pass2)return done("Those passwords don't match. Type them again.");
       const{data,error}=await sb.auth.updateUser({password:pass});if(error)return done(friendlyAuthError(error));toast("Password saved");S.recovering=false;S.authMode="signin";try{history.replaceState(null,"",location.pathname)}catch(_){}await enter(data.user);return}
+    if(kindOf==="signup"&&f.dataset.kind==="partner"&&typeof partnerSignup==="function")return await partnerSignup(f,fd,email,pass,pass2,done,btn);
     if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
       const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,"");
@@ -491,8 +495,8 @@ async function liveBoot(){
   // links from orbytconnect.com: ?join=agent or ?join=vendor opens that sign-up form
   // clean links: /join, /join/agent and /join/vendor (the older ?join=... links still work)
   const rf=String(q.get("ref")||"").toLowerCase();if(/^[0-9a-f]{8}$/.test(rf)){S.ref=rf;try{sessionStorage.setItem("orbyt-ref",rf)}catch(_){}}else{try{S.ref=sessionStorage.getItem("orbyt-ref")||""}catch(_){}}
-  const path=location.pathname.replace(/\/+$/,"").toLowerCase(),pm=path.match(/^\/join(?:\/(agent|vendor))?$/);
-  const join=q.get("join")||(pm&&pm[1]);if(join==="agent"||join==="vendor")S.authMode=join;else if(q.has("join")||pm)S.authMode="join";
+  const path=location.pathname.replace(/\/+$/,"").toLowerCase(),pm=path.match(/^\/join(?:\/(agent|vendor|partner))?$/);
+  const join=q.get("join")||(pm&&pm[1]);if(join==="agent"||join==="vendor"||join==="partner")S.authMode=join;else if(q.has("join")||pm)S.authMode="join";
   if(recovering){S.authMode="newpass";S.recovering=true}
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.recovering=true;S.authReady=true;S.session=null;render()}});
   const{data:{session}}=await sb.auth.getSession();
@@ -543,7 +547,10 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="agsta
 /* ---------- Terms of Use: a checkbox, no signature. Fees shown up front. ---------- */
 const TERMS={
   vendor:{version:"vendor-terms-2026-10-25",title:"Orbyt Vendor Terms of Use",path:"terms/vendor.html"},
-  agent:{version:"agent-terms-2026-10-25",title:"Orbyt Agent Terms of Use",path:"terms/agent.html"}};
+  agent:{version:"agent-terms-2026-10-25",title:"Orbyt Agent Terms of Use",path:"terms/agent.html"},
+  partner:{version:"partner-terms-2026-11-03",title:"Orbyt Closing Partner Terms",path:"terms/partner.html"}};
+// closing partners sign in as vendors but agree to their own terms
+const termsRole=()=>{const r=myRole();return r==="vendor"&&typeof isPartner==="function"&&isPartner(vendorById(myVendorId()))?"partner":r};
 const termsUrl=r=>new URL(TERMS[r].path,portalHome()).href;
 const termsLink=(r,label)=>`<a href="${esc(termsUrl(r))}" target="_blank" rel="noopener">${esc(label||TERMS[r].title)}</a>`;
 const myRole=()=>kind()==="vendor"?"vendor":kind()==="agent"?"agent":"";
@@ -552,7 +559,7 @@ const acceptancesFor=uid=>(D.terms_acceptances||[]).filter(a=>uid&&a.user_id===u
 const currentAcceptance=(uid,r)=>acceptancesFor(uid).find(a=>a.version===TERMS[r].version);
 function needsTerms(){const r=myRole();if(!r||!S.uid||!Array.isArray(D.terms_acceptances))return false;
   if(r==="vendor"){const v=vendorById(myVendorId());if(!v||v.approved===false)return false}
-  return !currentAcceptance(S.uid,r)}
+  return !currentAcceptance(S.uid,termsRole())}
 const feesKey=()=>"orbyt-fees-seen-"+S.uid;
 function feesSeen(){try{return localStorage.getItem(feesKey())==="1"}catch(_){return true}}
 function markFeesSeen(){try{localStorage.setItem(feesKey(),"1")}catch(_){}}
@@ -579,6 +586,11 @@ const SHORT={
     "You contract with and bill the client directly, in your own name, and you're responsible for your work. Add Orbyt's short client notice (Schedule 2) to your quotes.",
     "Keep your licenses current and carry general liability insurance of at least $1M per occurrence and $2M aggregate. Depending on your services, Orbyt also needs to be named as an additional insured (Schedule 3).",
     "You cover claims about your work, Orbyt's liability is limited, and most disputes go to individual arbitration in San Diego."],
+  partner:["Orbyt introduces you to agents in the network whose clients need what you offer. You reach out, and the agent connects you with their client.",
+    "Orbyt is never paid for introductions or closings, and you never give anyone anything for a referral. Clients are always free to choose any provider.",
+    "Founding partners are free. If Orbyt adds a paid membership, it will be a flat fee with 30 days' notice, and you can choose not to continue.",
+    "Keep your licenses current, follow the rules for your industry, and contact a client only with the agent's or the client's permission.",
+    "Orbyt's liability is limited, and disputes go to individual arbitration in San Diego."],
   agent:["Orbyt doesn't charge agents for introductions. Vendors pay Orbyt a fee on work that comes from them.",
     "Vendors are independent businesses. You or your client hire and pay them directly, and they're responsible for their work.",
     "Let your clients know the vendor is independent and Orbyt doesn't guarantee their work. Suggested wording is in Schedule 1.",
@@ -609,17 +621,22 @@ function signupFees(){
 // the business name in the authority line follows what's typed
 document.addEventListener("input",e=>{const el=e.target;if(!el.matches||!el.matches("input[data-bizname]"))return;const f=el.closest("form");
   f&&f.querySelectorAll(".bizname").forEach(b=>b.textContent=el.value.trim()||"[Legal business name]")},true);
-const termsForm=r=>{const v=r==="vendor"?vendorById(myVendorId()):null;
-  return `<form class="form" data-form="acceptterms" novalidate><h2>${r==="vendor"?"Vendor":"Agent"} Terms of Use</h2>
+const termsForm=r=>{const v=r!=="agent"?vendorById(myVendorId()):null;
+  return `<form class="form" data-form="acceptterms" novalidate><h2>${esc(TERMS[r].title.replace(/^Orbyt /,""))}</h2>
     <p class="small" style="margin:0">Read the full ${termsLink(r,"Terms of Use")}. They open in a new tab, where you can print or save a copy.</p>
-    ${r==="vendor"?bizFields("tm",v):""}
+    ${r!=="agent"?bizFields("tm",v):""}
     <label class="checkrow top"><input type="checkbox" id="tm-ok" name="ok"> <span>I've read and agree to the ${termsLink(r)}${r==="vendor"?", including the fees above":""}.</span></label>
-    ${r==="vendor"?authorityBox("tm",v&&v.legalName):""}
+    ${r!=="agent"?authorityBox("tm",v&&v.legalName):""}
     <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",portalHome()).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>
     <p class="small warntext tmerr" role="alert" style="margin:0" hidden></p>
     <div class="actions"><button class="btn" type="submit">Agree and continue</button><button class="btn ghost" type="button" data-act="signout">Sign out</button></div></form>`};
 function termsGate(){
-  const r=myRole(),done=!!currentAcceptance(S.uid,r);
+  const r=termsRole(),done=!!currentAcceptance(S.uid,r);
+  if(r==="partner"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
+    return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>You're approved, ${esc(first)}</h1>
+      <p>You're a founding closing partner, free of charge. Here's how introductions work${done?".":", and the terms to agree to."}</p></div></section>
+      ${shortVersion("partner")}${done?`<div class="actions" style="margin-bottom:28px"><button class="btn" data-act="feesok">Sounds good, take me to my dashboard</button>
+        <span class="small">You agreed to the ${termsLink("partner")} when you signed up.</span></div>`:termsForm("partner")}`}
   if(r==="vendor"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
     return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>You're approved, ${esc(first)}</h1>
       <p>${done?"Before your first introduction, here's a quick look at what Orbyt costs and how it works.":"Before your first introduction, here's exactly what Orbyt costs, and the terms to agree to."}</p></div></section>
@@ -630,11 +647,11 @@ function termsGate(){
     <p>Before you start, please read and agree to the Agent Terms of Use.</p></div></section>${shortVersion("agent")}${termsForm("agent")}`;
 }
 document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="acceptterms"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
-  const r=myRole();if(!r)return;const el=f.querySelector(".tmerr"),fd=new FormData(f);
-  const bad=r==="vendor"&&bizErr(fd)?bizErr(fd):!fd.get("ok")?`Check the box to agree to the ${TERMS[r].title}.`:"";
+  const r=termsRole();if(!r)return;const el=f.querySelector(".tmerr"),fd=new FormData(f);
+  const bad=r!=="agent"&&bizErr(fd)?bizErr(fd):!fd.get("ok")?`Check the box to agree to the ${TERMS[r].title}.`:"";
   if(bad){if(el){el.textContent=bad;el.hidden=false}return}
   const args={p_version:TERMS[r].version,p_user_agent:navigator.userAgent.slice(0,300)};
-  guard(async()=>{let res=await sb.rpc("accept_terms",r==="vendor"?{...args,p_details:bizData(fd)}:args);
+  guard(async()=>{let res=await sb.rpc("accept_terms",r!=="agent"?{...args,p_details:bizData(fd)}:args);
     // before update 10 is run, the database only knows the two-field version
     if(res.error&&r==="vendor"&&/function|p_details|schema cache/i.test(res.error.message||""))res=await sb.rpc("accept_terms",args);
     fail(res.error,"terms");

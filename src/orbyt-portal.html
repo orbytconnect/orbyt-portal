@@ -621,7 +621,7 @@ function toast(m){const t=document.createElement("div");t.className="toast";t.te
 
 // featured placement: on, and not past its end date
 // Ashleigh's Vendors list: request, paid, and end date in one cell
-function promoCell(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
+function promoCell(v){if(typeof isPartner==="function"&&isPartner(v))return`<span class="small">Closing partner</span>`;const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
   return `${on?`<div class="small">Until ${esc(fmtDate(v.featuredUntil)||"you end it")}</div>`:""}${req?`<div><span class="pill comparing">${on?"Renewal requested":"Requested"}</span></div>`:""}
     <div><button class="linkbtn" style="white-space:nowrap" data-act="feature" data-id="${esc(v.id)}">${on?"Add 30 days":"Mark offer paid"}</button></div>${on?`<div><button class="linkbtn" data-act="feature" data-mode="end" data-id="${esc(v.id)}">End offer</button></div>`:""}`}
 function featuredNow(v){if(!v||!v.featured)return false;if(!v.featuredUntil)return true;const t=new Date();const d=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");return v.featuredUntil>=d}
@@ -878,7 +878,7 @@ function notesBlock(v){
 function formBlock(v){
   const link=(u,label)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(label)}</a>`:"";
   const web=safeUrl(v.web),port=safeUrl(v.portfolioUrl),coi=v.coiId?blobHref(v.coiId):safeUrl(v.coiUrl),photos=(v.photoIds||[]).slice(0,5);
-  const F=[["Name",esc(v.contactName||"")],["Company name",esc(v.name)],["Email",esc(vEmail(v))],["Mobile phone",esc(vPhone(v))],["Website",web?link(web,v.web):esc(v.web||"")],
+  const F=[...(typeof isPartner==="function"&&isPartner(v)?[["Closing partner license",esc(v.license||"")]]:[]),["Name",esc(v.contactName||"")],["Company name",esc(v.name)],["Email",esc(vEmail(v))],["Mobile phone",esc(vPhone(v))],["Website",web?link(web,v.web):esc(v.web||"")],
     ["Services you offer",esc(vsv(v).join(", "))],["Service area",esc(v.areaNote||(v.areas||[]).join(", "))],["Years in business",esc(v.years||"")],["Team size",esc(v.team||"")],
     ["Certificate of insurance",coi?link(coi,"Open certificate"):""],["How much they work with agents",esc(v.worksWithAgents||"")],["Agent references",esc(v.references||"")],
     ["Typical lead time",esc(v.leadTime||"")],["Portfolio",photos.length?`<div class="thumbs">${photos.map(id=>`<a href="${esc(blobHref(id))}" target="_blank" rel="noopener"><img src="${esc(blobHref(id))}" alt="Recent work by ${esc(v.name)}"></a>`).join("")}</div>`:""],
@@ -947,7 +947,7 @@ function agentView(){
   if(S.tab==="tasks")return h+tasksView(T,"When a vendor sends a bid or a list date gets close, it shows up here.")+(typeof agentFolds==="function"?agentFolds():"");
   if(S.tab==="favorites"){
     if(!favs.length)return h+`<div class="emptystate"><h2>No favorites yet</h2><p>Click any vendor's name to open their card, then choose "Save to favorites." Ashleigh sees your favorites and puts them first when she matches your listings.</p></div>`;
-    const groups=CATS.filter(c=>favs.some(v=>vsv(v).includes(c)));
+    const groups=[...CATS,...(typeof CLOSING!=="undefined"?CLOSING:[])].filter(c=>favs.some(v=>vsv(v).includes(c)));
     if(typeof hcView==="function"&&S.canWrite)h+=`<div class="callout hccallout" style="margin-bottom:16px"><div><span class="strong">Share your favorites with buyers</span><div class="small">Print a home team card with these pros' names and ratings, and a code that sends requests back to you. No vendor contact details on it.</div></div><button class="btn ghost sm" data-act="hcmake">Make a home team card</button></div>`;
     return h+groups.map(c=>`<div class="section"><h2>${esc(c)}</h2><div class="favgrid">${favs.filter(v=>vsv(v).includes(c)).map(v=>{const jobs=S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected"&&projById(b.projectId)?.agent===agent).length;
       return `<div class="favcard"><div class="row"><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${S.canWrite?`<button class="linkbtn" data-act="fav" data-id="${esc(v.id)}">Remove</button>`:""}</div>
@@ -1029,6 +1029,7 @@ function sortTh(key,label){const on=S.sort.key===key;return `<th><button data-ac
 /* vendor */
 function vendorView(){
   const v=vendorById(roleVal());
+  if(v&&typeof isPartner==="function"&&isPartner(v))return partnerView(v);
   if(!v)return `<div class="emptystate" style="margin-top:28px"><h2>Pick a vendor</h2><p>Choose a vendor in "Viewing as" to see their requests.</p></div>`;
   if(!["tasks","projects"].includes(S.tab))S.tab="tasks";
   const T=vendorTasks(v.id);const openN=splitTasks(T).open.length;
@@ -1713,6 +1714,7 @@ function orbytAlerts(){
   for(const v of S.vendors.filter(v=>v.approved===false))A.push({id:"vrev-"+v.id,cls:"k-ink",label:"Vendor sign-up",title:`${v.name} wants to join (${vsv(v).join(", ")})`,
     meta:[v.areaNote||v.areas?.join(", "),v.source,v.createdAt?ago(v.createdAt):""].filter(Boolean).join(" · "),when:v.createdAt||"",act:{a:"vcard",id:v.id,label:"Review"},auto:false});
   if(typeof insuranceAlerts==="function")A.push(...insuranceAlerts());
+  if(typeof closingAlerts==="function")A.push(...closingAlerts());
   return A;
 }
 function alertsView(){
@@ -2097,6 +2099,7 @@ function projectDetail(p,mode){
   if(p.notes)h+=`<p class="note">${esc(p.notes)}</p>`;
   if(mode==="agent"&&typeof hcProjectBtn==="function")h+=hcProjectBtn(p);
   if(mode!=="vendor")h+=teamPanel(p,isOrbyt);
+  if(typeof closingPanel==="function")h+=closingPanel(p,mode);
   if((p.categories||[]).length>1&&!p.listed)h+=`<details class="timingwrap" data-p="${esc(p.id)}" ${S.openTiming===p.id?"open":""}><summary>Order of work <span class="small">· ${seqSteps(p).map(g=>esc(g.join(" + "))).join(" → ")}</span></summary>${S.openForm==="order:"+p.id?orderEditor(p):timingBlock(p,null)+(canReorder(p)?`<div class="actions" style="margin-top:8px"><button class="btn ghost sm" data-act="ordedit" data-id="${esc(p.id)}">Change the order</button></div>`:"")}</details>`;
   for(const c of p.categories||[]){
     const bids=bidsFor(p.id,c).sort((a,b)=>(a.status==="requested")-(b.status==="requested")||String(a.submittedAt||"").localeCompare(String(b.submittedAt||"")));
@@ -2200,7 +2203,7 @@ function rosterView(){
     &&(!f.price||(f.price==="none"?!(priceStats(v.id)||{}).tier:(priceStats(v.id)||{}).tier===f.price)));
   const on=q||f.cat||f.area||f.status||f.cred||f.promo||f.rating||f.price;
   const sel=(id,label,val,opts)=>`<label class="field"><span>${label}</span><select id="${id}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${v===val?"selected":""}>${esc(t)}</option>`).join("")}</select></label>`;
-  const usedCats=CATS.filter(c=>all.some(v=>vsv(v).includes(c)));
+  const usedCats=[...CATS,...(typeof CLOSING!=="undefined"?CLOSING:[])].filter(c=>all.some(v=>vsv(v).includes(c)));
   h+=`<div class="rfilters"><label class="field rsearch"><span>Search</span><input type="text" id="rs-q" value="${esc(f.q)}" placeholder="Name or contact"></label>
     ${sel("rs-cat","Service",f.cat,[["","All services"],...usedCats.map(c=>[c,c])])}
     ${sel("rs-area","Area",f.area,[["","All areas"],...AREAS.map(a=>[a,a])])}
@@ -2217,7 +2220,7 @@ function rosterView(){
     <td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${vnotes(v.id).length?` <span class="small" title="You have notes on this vendor">· ${vnotes(v.id).length} ${vnotes(v.id).length===1?"note":"notes"}</span>`:""} ${v.approved===false?'<span class="pill late">Needs review</span>':""} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.sample?'<span class="pill example">Example</span>':""}${vPhone(v)||vEmail(v)?`<div class="small">${esc([vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div>`:""}</td>
     <td>${esc(vsv(v).join(", "))}</td><td class="small" style="max-width:200px" title="${esc((v.areas||[]).join(", "))}">${esc(areasShort(v.areas))}</td><td>${ratingHtml(v.id)}${(()=>{const k=S.reviews.filter(r=>r.vendorId===v.id&&!r.approved).length;return k?`<div><button class="pill comparing" style="border:0;cursor:pointer;margin-top:4px" data-act="vcard" data-id="${esc(v.id)}">${k} to approve</button></div>`:""})()}</td>
     <td>${(()=>{const st=priceStats(v.id);return st?`${st.tier?tierPill(st):'<span class="small">Not enough bids yet</span>'}<div class="small num" style="margin-top:4px">Avg ${money(st.avgAmt)} · ${st.n} ${st.n===1?"bid":"bids"}${st.decided?` · won ${st.won} of ${st.decided}`:""}</div>`:'<span class="small">No bids yet</span>'})()}</td>
-    <td>${v.licensed&&v.insured?"Yes":'<span style="color:var(--warn)">Check</span>'}</td>
+    <td>${typeof isPartner==="function"&&isPartner(v)?(v.licensed?"Licensed":'<span style="color:var(--warn)">Check license</span>')+(v.license?`<div class="small">${esc(v.license)}</div>`:""):v.licensed&&v.insured?"Yes":'<span style="color:var(--warn)">Check</span>'}</td>
     <td>${S.canWrite?`<button class="linkbtn" style="color:var(--ink);text-decoration:none" data-act="avail" data-id="${esc(v.id)}"><span class="dot ${v.available!==false?"on":""}"></span>${v.available!==false?"Yes":"Paused"}</button>`:v.available!==false?"Yes":"Paused"}</td>
     <td class="num">${S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected").length}</td>
     <td style="min-width:120px">${S.canWrite?(v.approved===false?`<button class="btn sm" data-act="vcard" data-id="${esc(v.id)}">Review</button>`:promoCell(v)):""}</td></tr>`).join("")}</tbody></table></div>
@@ -2254,6 +2257,7 @@ function newProjectForm(agent){
     <label class="field np-lp"><span>Expected list price ($)</span><input type="number" id="np-lp" name="listPrice" min="0" step="1000" inputmode="numeric" placeholder="1,250,000"></label></div>
     <div class="field"><span>Services needed</span><div class="checks">${CATS.map((c,i)=>`<label><input type="checkbox" id="np-cat-${i}" name="cat" value="${c}">${c}</label>`).join("")}</div>${moreChecks("cat","np-ms")}
       <div><button class="linkbtn" type="button" data-act="fullprep">Full-service listing prep (checks staging, cleaning, photography, landscaping and painting)</button></div></div>
+    ${typeof CLOSING!=="undefined"?`<div class="field"><span>Closing partners (optional)</span><div class="checks">${CLOSING.map((c,i)=>`<label><input type="checkbox" id="np-cl-${i}" name="closing" value="${c}">${c}</label>`).join("")}</div><small class="small">Lender, title, escrow or insurance contacts for your client. ${closingNote}</small></div>`:""}
     <div class="grid"><label class="field"><span>Something else? Separate with commas</span><input type="text" id="np-other" name="otherCats" placeholder="Anything not listed above"></label>
     ${PM_ON?`<label class="field"><span>Interested in project management?</span><select id="np-pmi" name="pmInterest"><option value="" selected disabled hidden>Choose one</option><option value="yes">Yes</option><option value="maybe">Maybe, tell me more</option><option value="no">Not right now</option></select></label>`:""}</div>
     <label class="field"><span>Anything I should know? Vendors see this too</span><textarea id="np-notes" name="notes" placeholder="Gate code, pets, what your client cares about most"></textarea></label>
@@ -2561,10 +2565,10 @@ document.addEventListener("submit",e=>{
   const f=e.target.closest("form[data-form]");if(!f)return;e.preventDefault();
   const fd=new FormData(f),k=f.dataset.form;
   if(k==="mytask")guard(async()=>{await col("mytasks").add({title:fd.get("title").trim(),projectId:fd.get("projectId")||"",due:fd.get("due")||"",done:false,createdAt:now()})},"Task added");
-  else if(k==="newproject"){const cats=[...new Set([...fd.getAll("cat"),...splitCats(fd.get("otherCats"))])];if(!cats.length){toast("Pick at least one service the home needs.");return}
+  else if(k==="newproject"){const cats=[...new Set([...fd.getAll("cat"),...splitCats(fd.get("otherCats"))])],closing=fd.getAll("closing").map(String);if(!cats.length&&!closing.length){toast("Pick at least one service or closing partner.");return}
     const auto=matchMode()==="auto",who=kind();
     guard(async()=>{const data={address:fd.get("address").trim(),area:fd.get("area"),agent:fd.get("agent").trim(),agentPhone:fd.get("agentPhone").trim(),agentEmail:fd.get("agentEmail").trim(),client:fd.get("client").trim(),clientType:fd.get("clientType"),
-      targetDate:fd.get("targetDate")||"",budget:fd.get("budget")||"",...(fd.get("sqft")?{sqft:Math.round(Number(fd.get("sqft")))}:{}),...(fd.get("listPrice")&&fd.get("clientType")!=="Buyer"?{listPrice:Number(fd.get("listPrice"))}:{}),brokerage:(fd.get("brokerage")||"").trim(),pmInterest:fd.get("pmInterest")||"",createdBy:kind(),categories:cats,notes:fd.get("notes").trim(),listed:false,createdAt:now(),members:kind()==="agent"&&fd.get("useTeam")?defaultTeamOf(fd.get("agent")).map(m=>({...m,addedBy:fd.get("agent"),addedAt:now(),fromDefault:true})):[]};
+      targetDate:fd.get("targetDate")||"",budget:fd.get("budget")||"",...(fd.get("sqft")?{sqft:Math.round(Number(fd.get("sqft")))}:{}),...(fd.get("listPrice")&&fd.get("clientType")!=="Buyer"?{listPrice:Number(fd.get("listPrice"))}:{}),brokerage:(fd.get("brokerage")||"").trim(),pmInterest:fd.get("pmInterest")||"",createdBy:kind(),categories:cats,...(closing.length?{closing}:{}),notes:fd.get("notes").trim(),listed:false,createdAt:now(),members:kind()==="agent"&&fd.get("useTeam")?defaultTeamOf(fd.get("agent")).map(m=>({...m,addedBy:fd.get("agent"),addedAt:now(),fromDefault:true})):[]};
       const ref=await col("projects").add(data);
       if(auto)for(const c of cats)for(const m of matchesFor({id:ref.id,...data},c,[],3))await col("bids").add({projectId:ref.id,category:c,vendorId:m.v.id,status:"requested",requestedAt:now(),introducedAt:now(),introducedBy:"auto",introNote:"",availChecked:false});
       S.openProject=ref.id;S.openForm=null},

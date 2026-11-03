@@ -2,7 +2,7 @@
 import pathlib, subprocess, html
 HERE = pathlib.Path(__file__).resolve().parent
 OUT = HERE.parent / "site" / "terms"; OUT.mkdir(parents=True, exist_ok=True)
-PAGES = {"vendor-terms.md": ("vendor.html", "Orbyt Vendor Terms of Use"), "agent-terms.md": ("agent.html", "Orbyt Agent Terms of Use"), "privacy.md": ("../privacy.html", "Orbyt Privacy Policy")}
+PAGES = {"vendor-terms.md": ("vendor.html", "Orbyt Vendor Terms of Use"), "agent-terms.md": ("agent.html", "Orbyt Agent Terms of Use"), "privacy.md": ("../privacy.html", "Orbyt Privacy Policy"), "partner-terms.md": ("partner.html", "Orbyt Closing Partner Terms")}
 TPL = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title>

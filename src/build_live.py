@@ -1,7 +1,7 @@
 import re, pathlib, sys
 HERE = pathlib.Path(__file__).resolve().parent
 src = (HERE / "orbyt-portal.html").read_text()
-live = (HERE / "live.js").read_text() + "\n" + (HERE / "homecard.js").read_text()
+live = (HERE / "live.js").read_text() + "\n" + (HERE / "homecard.js").read_text() + "\n" + (HERE / "partners.js").read_text()
 qrlib = (HERE / "vendor" / "qrcode-generator.min.js").read_text()
 L = src.split("\n")
 
@@ -84,10 +84,15 @@ sub("</style>\n</head>", """.note{white-space:pre-line}
 .htc h2{font-family:Jost,sans-serif;font-size:14pt;font-weight:500;margin:0 0 .04in;color:#F6F4EA;text-transform:none;letter-spacing:normal}
 .htc .hcband p{font-size:9pt;line-height:1.45;margin:0;color:#DDE3EA}.htc .hcurl{color:#E6D9A8;font-weight:500}
 .htc .hcperk{display:inline-block;margin-top:.07in;background:#E6D9A8;color:#18314F;font-size:8.5pt;font-weight:500;border-radius:999px;padding:3px 10px}
+.htc.hctight .hcband{height:1.52in}.htc .hctop .hcey{line-height:1.35}.htc.hctight .hcgrid{gap:.08in .22in}.htc .hcclgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 .22in}.htc .hcclgrid div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.htc .hcclgrid b{font-weight:500;color:#A8871F}
+.htc.fit1 .hcgrid{gap:.06in .22in}.htc.fit1 .hcn{font-size:10pt}.htc.fit1 .hcfrom{font-size:9.5pt}.htc.fit1 .hcmore{margin-top:.08in;padding-top:.05in}.htc.fit1 .hcband{height:1.45in}
+.htc.fit2 .hcw{display:none}.htc.fit3 .hcfoot span{display:none}.htc.fit3 h1{font-size:23pt}.htc.hctight .hcrule{margin:.12in .42in .1in}.htc.hctight .hcmore{margin-top:.1in;padding-top:.07in}
 .hcpagelogo{max-height:64px;max-width:240px;object-fit:contain;justify-self:start}
 .hcopts label{border-radius:14px}
 .availtoggle{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:10px}.availtoggle .seg{margin:0}
 .promotag{margin-top:4px}.callout.offer{border-color:var(--gold,#A8871F)}
+.introlist{display:grid;gap:10px}.introcard{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.introcard .note{margin:8px 0 0}
+.closingsec .closingrow{padding:10px 0;border-top:1px solid var(--line)}.closingsec .closingrow:first-of-type{border-top:0}.introrow{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin:4px 0}.introform{margin-top:8px}
 .candlinks{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 .myrevs{display:grid;gap:10px}.myrev{margin:0;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.myrev .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .hcpot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}

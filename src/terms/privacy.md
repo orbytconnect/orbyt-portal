@@ -1,6 +1,6 @@
 # Orbyt Privacy Policy
 
-*Last updated: October 25, 2026*
+*Last updated: November 3, 2026*
 
 This Privacy Policy explains how Orbyt LLC (\"Orbyt,\" \"we,\" \"us\") collects, uses, and shares personal information through our website at orbytconnect.com, our portal at portal.orbytconnect.com, and our emails (together, the \"Services\"). Orbyt runs a vendor network that introduces real estate agents to local vendors who help get homes ready to list, sell, or move into.
 
@@ -38,7 +38,7 @@ The Services are for real estate professionals and businesses. If you use the Se
 
 We do not sell personal information, and we do not share it for targeted advertising.
 
--   **Between agents and vendors.** Sharing is how the network works. When we introduce a vendor, we share the vendor\'s profile, contact details, pricing and reviews with the agent, and the property and project details the vendor needs, including the agent\'s contact details, with the vendor. Vendor reviews are shown to other agents.
+-   **Between agents and vendors.** Sharing is how the network works. When we introduce a vendor, we share the vendor\'s profile, contact details, pricing and reviews with the agent, and the property and project details the vendor needs, including the agent\'s contact details, with the vendor. Vendor reviews are shown to other agents. Closing partners (lenders, title, escrow and insurance providers) are handled the same way: when we introduce one, we share the agent\'s contact details and the property address with them, and the agent connects them with their client.
 -   **With people an agent chooses.** Agents can add teammates to a project and can share a private link that shows their client vendor names, prices, timelines and ratings.
 -   **With our service providers,** who handle information for us under contracts that limit how they use it: Supabase (database, sign-in and file storage), Netlify (portal hosting), Resend (email delivery), Wix (website hosting), and Google (email and documents). If we add online payments, a payment processor will handle card and bank details, and Orbyt will not store full card or bank account numbers.
 -   **For legal reasons,** such as to comply with law or a valid legal request, to enforce our terms, or to protect the rights and safety of Orbyt, our users, or others.

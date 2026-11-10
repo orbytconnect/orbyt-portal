@@ -1,6 +1,6 @@
 // Orbyt Portal service worker: makes the portal installable, and shows a friendly page when there's no connection.
 // Pages always come from the network, so every update reaches people right away. Data (Supabase) is never cached.
-const CACHE = "orbyt-shell-v2";
+const CACHE = "orbyt-shell-v3";
 const SHELL = ["/favicon.svg", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/manifest.webmanifest"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {
@@ -18,4 +18,23 @@ self.addEventListener("fetch", e => {
     return;
   }
   if (SHELL.includes(u.pathname)) e.respondWith(caches.match(r).then(m => m || fetch(r)));
+});
+
+// push notifications: show the alert, and open the portal when it's tapped
+self.addEventListener("push", e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { title: "Orbyt", body: e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(d.title || "Orbyt", {
+    body: d.body || "", icon: "/icon-192.png", badge: "/icon-192.png",
+    data: { url: d.url || "/" },
+  }));
+});
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || "/";
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(ws => {
+    const w = ws.find(c => new URL(c.url).origin === self.location.origin);
+    if (w) return w.focus().then(() => w.navigate ? w.navigate(url).catch(() => w) : w);
+    return self.clients.openWindow(url);
+  }));
 });

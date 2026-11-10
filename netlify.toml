@@ -1,4 +1,9 @@
 # Netlify publishes the site/ folder as is. There is no build step.
+# The one function, netlify/functions/push.mjs, sends push notifications.
 [build]
   publish = "site"
   command = ""
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

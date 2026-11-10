@@ -1167,6 +1167,7 @@ function orbytView(){
   let h=`<section class="hello"><div><h1>Hi Ashleigh</h1>
     <p>See every project at a glance, including what needs matching, who's bid and who's booked. Hand-pick the vendors you introduce for each home, add your own tasks, and book your client's pick.</p></div>
     ${S.canWrite&&!S.dbMissing?`<div class="actions"><button class="btn" data-act="newproject">New project</button></div>`:""}</section>`;
+  if(typeof adminPushCard==="function")h+=adminPushCard();
   const tm=S.config.timer;if(tm&&tm.startedAt){const mins=Math.max(0,Math.floor((Date.now()-Date.parse(tm.startedAt))/6e4)),tp=projById(tm.projectId);
     h+=`<div class="timerbar" role="status"><span><span class="dotlive" aria-hidden="true"></span>Timer running${tp?" on "+esc(tp.address):""} · ${esc((LOGTYPES.find(x=>x[0]===tm.type)||[,"Matching"])[1])} · <span class="num">${Math.floor(mins/60)}:${String(mins%60).padStart(2,"0")}</span></span>
       <span class="actions"><button class="btn sm" data-act="stoptimer">Stop and log</button><button class="linkbtn" data-act="canceltimer">Discard</button></span></div>`}

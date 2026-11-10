@@ -34,6 +34,7 @@ function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="b
   const common=[
     {id:"setup-bookmark",label:isPhone()?"Add Orbyt to your home screen":"Keep Orbyt one click away",hint:S.installEvt?"Install the Orbyt app in one tap. It gets its own icon and opens full screen, like any other app.":appSteps(),
       done:setupDone("setup-bookmark")||isStandalone(),act:(S.installEvt?a("Install the app","installapp"):a("Show me how","getapp"))+" "+done("setup-bookmark")},
+    ...(pushKey()&&S.pushState&&S.pushState!=="unsupported"?[{id:"setup-push",label:"Turn on notifications",hint:pushHint(),done:S.pushState==="on"||setupDone("setup-push"),act:pushButton()}]:[]),
     {id:"setup-emails",label:"Watch for Orbyt emails",hint:`${emails} come by email from ${HELP_EMAIL}. Add it to your contacts so nothing lands in spam.`,done:setupDone("setup-emails"),act:a("Got it","setupdone",'data-id="setup-emails"')}];
   if(r==="agent"){const agent=roleVal(),ps=S.projects.filter(p=>isOnProject(p,agent));
     const refd=w=>setupDone("setup-ref-"+w);
@@ -101,6 +102,7 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
   return `<div class="scrim" data-act="helpclose"></div><div class="vcard wide helpcard" role="dialog" aria-modal="true" aria-labelledby="hp-title">
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">How Orbyt works</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
     <div class="helpbody">${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}
+      ${pushKey()&&S.pushState&&S.pushState!=="unsupported"?sec("Notifications",`<p>${esc(pushHint())}</p>${pushButton()?`<p style="margin-top:8px">${pushButton()}</p>`:""}<p class="small" style="margin-top:6px">You get a notification for the same things Orbyt emails you about. Turn them on separately on each phone or computer you use.</p>`):""}
       ${sec("Emails to expect",`<p>Orbyt emails come from <span class="strong">${HELP_EMAIL}</span>. Add it to your contacts so nothing lands in spam.</p><ul>${emails.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`)}
       ${sec("Get the Orbyt app",`<p>Orbyt works like an app on your phone, with no app store needed. ${esc(appSteps())}</p><p style="margin-top:8px"><button class="btn sm" type="button" data-act="getapp">Get the app</button></p><p class="small" style="margin-top:6px">The first time you open it from your home screen, sign in once. Links in Orbyt emails open in your browser.</p>`)}
       <div class="callout" style="margin-top:6px"><div class="strong">Need help or found a bug?</div><p class="small" style="margin:4px 0 0">${contactLine()}</p></div></div></div>`}
@@ -122,3 +124,50 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="getap
 document.addEventListener("click",e=>{const t=e.target.closest('.refcard [data-act="refcopy"], .refcard a.btn');if(!t||kind()!=="agent")return;
   const id="setup-ref-"+(S.refWho||"agent");if(!setupDone(id))setTimeout(()=>{setupMark(id).then(()=>render()).catch(()=>{})},400)},false);
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(S.help||S.appInfo)){S.help=false;S.appInfo=false;render()}});
+
+/* ---------- push notifications: alerts on phones and computers ---------- */
+const pushKey=()=>{try{return((typeof settingVal==="function"?settingVal("push"):null)||{}).public_key||""}catch(_){return""}};
+const pushSupported=()=>"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
+const b64uToBytes=s=>{const p="=".repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(b,c=>c.charCodeAt(0))};
+const bytesToB64u=a=>btoa(String.fromCharCode(...a)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+// on (this device gets alerts), off, blocked (the browser said no), needs-app (iPhone: add to home screen first), unsupported
+async function pushCheck(){let st;
+  try{if(!pushSupported())st=isIOS()&&!isStandalone()?"needs-app":"unsupported";
+    else if(Notification.permission==="denied")st="blocked";
+    else{const reg=await navigator.serviceWorker.getRegistration();const sub=reg&&await reg.pushManager.getSubscription();st=sub?"on":"off"}}catch(_){st="unsupported"}
+  if(st!==S.pushState){S.pushState=st;if(S.session)render()}}
+async function pushOn(){const key=pushKey();if(!key)throw{message:"Notifications aren't switched on for Orbyt yet. Check back soon."};
+  const perm=await Notification.requestPermission();
+  if(perm!=="granted"){S.pushState=perm==="denied"?"blocked":"off";throw{message:perm==="denied"?"Notifications are blocked for Orbyt. Allow them in your browser or phone settings, then try again.":"No problem. You can turn them on anytime."}}
+  const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();
+  if(sub&&sub.options&&sub.options.applicationServerKey&&bytesToB64u(new Uint8Array(sub.options.applicationServerKey))!==key){await sub.unsubscribe();sub=null}
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64uToBytes(key)});
+  const j=sub.toJSON();
+  fail((await sb.from("push_subscriptions").upsert({user_id:S.uid,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,user_agent:navigator.userAgent.slice(0,200)},{onConflict:"endpoint"})).error,"notifications");
+  S.pushState="on";if(typeof setupMark==="function")try{await setupMark("setup-push")}catch(_){}}
+async function pushOff(){const reg=await navigator.serviceWorker.getRegistration();const sub=reg&&await reg.pushManager.getSubscription();
+  if(sub){const ep=sub.endpoint;await sub.unsubscribe();await sb.from("push_subscriptions").delete().eq("endpoint",ep)}S.pushState="off"}
+// Ashleigh, once: make the signing key pair in this browser; the private half goes straight to Supabase's Vault
+async function pushSetup(){const kp=await crypto.subtle.generateKey({name:"ECDSA",namedCurve:"P-256"},true,["sign","verify"]);
+  const pub=new Uint8Array(await crypto.subtle.exportKey("raw",kp.publicKey)),jwk=await crypto.subtle.exportKey("jwk",kp.privateKey);
+  const{error}=await sb.rpc("push_setup",{p_public:bytesToB64u(pub),p_private:jwk.d});
+  if(error){console.error(error);throw{message:/function|does not exist|schema cache/i.test(error.message||"")?"Run update 18 in Supabase first, then try again.":"That didn't save. Try again in a minute."}}
+  await S.db.reload()}
+function pushHint(){return({
+  off:"Get an alert on this device when something needs you, like a new bid request, a quote, or an introduction.",
+  blocked:"Notifications are blocked for Orbyt on this device. Allow them in your browser or phone settings, then come back and turn them on.",
+  "needs-app":"On iPhone, notifications work in the Orbyt app. Add Orbyt to your home screen first, then open it from there and turn them on.",
+  on:"This device gets an alert whenever Orbyt emails you."})[S.pushState]||""}
+function pushButton(){return S.pushState==="off"?`<button class="btn ghost sm" type="button" data-act="pushon">Turn on</button>`
+  :S.pushState==="needs-app"?`<button class="btn ghost sm" type="button" data-act="getapp">Show me how</button>`
+  :S.pushState==="on"?`<button class="linkbtn" type="button" data-act="pushoff">Turn off on this device</button>`:""}
+// Ashleigh's dashboard: set up once, then turn on per device
+function adminPushCard(){if(!S.canWrite)return"";const key=pushKey();
+  if(!key)return `<div class="callout pushcard" style="margin-bottom:18px"><div><span class="strong">Push notifications aren't set up yet.</span><div class="small">One click creates Orbyt's notification key and keeps it in Supabase. Then you, agents and vendors can turn on alerts. Run update 18 first.</div></div><button class="btn sm" type="button" data-act="pushsetup">Set up push notifications</button></div>`;
+  if(S.pushState==="on"||S.pushState==="unsupported"||!S.pushState||setupDone("setup-push-dismiss"))return"";
+  return `<div class="callout pushcard" style="margin-bottom:18px"><div><span class="strong">Get alerts on this device</span><div class="small">${esc(S.pushState==="off"?"New projects, sign-ups, special offer requests and anything else Orbyt emails you, as a notification here.":pushHint())}</div></div><div class="actions">${pushButton()}<button class="linkbtn" type="button" data-act="setupdone" data-id="setup-push-dismiss">Not now</button></div></div>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="pushon"],[data-act="pushoff"],[data-act="pushsetup"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();const a=t.dataset.act;
+  if(a==="pushon")guard(pushOn,"Notifications are on for this device.");
+  else if(a==="pushoff")guard(pushOff,"Notifications are off for this device.");
+  else guard(async()=>{await pushSetup();await pushCheck()},"Push notifications are set up. Turn them on for this device next.")},true);
+if(typeof window!=="undefined"){setTimeout(()=>{pushCheck()},800);document.addEventListener("visibilitychange",()=>{if(!document.hidden)pushCheck()})}

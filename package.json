@@ -1,0 +1,9 @@
+{
+  "name": "orbyt-portal",
+  "private": true,
+  "description": "Orbyt Portal. The site is published from site/ with no build step; this file only brings in what the push notification sender needs.",
+  "type": "module",
+  "dependencies": {
+    "web-push": "3.6.7"
+  }
+}

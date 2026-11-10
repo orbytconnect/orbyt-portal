@@ -21,16 +21,43 @@ function partnerListing(v,area){const tel=String(v.phone||"").replace(/[^\d+]/g,
     <div class="small">${[v.phone?`<a href="tel:${esc(tel)}">${esc(v.phone)}</a>`:"",v.email?`<a href="mailto:${esc(v.email)}">${esc(v.email)}</a>`:"",web?`<a href="${esc(web)}" target="_blank" rel="noopener">Website</a>`:"",vendorDocs(v.id)].filter(Boolean).join(" · ")}</div>
     <div class="small">Works in ${esc(areasShort(v.areas))}${area&&(v.areas||[]).includes(area)?` · <span class="strong">covers ${esc(String(area).split(" / ")[0])}</span>`:""}</div></div>`}
 // listing status: free for 90 days from agreeing, then $20 a month
-function listingAccept(v){const a=(D.terms_acceptances||[]).filter(x=>x.user_id===v.userId&&String(x.version||"").startsWith("partner-terms-")&&x.version>="partner-terms-2026-11-10").sort((x,y)=>String(x.accepted_at).localeCompare(String(y.accepted_at)))[0];return a?String(a.accepted_at).slice(0,10):""}
-function listingStatus(v){const acc=listingAccept(v),today=dayKey();
-  if(!acc)return{key:"agree",label:"Hasn't agreed to the marketing agreement yet"};
-  const free=addDaysIso(acc+"T12:00:00",LISTING_FREE_DAYS),paid=v.listingPaidThrough||"";
-  if(today<=free)return{key:"free",label:`Free until ${fmtDate(free)}`,free,paid};
-  if(paid&&paid>=today)return{key:"paid",label:`Paid through ${fmtDate(paid)}`,free,paid};
-  return{key:"due",label:`$${LISTING_FEE} due${paid?`, paid through ${fmtDate(paid)}`:` since ${fmtDate(free)}`}`,free,paid}}
+function listingAccept(v){if(!v.userId)return"";const a=(D.terms_acceptances||[]).filter(x=>x.user_id===v.userId&&String(x.version||"").startsWith("partner-terms-")&&x.version>="partner-terms-2026-11-10").sort((x,y)=>String(x.accepted_at).localeCompare(String(y.accepted_at)))[0];return a?String(a.accepted_at).slice(0,10):""}
+function listingStatus(v){const acc=listingAccept(v),today=dayKey(),b=billingOf(v.id);
+  if(b.billing_status==="canceled")return{key:"canceled",label:"Canceled"+(b.billing_cancel_at?` ${fmtDate(b.billing_cancel_at)}`:""),b};
+  if(!acc)return{key:"agree",label:"Hasn't agreed to the marketing agreement yet",b};
+  const free=addDaysIso(acc+"T12:00:00",LISTING_FREE_DAYS),paid=v.listingPaidThrough||"",card=hasCard(b);
+  if(b.billing_status==="past_due")return{key:"due",label:"Card declined",free,paid,b};
+  if(today<=free)return{key:"free",label:`Free until ${fmtDate(free)}${card?" · card on file":""}`,free,paid,b};
+  if(paid&&paid>=today)return{key:"paid",label:`Paid through ${fmtDate(paid)}`,free,paid,b};
+  if(card&&b.billing_status==="active"&&!paid)return{key:"paid",label:"Paid by card",free,paid,b};
+  return{key:"due",label:`$${LISTING_FEE} due${paid?`, paid through ${fmtDate(paid)}`:` since ${fmtDate(free)}`}`,free,paid,b}}
+
+/* ---------- card payments (Stripe) ---------- */
+const billingOn=()=>{try{return!!((typeof settingVal==="function"?settingVal("billing"):null)||{}).enabled}catch(_){return false}};
+const billingOf=vid=>(Array.isArray(D.vendor_billing)?D.vendor_billing:[]).find(x=>x.vendor_id===vid)||{};
+const hasCard=b=>!!(b&&b.stripe_subscription_id&&b.billing_status!=="canceled");
+async function payCall(fn,body){const{data:{session}}=await sb.auth.getSession();if(!session)throw{message:"Sign in again, then try once more."};
+  const r=await fetch("/.netlify/functions/"+fn,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify(body||{})});
+  const j=await r.json().catch(()=>({}));if(!r.ok||!j.url)throw{message:j.error||"That didn't work. Try again in a minute."};location.href=j.url}
+const startCheckout=kind=>payCall("stripe-checkout",{kind});
+const openBilling=()=>payCall("stripe-portal");
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="paycard"],[data-act="billingportal"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  t.disabled=true;const old=t.textContent;t.textContent="Opening Stripe...";
+  (t.dataset.act==="paycard"?startCheckout(t.dataset.kind||"listing"):openBilling()).catch(err=>{t.disabled=false;t.textContent=old;toast(err.message||"That didn't work.")})},true);
+// the partner's card, in their portal
+function billingBlock(v){if(!billingOn())return"";const b=billingOf(v.id),st=listingStatus(v),first=st.free?addDaysIso(st.free+"T12:00:00",1):"";
+  const firstCharge=[first,v.listingPaidThrough?addDaysIso(v.listingPaidThrough+"T12:00:00",1):""].sort().pop();
+  const box=(cls,txt,btn)=>`<div class="callout ${cls}" style="margin:10px 0 0"><p style="margin:0">${txt}</p><div class="actions" style="margin-top:8px">${btn}</div></div>`;
+  if(b.billing_status==="canceled")return box("","<span class=\"strong\">Your listing is canceled</span>, so agents don't see it. You can restart it anytime.",`<button class="btn sm" data-act="paycard" data-kind="listing">Restart my listing</button>`);
+  if(b.billing_status==="past_due")return box("warn","<span class=\"strong\">Your last payment didn't go through.</span> Update your card to keep your listing in the directory.",`<button class="btn sm" data-act="billingportal">Update my card</button>`);
+  if(!hasCard(b))return box("",`<span class="strong">Add your card to keep your listing after your launch offer.</span> You won't be charged until ${esc(fmtDate(firstCharge||dayKey()))}, then it's $${LISTING_FEE} a month. Cancel anytime.`,`<button class="btn sm" data-act="paycard" data-kind="listing">Add my card</button>`);
+  const when=b.billing_cancel_at?`Your listing is set to end ${esc(fmtDate(b.billing_cancel_at))}.`:st.key==="free"?`Your first $${LISTING_FEE} charge is on ${esc(fmtDate(firstCharge))}.`:`$${LISTING_FEE} a month${v.listingPaidThrough?`, paid through ${esc(fmtDate(v.listingPaidThrough))}`:""}.`;
+  return `<div class="actions" style="margin:10px 0 0;align-items:center"><span class="small"><span class="strong">Card on file.</span> ${when}</span><button class="btn ghost sm" data-act="billingportal">Manage billing</button></div>`}
 
 /* sign-up: portal.orbytconnect.com/join/partner */
+const CARD_NOTE=" After you confirm your email, you'll add a card to finish. It isn't charged until your 90 days are up.";
 function partnerSignupView(){
+  if(S.billPublic===undefined){S.billPublic=false;sb.rpc("billing_enabled").then(({data})=>{if(data){S.billPublic=true;const el=document.getElementById("su-cardnote");if(el)el.textContent=CARD_NOTE}},()=>{})}
   const ck=(name,list,hint)=>`<div class="checks">${list.map((x,i)=>`<label><input type="checkbox" id="su-${name}-${i}" name="${name}" value="${esc(x)}">${esc(x)}${hint&&hint[x]?`<span class="small"> · ${esc(hint[x])}</span>`:""}</label>`).join("")}</div>`;
   return `<section class="auth one"><div class="authcard"><div class="eyebrow">For closing partners</div>
     <h1>Lenders, title, escrow and insurance</h1>
@@ -52,7 +79,7 @@ function partnerSignupView(){
       <div class="grid"><label class="field"><span>Create a password (8+ characters)</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}
       <div class="reviewagree"><div class="eyebrow">Review and agree</div>
-        <h2>Your marketing listing</h2><p class="small" style="margin:0">Free for your first 90 days, then $20 a month, billed monthly. It covers your directory listing, rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events. The fee is flat and never depends on contacts, loans, policies or closings. Cancel anytime.</p>
+        <h2>Your marketing listing</h2><p class="small" style="margin:0">Free for your first 90 days, then $20 a month, billed monthly. It covers your directory listing, rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events. The fee is flat and never depends on contacts, loans, policies or closings. Cancel anytime.<span id="su-cardnote">${S.billPublic?CARD_NOTE:""}</span></p>
         ${keyHighlights("partner")}
         <h2>Your business</h2>${bizFields("su")}
         <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink("partner")}.</span></label>
@@ -77,7 +104,7 @@ async function partnerSignup(f,fd,email,pass,pass2,done,btn){
   const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
   if(error)return done(friendlyAuthError(error));
   if(data.session){S.authErr="";await enter(data.user);return}
-  S.pendingEmail=email;S.authMode="checkemail";S.authErr="";if(btn)btn.disabled=false;render()}
+  S.pendingEmail=email;S.pendingPartner=true;S.authMode="checkemail";S.authErr="";if(btn)btn.disabled=false;render()}
 
 /* the partner's dashboard: their listing */
 function partnerView(v){
@@ -86,11 +113,11 @@ function partnerView(v){
     <p>${v.approved===false?"Once it's live, agents in the network can find your listing in the Orbyt closing partner directory.":"Your listing is live in the Orbyt closing partner directory, where agents in the network can find you and your business overview."}</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${ratingHtml(v.id)}</div></section>`;
   if(typeof setupCard==="function"&&v.approved!==false)h+=setupCard();
-  if(v.approved!==false)h+=`<section class="section"><div class="sechead"><h2>Your listing</h2><span class="pill ${st.key==="due"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span></div>
-    <p class="small" style="margin:0 0 8px">Here's how agents see you. Your first ${LISTING_FREE_DAYS} days are free, then your marketing listing is $${LISTING_FEE} a month. Cancel anytime by emailing ashleigh@orbytconnect.com.</p>
+  if(v.approved!==false)h+=`<section class="section"><div class="sechead"><h2>Your listing</h2><span class="pill ${st.key==="due"||st.key==="canceled"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span></div>
+    <p class="small" style="margin:0 0 8px">Here's how agents see you. Your first ${LISTING_FREE_DAYS} days are free with our launch offer, then your marketing listing is $${LISTING_FEE} a month. ${billingOn()?"Cancel anytime from Manage billing.":"Cancel anytime by emailing ashleigh@orbytconnect.com."}</p>${billingBlock(v)}
     ${partnerListing(v)}<p class="small" style="margin:8px 0 0">Your listing also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p></section>`;
   if(past.length)h+=`<details class="fold" style="margin-top:12px"><summary><span class="foldtitle">Earlier introductions</span><span class="pill">${past.length}</span></summary><div class="foldbody"><div class="introlist">${past.map(i=>`<div class="introcard"><div class="eyebrow">${esc(i.category)} · ${esc(ago(i.introduced_at))}</div><div class="strong">${esc(i.agent_name||"Agent")}</div><div class="small">${esc(i.address||"")}</div></div>`).join("")}</div></div></details>`;
-  if(v.approved===false)return h;
+  if(v.approved===false)return h+(billingOn()?`<section class="section"><h2>Your listing</h2>${billingBlock(v)}</section>`:"");
   const parts=[fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false),
     fold("port","Business overview and portfolio","","Shown on your listing",portfolioCard(v),false)];
   if(typeof reviewInviteCard==="function"){const sent=typeof rrFor==="function"?rrFor(v.id):[];parts.push(fold("rr","Reviews from agents you've worked with",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Invite agents you've worked with",reviewInviteCard(v),!!S.rrMore))}
@@ -126,14 +153,16 @@ function closingDirectory(){const f=S.cdir||{c:"",area:""};
 document.addEventListener("change",e=>{const t=e.target.closest("[data-cdir]");if(!t)return;S.cdir={...(S.cdir||{c:"",area:""}),[t.dataset.cdir]:t.value};render()});
 
 /* ---------- Ashleigh: listing fees (kept apart from vendor job fees) ---------- */
-const listingPays=()=>Array.isArray(D.listing_payments)?D.listing_payments:[];
+const allPays=()=>Array.isArray(D.listing_payments)?D.listing_payments:[];
+const listingPays=()=>allPays().filter(x=>(x.kind||"listing")==="listing");
+const promoPays=()=>allPays().filter(x=>x.kind==="promo");
 const paysFor=vid=>listingPays().filter(x=>x.vendor_id===vid).sort((a,b)=>String(b.period_end).localeCompare(String(a.period_end)));
 const addMonthIso=(iso,n)=>{const d=new Date(iso+"T12:00:00"),day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));return d.toISOString().slice(0,10)};
 // the next month to pay for starts the day after their free period or their last paid month, whichever is later
 function nextPeriod(v){const st=listingStatus(v);if(st.key==="agree")return null;
   const cover=[st.free||"",v.listingPaidThrough||""].sort().pop(),start=addDaysIso(cover+"T12:00:00",1);return{start,end:addDaysIso(addMonthIso(start,1)+"T12:00:00",-1)}}
 const partnersAll=()=>S.vendors.filter(v=>isPartner(v));
-const partnersLive=()=>partnersAll().filter(v=>v.approved!==false);
+const partnersLive=()=>partnersAll().filter(v=>v.approved!==false&&billingOf(v.id).billing_status!=="canceled");
 function listingDue(){return partnersLive().filter(v=>listingStatus(v).key==="due").map(v=>{const st=listingStatus(v),np=nextPeriod(v);
   const months=Math.max(1,Math.ceil((Date.parse(dayKey())-Date.parse(np.start))/(30.4*864e5)));return{v,st,np,months,amt:months*LISTING_FEE}})}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="listingpaid"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
@@ -144,17 +173,18 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="listi
     await S.db.reload()},`${v.name}: $${LISTING_FEE} recorded, paid through ${fmtDate(np.end)}.`)},true);
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="listingundo"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   guard(async()=>{fail((await sb.from("listing_payments").delete().eq("id",t.dataset.id)).error,"listing payment");await S.db.reload()},"Payment removed.")},true);
-function listingCell(v){const st=listingStatus(v);
-  return `<div class="small ${st.key==="due"?"warntext":""}">${esc(st.label)}</div>${st.key!=="agree"&&S.canWrite?`<button class="linkbtn" style="white-space:nowrap" data-act="listingpaid" data-id="${esc(v.id)}">Mark a month paid</button>`:""}`}
+function listingCell(v){const st=listingStatus(v),b=st.b||{};
+  const card=billingOn()||b.stripe_customer_id?`<div class="small">${b.billing_status==="canceled"?"Stripe: canceled":b.billing_status==="past_due"?'<span class="warntext">Stripe: card declined</span>':hasCard(b)?(b.billing_cancel_at?`Card on file · ends ${esc(fmtDate(b.billing_cancel_at))}`:"Card on file"):"No card yet"}</div>`:"";
+  return `<div class="small ${st.key==="due"||st.key==="canceled"?"warntext":""}">${esc(st.label)}</div>${card}${st.key!=="agree"&&st.key!=="canceled"&&S.canWrite?`<button class="linkbtn" style="white-space:nowrap" data-act="listingpaid" data-id="${esc(v.id)}">Mark a month paid</button>`:""}`}
 
 /* Ashleigh's Closing partners tab: its own directory, apart from vendors */
 function partnersAdminView(){const all=partnersAll().sort((a,b)=>a.name.localeCompare(b.name)),f=S.pf||{c:"",st:"",q:""},q=(f.q||"").trim().toLowerCase();
   const pend=all.filter(v=>v.approved===false);
-  const keyOf=v=>v.approved===false?"review":v.available===false?"hidden":listingStatus(v).key;
-  const vs=all.filter(v=>(!q||(v.name+" "+(v.contactName||"")+" "+(v.email||"")).toLowerCase().includes(q))&&(!f.c||vsv(v).includes(f.c))&&(!f.st||keyOf(v)===f.st));
+  const keyOf=v=>{const k=listingStatus(v).key;return k==="canceled"?k:v.approved===false?"review":v.available===false?"hidden":k};
+  const vs=all.filter(v=>(!q||(v.name+" "+(v.contactName||"")+" "+(v.email||"")).toLowerCase().includes(q))&&(!f.c||vsv(v).includes(f.c))&&(!f.st||(f.st==="nocard"?!hasCard(billingOf(v.id)):keyOf(v)===f.st)));
   const live=partnersLive(),paying=live.filter(v=>listingStatus(v).key==="paid").length,free=live.filter(v=>listingStatus(v).key==="free").length,due=listingDue();
   const sel=(id,k,label,opts)=>`<label class="field"><span>${label}</span><select id="${id}" data-pf="${k}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${f[k]===v?"selected":""}>${esc(t)}</option>`).join("")}</select></label>`;
-  let h=`<div class="stats" style="--n:4;margin-bottom:18px">
+  let h=(S.canWrite?billingSetupCard():"")+`<div class="stats" style="--n:4;margin-bottom:18px">
     <div class="stat static"><span class="eyebrow">Listed partners</span><b class="num">${live.length}</b><span class="small">${live.filter(v=>v.available!==false).length} showing to agents</span></div>
     <div class="stat static"><span class="eyebrow">Paying</span><b class="num">${paying}</b><span class="small">${money2(paying*LISTING_FEE)} a month</span></div>
     <div class="stat static"><span class="eyebrow">In free period</span><b class="num">${free}</b><span class="small">First ${LISTING_FREE_DAYS} days</span></div>
@@ -165,7 +195,7 @@ function partnersAdminView(){const all=partnersAll().sort((a,b)=>a.name.localeCo
   h+=`<section class="section"><div class="sechead"><div><h2>Closing partner directory</h2><span class="small">Lenders, title, escrow and insurance. Agents see listed partners in a rotating order with the advertising note.</span></div></div>
     <div class="rfilters"><label class="field rsearch"><span>Search</span><input type="text" id="pf-q" data-pf="q" value="${esc(f.q||"")}" placeholder="Name or contact"></label>
       ${sel("pf-c","c","Service",[["","All services"],...CLOSING.map(c=>[c,c])])}
-      ${sel("pf-st","st","Status",[["","Everyone"],["review","Needs review"],["free","Free period"],["paid","Paid"],["due","Fee due"],["hidden","Hidden by partner"],["agree","Hasn't accepted the agreement"]])}</div>
+      ${sel("pf-st","st","Status",[["","Everyone"],["review","Needs review"],["free","Free period"],["paid","Paid"],["due","Fee due"],["hidden","Hidden by partner"],["canceled","Canceled"],["nocard","No card on file"],["agree","Hasn't accepted the agreement"]])}</div>
     ${vs.length?`<div class="tablewrap"><table><thead><tr><th>Partner</th><th>Service</th><th>Areas</th><th>License</th><th>Listing</th><th>Fee</th></tr></thead><tbody>${vs.map(v=>`<tr>
       <td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${v.approved===false?' <span class="pill late">Needs review</span>':""}${agreementPill(v)}<div class="small">${esc([v.contactName,vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div><div class="small">${ratingHtml(v.id)}</div></td>
       <td>${esc(vsv(v).join(", "))}</td><td class="small" style="max-width:200px" title="${esc((v.areas||[]).join(", "))}">${esc(areasShort(v.areas))}</td>
@@ -191,20 +221,50 @@ function listingInvoicing(){if(!partnersAll().length&&!listingPays().length)retu
     <h3 style="margin:16px 0 8px">Due now</h3>${due.length?`<div class="tablewrap"><table><thead><tr><th>Partner</th><th>Since</th><th>Owed</th><th></th></tr></thead><tbody>${due.map(x=>`<tr><td><button class="vlink strong" data-act="vcard" data-id="${esc(x.v.id)}">${esc(x.v.name)}</button><div class="small">${esc([x.v.contactName,vEmail(x.v)].filter(Boolean).join(" · "))}</div></td>
       <td class="num">${fmtDate(x.np.start)}</td><td class="money">${money2(x.amt)}<div class="small">${x.months} ${x.months===1?"month":"months"}</div></td><td>${S.canWrite?`<button class="btn sm" data-act="listingpaid" data-id="${esc(x.v.id)}">Mark a month paid</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="small">Nothing due.</p>`}
     <h3 style="margin:18px 0 8px">Coming up in the next 30 days</h3>${upcoming.length?`<div class="tablewrap"><table><thead><tr><th>Partner</th><th>Next month starts</th><th>Why</th><th>Amount</th></tr></thead><tbody>${upcoming.map(x=>`<tr><td>${esc(x.v.name)}</td><td class="num">${fmtDate(x.np.start)}</td><td class="small">${x.st.key==="free"?"Free period ends":"Renewal"}</td><td class="money">${money2(LISTING_FEE)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="small">No listing fees start in the next 30 days.</p>`}
-    ${pays.length?`<h3 style="margin:18px 0 8px">Payments recorded</h3><div class="tablewrap"><table><thead><tr><th>Partner</th><th>Covers</th><th>Recorded</th><th>Amount</th><th></th></tr></thead><tbody>${pays.slice(0,S.allLp?999:8).map(x=>{const v=vendorById(x.vendor_id),last=paysFor(x.vendor_id)[0];return `<tr><td>${esc(v?v.name:"Partner")}</td><td class="small">${fmtDate(x.period_start)} to ${fmtDate(x.period_end)}</td><td class="num">${fmtDate(String(x.paid_at).slice(0,10))}</td><td class="money">${money2(Number(x.amount||0))}</td>
-      <td>${S.canWrite&&last&&last.id===x.id?`<button class="linkbtn" data-act="listingundo" data-id="${esc(x.id)}">Undo</button>`:""}</td></tr>`}).join("")}</tbody></table></div>${pays.length>8?`<button class="linkbtn" data-act="alllp">${S.allLp?"Show fewer":"Show all "+pays.length}</button>`:""}`:""}</section>`}
+    ${pays.length?`<h3 style="margin:18px 0 8px">Payments recorded</h3><div class="tablewrap"><table><thead><tr><th>Partner</th><th>Covers</th><th>Recorded</th><th>Amount</th><th></th></tr></thead><tbody>${pays.slice(0,S.allLp?999:8).map(x=>{const v=vendorById(x.vendor_id),last=paysFor(x.vendor_id).filter(y=>(y.kind||"listing")==="listing")[0];return `<tr><td>${esc(v?v.name:"Partner")}</td><td class="small">${fmtDate(x.period_start)} to ${fmtDate(x.period_end)}</td><td class="num">${fmtDate(String(x.paid_at).slice(0,10))}<div class="small">${x.source==="stripe"?"Card (Stripe)":"Recorded by you"}</div></td><td class="money">${money2(Number(x.amount||0))}</td>
+      <td>${S.canWrite&&last&&last.id===x.id&&x.source!=="stripe"?`<button class="linkbtn" data-act="listingundo" data-id="${esc(x.id)}">Undo</button>`:""}</td></tr>`}).join("")}</tbody></table></div>${pays.length>8?`<button class="linkbtn" data-act="alllp">${S.allLp?"Show fewer":"Show all "+pays.length}</button>`:""}`:""}</section>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="alllp"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();S.allLp=!S.allLp;render()},true);
 
 /* money for forecasts and reports: listing payments recorded, and the next 12 months of expected fees */
 function listingMoneyItems(){const items=[],today=dayKey();
+  for(const x of promoPays()){const v=vendorById(x.vendor_id);items.push({date:String(x.paid_at).slice(0,10),stage:"paid",sub:"Special offer fee, paid",amt:Number(x.amount||0),label:`${v?v.name:"Vendor"} · Special offer`,listing:true})}
   for(const x of listingPays()){const v=vendorById(x.vendor_id);items.push({date:String(x.paid_at).slice(0,10),stage:"paid",sub:"Closing partner marketing fee, paid",amt:Number(x.amount||0),label:`${v?v.name:"Closing partner"} · Marketing fee`,listing:true})}
   for(const v of partnersLive()){let np=nextPeriod(v);if(!np)continue;
     for(let i=0;i<12;i++){items.push({date:np.start<today?today:np.start,stage:"exp",sub:np.start<today?"Closing partner marketing fee, due":"Closing partner marketing fee",amt:LISTING_FEE,est:np.start>=today,label:`${v.name} · Marketing fee`,listing:true});
       const s=addMonthIso(np.start,1);np={start:s}}}
   return items}
 const listingRev=(a,b)=>listingPays().filter(x=>inR(String(x.paid_at).slice(0,10),a,b)).reduce((s,x)=>s+Number(x.amount||0),0);
+const promoRev=(a,b)=>promoPays().filter(x=>inR(String(x.paid_at).slice(0,10),a,b)).reduce((s,x)=>s+Number(x.amount||0),0);
 
 /* Ashleigh's dashboard: fees due */
 function listingAlerts(){return listingDue().map(x=>{const vt=typeof vTo==="function"?vTo(x.v):null;
   return{id:"listdue-"+x.v.id+"-"+x.np.start,cls:"k-warn",label:"Marketing fee due",title:`${x.v.name} owes ${money2(x.amt)} in closing partner marketing fees`,meta:`Due since ${fmtDate(x.np.start)}`,when:x.np.start,act:{a:"tab",tab:"partners",label:"Open"},auto:false,resurface:7,
     nudge:vt?{to:vt,subject:"Your Orbyt closing partner listing",text:`Hi ${vt.greet}, it's Ashleigh with Orbyt. A friendly reminder that the $${LISTING_FEE} monthly fee for your Orbyt closing partner listing is due. Let me know if you have any questions, or if you'd like to cancel. Thank you!`}:null}})}
+
+/* invoicing: special offer payments, kept apart from job fees and listings */
+function promoInvoicing(){const pays=promoPays().slice().sort((a,b)=>String(b.paid_at).localeCompare(String(a.paid_at)));if(!pays.length)return"";
+  const monthStart=dayKey().slice(0,8)+"01",thisMonth=pays.filter(x=>String(x.paid_at).slice(0,10)>=monthStart).reduce((s,x)=>s+Number(x.amount||0),0);
+  return `<section class="section"><h2>Special offer fees</h2><p class="small" style="margin:4px 0 12px">$20 per 30-day special offer. ${money2(thisMonth)} collected this month.</p>
+    <div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Offer runs</th><th>Paid</th><th>Amount</th></tr></thead><tbody>${pays.slice(0,S.allPp?999:8).map(x=>{const v=vendorById(x.vendor_id);return `<tr><td>${esc(v?v.name:"Vendor")}${x.note?`<div class="small">${esc(x.note)}</div>`:""}</td><td class="small">${fmtDate(x.period_start)} to ${fmtDate(x.period_end)}</td><td class="num">${fmtDate(String(x.paid_at).slice(0,10))}<div class="small">${x.source==="stripe"?"Card (Stripe)":"Recorded by you"}</div></td><td class="money">${money2(Number(x.amount||0))}</td></tr>`}).join("")}</tbody></table></div>
+    ${pays.length>8?`<button class="linkbtn" data-act="allpp">${S.allPp?"Show fewer":"Show all "+pays.length}</button>`:""}</section>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="allpp"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();S.allPp=!S.allPp;render()},true);
+
+/* Ashleigh: switch on card payments */
+function billingSetupCard(){const cfg=(typeof settingVal==="function"?settingVal("billing"):null)||{},on=!!cfg.enabled,secret=!!cfg.secret_set_at;
+  return `<details class="fold" style="margin-bottom:16px" ${S.billOpen||!on?"open":""}><summary><span class="foldtitle">Card payments (Stripe)</span><span class="pill ${on?"set":""}">${on?"On":"Off"}</span></summary><div class="foldbody">
+    <p class="small" style="margin:0 0 8px">Closing partners add a card when they sign up and Stripe charges $${LISTING_FEE} a month after their launch offer. Vendors pay $20 by card to run a special offer. Payments land in your Stripe account and show up here automatically.</p>
+    <ol class="small" style="margin:0 0 10px;padding-left:18px;line-height:1.7">
+      <li>${secret?`Shared secret created ${esc(fmtDate(String(cfg.secret_set_at).slice(0,10)))}.`:"Create the shared secret below, then copy it."} ${S.canWrite?`<button class="linkbtn" data-act="billsecret">${secret?"Make a new one":"Create the shared secret"}</button>`:""}</li>
+      <li>In Netlify, add the three settings from your runbook: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET and ORBYT_BILLING_SECRET (the shared secret). Then redeploy.</li>
+      <li>In Stripe, add the webhook for https://portal.orbytconnect.com/.netlify/functions/stripe-webhook and turn on the customer billing page.</li>
+      <li>Turn on card payments here, then test with Stripe's test card 4242 4242 4242 4242.</li></ol>
+    ${S.billSecret?`<div class="callout" style="margin:0 0 10px"><p class="small" style="margin:0 0 6px"><span class="strong">Your shared secret.</span> Paste it into Netlify as ORBYT_BILLING_SECRET now. It won't be shown again.</p>
+      <div class="actions" style="align-items:center"><input type="text" id="bill-secret" readonly value="${esc(S.billSecret)}" style="flex:1;min-width:220px;font-family:monospace;font-size:13px"><button class="btn ghost sm" data-act="billcopy">Copy</button></div></div>`:""}
+    ${S.canWrite?`<div class="actions"><button class="btn sm ${on?"ghost":""}" data-act="billtoggle" data-v="${on?"0":"1"}">${on?"Turn off card payments":"Turn on card payments"}</button></div>`:""}</div></details>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="billsecret"],[data-act="billtoggle"],[data-act="billcopy"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();S.billOpen=true;
+  if(t.dataset.act==="billcopy"){const el=document.getElementById("bill-secret");if(el){el.select();try{navigator.clipboard.writeText(el.value);toast("Copied")}catch(_){document.execCommand("copy")}}return}
+  if(t.dataset.act==="billsecret"){const b=new Uint8Array(32);crypto.getRandomValues(b);const sec=[...b].map(x=>x.toString(16).padStart(2,"0")).join("");
+    if((settingVal("billing")||{}).secret_set_at&&!confirm("Make a new shared secret? You'll need to update ORBYT_BILLING_SECRET in Netlify too."))return;
+    guard(async()=>{fail((await sb.rpc("billing_setup",{p_secret:sec})).error,"payments setup");S.billSecret=sec;await S.db.reload()},"Shared secret created. Copy it into Netlify.");return}
+  const on=t.dataset.v==="1";
+  guard(async()=>{const cur=settingVal("billing")||{};fail((await sb.from("settings").update({value:{...cur,enabled:on}}).eq("key","billing")).error,"payments");await S.db.reload()},on?"Card payments are on.":"Card payments are off.")},true);

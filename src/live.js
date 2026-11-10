@@ -11,7 +11,7 @@ const portalHome=()=>location.origin+"/";
 const D={};                       // raw rows, by table
 const TABLES=["profiles","vendors","vendor_admin","vendor_private","vendor_notes","projects","project_private","project_admin",
   "project_members","default_shares","bids","invoices","reviews","favorites","task_checks","client_links","my_tasks","time_logs",
-  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards","intros","listing_payments"];
+  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards","intros","listing_payments","vendor_billing"];
 const nz=v=>v===""||v===undefined?null:v;
 const camel=s=>s.replace(/_([a-z])/g,(m,c)=>c.toUpperCase());
 const snake=s=>s.replace(/[A-Z]/g,c=>"_"+c.toLowerCase());
@@ -30,7 +30,7 @@ async function fetchAll(t){
   if(t==="review_requests"){if(!S.uid)return undefined;const{data,error}=await sb.rpc("review_requests_list");return error?undefined:(data||[])}
   let out=[],from=0;
   for(;;){const{data,error}=await sb.from(t).select("*").range(from,from+999);
-    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"||t==="intros"||t==="listing_payments"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
+    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"||t==="intros"||t==="listing_payments"||t==="vendor_billing"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
     out=out.concat(data||[]);if(!data||data.length<1000)return out;from+=1000}
 }
 
@@ -285,10 +285,16 @@ function authView(){
   const m=S.authMode||"signin",err=authMsg();
   if(!S.authReady)return `<div class="emptystate" style="margin-top:28px"><h2>Loading</h2><p>Checking your sign-in.</p></div>`;
   const card=(eyebrow,title,body)=>`<section class="auth one"><div class="authcard"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${body}</div></section>`;
+  if(m==="pending"&&S.billMine&&S.billMine.kind==="closing"){const bm=S.billMine,first=bm.start?fmtDate(bm.start):"";
+    return card("Almost there",`Thanks${S.pendingName?", "+esc(S.pendingName):""}`,`<p>I'll check your license and let you know when your listing is live, usually within a day.</p>
+      ${bm.enabled?(bm.has_card?`<div class="callout" style="margin:12px 0"><p style="margin:0"><span class="strong">Your card is saved.</span> Your launch offer is free, and your first $20 charge is on ${esc(first)}. Cancel anytime before then and you won't be charged.</p></div>`
+        :`<div class="callout" style="margin:12px 0"><p style="margin:0 0 8px"><span class="strong">Last step: add your card.</span> Your launch offer gives you 90 days free. Your card isn't charged until ${esc(first)}, then it's $20 a month for your marketing listing. Cancel anytime before then and you won't be charged.</p>
+          <button class="btn" data-act="paycard" data-kind="listing">Add my card</button></div>`):""}
+      <p class="small">Ashleigh at Orbyt</p><div class="actions"><button class="btn ghost" data-act="signout">Sign out</button></div>`)}
   if(m==="pending")return card("Almost there",`Thanks${S.pendingName?", "+esc(S.pendingName):""}`,`<p>I review every new account before the first introduction, usually within a day. You'll get an email as soon as you're in.</p><p class="small">Ashleigh at Orbyt</p>
     <div class="actions"><button class="btn ghost" data-act="signout">Sign out</button></div>`);
   if(m==="declined")return card("Account","This account isn't active",`<p>Reach out to ashleigh@orbytconnect.com with any questions.</p><div class="actions"><button class="btn ghost" data-act="signout">Sign out</button></div>`);
-  if(m==="checkemail")return card("One more step","Check your email",`<p>I sent a confirmation link to <span class="strong">${esc(S.pendingEmail||"your inbox")}</span>. Click it, then sign in here.</p>
+  if(m==="checkemail")return card("One more step","Check your email",`<p>I sent a confirmation link to <span class="strong">${esc(S.pendingEmail||"your inbox")}</span>. Click it, then sign in here${S.pendingPartner?" to add your card and finish signing up":""}.</p>
     <div class="actions"><button class="btn" data-act="authmode" data-m="signin">Back to sign in</button></div>`);
   if(m==="forgot")return card("Password","Reset your password",`<form class="authform" data-proto="forgot" novalidate>
       <label class="field"><span>Email</span><input type="email" id="fp-email" name="email" autocomplete="email" required></label>${err}
@@ -361,7 +367,9 @@ async function enter(user){
   const{data:prof}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
   if(S.recovering)return;
   S.me=prof||null;S.authReady=true;
-  if(!prof||prof.status==="pending"){S.authMode="pending";S.pendingName=prof&&prof.full_name?prof.full_name.split(" ")[0]:"";render();return}
+  if(!prof||prof.status==="pending"){S.authMode="pending";S.pendingName=prof&&prof.full_name?prof.full_name.split(" ")[0]:"";
+    if(prof&&prof.role==="vendor"){try{const{data}=await sb.rpc("billing_mine");S.billMine=data||null}catch(_){S.billMine=null}}
+    render();return}
   if(prof.status==="declined"){S.authMode="declined";render();return}
   if(prof.role==="agent"||prof.role==="vendor")sb.rpc("note_terms_login").then(()=>{},()=>{});
   let role="orbyt";
@@ -498,6 +506,10 @@ async function liveBoot(){
   const path=location.pathname.replace(/\/+$/,"").toLowerCase(),pm=path.match(/^\/join(?:\/(agent|vendor|partner))?$/);
   const join=q.get("join")||(pm&&pm[1]);if(join==="agent"||join==="vendor"||join==="partner")S.authMode=join;else if(q.has("join")||pm)S.authMode="join";
   if(recovering){S.authMode="newpass";S.recovering=true}
+  const bill=q.get("billing");if(bill==="done"||bill==="cancel"){S.billFlash=bill==="done"?(q.get("kind")==="promo"?"Payment received. Your special offer goes live in a moment.":"Card saved. Thank you!"):"No charge was made. You can try again anytime.";
+    try{history.replaceState(null,"",location.pathname)}catch(_){}
+    setTimeout(()=>{if(S.billFlash){toast(S.billFlash);S.billFlash=""}},900);
+    if(bill==="done")[4000,10000].forEach(ms=>setTimeout(async()=>{try{if(S.db&&S.db.reload)await S.db.reload();else if(S.authMode==="pending"){const{data}=await sb.rpc("billing_mine");S.billMine=data||S.billMine;render()}}catch(_){}},ms))}
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.recovering=true;S.authReady=true;S.session=null;render()}});
   const{data:{session}}=await sb.auth.getSession();
   if(session&&S.authMode!=="newpass")await enter(session.user);else{S.authReady=true;render()}
@@ -1146,6 +1158,16 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="myava
 /* ---------- vendors: a special offer for Orbyt clients (internally: featured) ---------- */
 function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
   const left=on&&v.featuredUntil?Math.round((new Date(v.featuredUntil+"T12:00:00")-new Date())/864e5):null;
+  if(typeof billingOn==="function"&&billingOn()){
+    const status=on?`<p class="small" style="margin:0"><span class="strong">Your special offer is live until ${esc(fmtDate(v.featuredUntil))}.</span> Agents see it next to your quotes and on your profile, so they can pass the deal on to their clients.</p>`
+      :`<p class="small" style="margin:0">Run a special offer for Orbyt clients for 30 days, for $20 by card. It goes live as soon as you pay. Agents see your offer next to your quotes and on your profile, so they can pass the deal on. It doesn't change how I match. That's always the best fit for each home.</p>`;
+    return `<form class="form inner" data-form="promo" novalidate>${status}
+    <label class="field"><span>Your offer for Orbyt agents and their clients</span><input type="text" id="pr-offer" name="offer" maxlength="90" value="${esc(v.promoOffer||"")}" placeholder="10% off move-in cleans booked through Orbyt"></label>
+    <label class="field"><span>Details (optional)</span><textarea id="pr-details" name="details" rows="2" maxlength="400" placeholder="Good through December. Homes up to 3,000 sq ft.">${esc(v.promoDetails||"")}</textarea></label>
+    <p class="small" style="margin:0">A discount, a free add-on, faster scheduling, or whatever fits your service. Make it something you'll honor for anyone who books through Orbyt while it's live.</p>
+    <p class="small warntext prerr" role="alert" style="margin:0" hidden></p>
+    <div class="actions">${on?(left!==null&&left<=7?`<button class="btn sm" type="submit" data-pay="1">Renew for 30 days, $20</button>`:"")+`<button class="btn ghost sm" type="submit">Save offer</button>`
+      :`<button class="btn sm" type="submit" data-pay="1">Run my offer for $20</button><button class="btn ghost sm" type="submit">Save offer for later</button>`}</div></form>`}
   const status=on?`<p class="small" style="margin:0"><span class="strong">Your special offer is live until ${esc(fmtDate(v.featuredUntil))}.</span> Agents see it next to your quotes and on your profile, so they can pass the deal on to their clients.${req?" Your renewal request is in. I'll send a payment link.":""}</p>`
     :req?`<p class="small" style="margin:0"><span class="strong">Request sent.</span> I'll email you a $20 payment link. Your offer goes live for 30 days once it's paid. You can still change it below.</p>`
     :`<p class="small" style="margin:0">Run a special offer for Orbyt clients for 30 days, for $20. Agents see your offer next to your quotes and on your profile, so they can pass the deal on. It doesn't change how I match. That's always the best fit for each home.</p>`;
@@ -1158,7 +1180,12 @@ function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.pr
       :req?`<button class="btn sm" type="submit">Save offer</button>`:`<button class="btn sm" type="submit" data-req="1">Request my special offer</button><button class="btn ghost sm" type="submit">Save offer for later</button>`}</div></form>`}
 document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="promo"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
   const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),offer=String(fd.get("offer")||"").trim(),details=String(fd.get("details")||"").trim();
-  const wantReq=!!(e.submitter&&e.submitter.dataset.req),el=f.querySelector(".prerr");
+  const wantPay=!!(e.submitter&&e.submitter.dataset.pay),el=f.querySelector(".prerr");
+  if(wantPay){if(!offer){if(el){el.textContent="Add your offer first. It's what agents see next to your quotes.";el.hidden=false}f.querySelector("#pr-offer").focus();return}
+    const btn=e.submitter;btn.disabled=true;btn.textContent="Opening Stripe...";
+    (async()=>{try{fail((await sb.from("vendors").update({promo_offer:offer,promo_details:details||null}).eq("id",v.id)).error,"offer");await startCheckout("promo")}
+      catch(err){btn.disabled=false;btn.textContent="Try again";if(el){el.textContent=err.message||"That didn't work.";el.hidden=false}}})();return}
+  const wantReq=!!(e.submitter&&e.submitter.dataset.req);
   if(wantReq&&!offer){if(el){el.textContent="Add your offer first. It's what agents see next to your quotes.";el.hidden=false}f.querySelector("#pr-offer").focus();return}
   const row={promo_offer:offer||null,promo_details:details||null};if(wantReq)row.promo_requested_at=new Date().toISOString();
   S.promoOpen=true;

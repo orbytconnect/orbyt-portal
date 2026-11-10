@@ -160,7 +160,7 @@ textarea{resize:vertical;min-height:64px}
 .fcbase{stroke:var(--ink-2);stroke-width:1}
 .fcax{fill:var(--muted);font-size:11px;font-family:var(--font-body)}
 .fcnow{fill:var(--ink);font-weight:500}
-rect.fcpaid{fill:var(--fc-paid)}rect.fcexp{fill:var(--fc-exp)}rect.fcpos{fill:var(--fc-pos);stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2}
+rect.fclist{fill:#3F7266}rect.fcpromo{fill:#C4A85A}.sw.fclist{background:#3F7266}.sw.fcpromo{background:#C4A85A}rect.fcpaid{fill:var(--fc-paid)}rect.fcexp{fill:var(--fc-exp)}rect.fcpos{fill:var(--fc-pos);stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2}
 .rp5{grid-template-columns:repeat(5,minmax(0,1fr))}
 @media (max-width:900px){.rp5{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .col.done-col{opacity:.95}
@@ -1318,8 +1318,8 @@ function rpMetrics(a,b){
   const intro=S.bids.filter(x=>inR(dayOf(x.introducedAt||x.requestedAt),a,b));
   const funnel=[["Introduced",intro.length],["Sent a bid",intro.filter(x=>x.submittedAt).length],["Added to team",intro.filter(x=>x.chosenAt||x.status==="selected").length],
     ["Vendor confirmed",intro.filter(x=>x.status==="selected").length],["Job finished",intro.filter(x=>x.status==="selected"&&jobDoneAt(x,projById(x.projectId))).length]];
-  const listRev=typeof listingRev==="function"?listingRev(a,b):0;
-  return{projects:projs.length,total,newC,active,aov,orders:orders.length,rev:vendorRev+pmRev,vendorRev,pmRev,listRev,totalRev:vendorRev+pmRev+listRev,waived,collected,rating,ratingN:revs.length,
+  const listRev=typeof listingRev==="function"?listingRev(a,b):0,offerRev=typeof promoRev==="function"?promoRev(a,b):0;
+  return{projects:projs.length,total,newC,active,aov,orders:orders.length,rev:vendorRev+pmRev,vendorRev,pmRev,listRev,offerRev,totalRev:vendorRev+pmRev+listRev+offerRev,waived,collected,rating,ratingN:revs.length,
     speedTeam:median(speedTeam),speedTeamN:speedTeam.length,speedIntro:median(speedIntro),retention:prevActive.size?kept/prevActive.size:null,prevActiveN:prevActive.size,kept,repeatRate:total?repeatC/total:null,repeatC,funnel};
 }
 function stalledItems(){
@@ -1379,13 +1379,13 @@ function lineChart(points,fmt,aria){
 function revChart(a,b){
   const B=fcBuckets(a,b).map(k=>{const vend=invRows().filter(r=>inR(dayOf(r.doneAt),k.a,k.b)).reduce((s,r)=>s+r.fee,0);
     const pm=S.projects.filter(p=>p.pm&&inR(dayOf(p.createdAt),k.a,k.b)).reduce((s,p)=>{const q=(p.categories||[]).map(c=>teamBid(p.id,c)).filter(Boolean).reduce((t,x)=>t+(x.amount||0),0);return s+Math.max(500,cents(q*0.1))},0);
-    return{...k,paid:vend,exp:pm,pos:typeof listingRev==="function"?listingRev(k.a,k.b):0}});
-  const max=Math.max(...B.map(x=>x.paid+x.exp+x.pos),0);if(!max)return`<p class="small" style="margin:0">No revenue earned in this range yet.</p>`;
+    return{...k,paid:vend,exp:pm,pos:typeof listingRev==="function"?listingRev(k.a,k.b):0,promo:typeof promoRev==="function"?promoRev(k.a,k.b):0}});
+  const max=Math.max(...B.map(x=>x.paid+x.exp+x.pos+x.promo),0);if(!max)return`<p class="small" style="margin:0">No revenue earned in this range yet.</p>`;
   const nice=(()=>{const m=Math.pow(10,Math.floor(Math.log10(max))),f=max/m;return(f<=1?1:f<=2?2:f<=5?5:10)*m})();
   const W=720,H=200,L=52,Rr=8,T=12,Bt=28,pw=W-L-Rr,ph=H-T-Bt,slot=pw/B.length,bw=Math.max(6,Math.min(44,slot*0.62)),y=v=>T+ph-(v/nice)*ph,every=Math.ceil(B.length/12);
   let g=[0,.5,1].map(f=>`<line x1="${L}" x2="${W-Rr}" y1="${y(f*nice)}" y2="${y(f*nice)}" class="fcgrid"/><text x="${L-8}" y="${y(f*nice)+4}" text-anchor="end" class="fcax">${f*nice>=1000?"$"+(f*nice/1000).toFixed(1).replace(".0","")+"k":"$"+Math.round(f*nice)}</text>`).join("");
-  B.forEach((k,i)=>{const x=L+slot*i+(slot-bw)/2,tot=k.paid+k.exp+k.pos;let base=0;const seg=(v,cls,name,top)=>{if(!v)return"";const y0=y(base),y1=y(base+v);base+=v;return`<rect x="${x}" y="${y1}" width="${bw}" height="${Math.max(1,y0-y1-(top?0:2))}" class="${cls}" rx="${top?3:0}"><title>${esc(k.label)}: ${name} ${money2(v)}</title></rect>`};
-    g+=seg(k.paid,"fcpaid","Vendor fees",!k.exp&&!k.pos)+seg(k.exp,"fcexp",PM_ON?"Project management":"Expected fees",!k.pos)+seg(k.pos,"fcpos","Closing partner marketing fees",true);if(i%every===0)g+=`<text x="${x+bw/2}" y="${H-8}" text-anchor="middle" class="fcax">${esc(k.label)}</text>`});
+  B.forEach((k,i)=>{const x=L+slot*i+(slot-bw)/2,tot=k.paid+k.exp+k.pos+k.promo;let base=0;const seg=(v,cls,name,top)=>{if(!v)return"";const y0=y(base),y1=y(base+v);base+=v;return`<rect x="${x}" y="${y1}" width="${bw}" height="${Math.max(1,y0-y1-(top?0:2))}" class="${cls}" rx="${top?3:0}"><title>${esc(k.label)}: ${name} ${money2(v)}</title></rect>`};
+    g+=seg(k.paid,"fcpaid","Vendor fees",!k.exp&&!k.pos&&!k.promo)+seg(k.exp,"fcexp",PM_ON?"Project management":"Expected fees",!k.pos&&!k.promo)+seg(k.pos,"fclist","Closing partner marketing fees",!k.promo)+seg(k.promo,"fcpromo","Special offer fees",true);if(i%every===0)g+=`<text x="${x+bw/2}" y="${H-8}" text-anchor="middle" class="fcax">${esc(k.label)}</text>`});
   return `<div class="fcchart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Net revenue by period">${g}<line x1="${L}" x2="${W-Rr}" y1="${y(0)}" y2="${y(0)}" class="fcbase"/></svg></div>`;
 }
 function rpHeader(a,b,pa,pb){const P=S.rp.period,V=S.rp.view,btn=(v,l)=>`<button data-act="rpperiod" data-v="${v}" aria-pressed="${P===v}">${l}</button>`,vb=(v,l)=>`<button data-act="rpview" data-v="${v}" aria-pressed="${V===v}">${l}</button>`;
@@ -1456,7 +1456,7 @@ function investorView(){
   return `<section class="fcpanel">${rpHeader(a,b,pa,pb)}
     <h3 class="rphead">Scale</h3><div class="rptiles">
       ${rpTile("Gross booking value",money(m.gbv),rpDl(m.gbv,pm.gbv)+`<span class="small">${m.bookings} confirmed ${m.bookings===1?"booking":"bookings"}</span>`,"Total vendor spend booked through Orbyt, by the date the vendor confirmed")}
-      ${rpTile("Net revenue",money2(m.totalRev),rpDl(m.totalRev,pm.totalRev)+`<span class="small">Job fees ${money2(m.rev)} · Closing partner marketing fees ${money2(m.listRev)}</span>`,"Orbyt job fees earned after waived fees, plus closing partner marketing fees collected")}
+      ${rpTile("Net revenue",money2(m.totalRev),rpDl(m.totalRev,pm.totalRev)+`<span class="small">Job fees ${money2(m.rev)} · Closing partner marketing fees ${money2(m.listRev)} · Special offer fees ${money2(m.offerRev)}</span>`,"Orbyt job fees earned after waived fees, plus closing partner marketing fees and special offer fees collected")}
       ${rpTile("Take rate",rpPct(m.take),`<span class="small">Vendor fees ÷ value of finished jobs</span>`,"Falls as repeat bookings grow, since repeats are 2%")}
       ${rpTile("Active agents",m.active.length,rpDl(m.active.length,pm.active.length)+`<span class="small">${m.newC.length} new</span>`)}</div>
     <div class="rpcharts"><div><h3>Gross booking value by month</h3><p class="small" style="margin:2px 0 8px">Hover a bar for month-over-month growth.</p>${barChart(series.map(p=>({label:p.label,v:p.gbv,g:p.gg})),moneyK,"Gross booking value by month")}</div>
@@ -1618,12 +1618,12 @@ function reportsView(){
       ${tile("Retention",pct(m.retention),m.prevActiveN?`<span class="small">${m.kept} of ${m.prevActiveN} from the prior period came back</span>`:`<span class="small">No customers in the prior period</span>`)}
       ${tile("Repeat customers",pct(m.repeatRate),`<span class="small">${m.repeatC} with 2 or more projects</span>`)}</div>
     <h3 class="rphead">Revenue</h3><div class="rptiles">
-      ${tile("Net revenue",money2(m.totalRev),dl(m.totalRev,pm.totalRev)+`<span class="small">Job fees ${money2(m.rev)} · Closing partner marketing fees ${money2(m.listRev)}</span>`)}
+      ${tile("Net revenue",money2(m.totalRev),dl(m.totalRev,pm.totalRev)+`<span class="small">Job fees ${money2(m.rev)} · Closing partner marketing fees ${money2(m.listRev)} · Special offer fees ${money2(m.offerRev)}</span>`)}
       ${tile("Collected",money2(m.collected),`<span class="small">Paid in this period</span>`)}
       ${tile("AOV",m.aov==null?"–":money(m.aov),`${dl(m.aov,pm.aov)}<span class="small">Avg booked vendor spend per project (${m.orders})</span>`)}
       ${tile("Revenue per project",m.orders?money2(m.rev/m.orders):"–",`<span class="small">Orbyt fees per booked project</span>`)}</div>
-    <div class="rpcharts"><div><h3>Net revenue</h3><p class="small" style="margin:2px 0 8px"><i class="sw fcpaid"></i>Vendor fees, by job finish date ${PM_ON?`<i class="sw fcexp" style="margin-left:10px"></i>Project management`:""}<i class="sw fcpos" style="margin-left:10px"></i>Closing partner marketing fees, by payment date</p>${revChart(a,b)}
-        <p class="small" style="margin:6px 0 0">Vendor fees ${money2(m.vendorRev)}${PM_ON?` · Project management ${money2(m.pmRev)}`:""} · Closing partner marketing fees ${money2(m.listRev)}${m.waived?` · ${m.waived} ${m.waived===1?"fee":"fees"} waived`:""}</p></div>
+    <div class="rpcharts"><div><h3>Net revenue</h3><p class="small" style="margin:2px 0 8px"><i class="sw fcpaid"></i>Vendor fees, by job finish date ${PM_ON?`<i class="sw fcexp" style="margin-left:10px"></i>Project management`:""}<i class="sw fclist" style="margin-left:10px"></i>Closing partner marketing fees <i class="sw fcpromo" style="margin-left:10px"></i>Special offer fees, by payment date</p>${revChart(a,b)}
+        <p class="small" style="margin:6px 0 0">Vendor fees ${money2(m.vendorRev)}${PM_ON?` · Project management ${money2(m.pmRev)}`:""} · Closing partner marketing fees ${money2(m.listRev)} · Special offer fees ${money2(m.offerRev)}${m.waived?` · ${m.waived} ${m.waived===1?"fee":"fees"} waived`:""}</p></div>
       <div><h3>AOV over time</h3><p class="small" style="margin:2px 0 8px">Average booked vendor spend per project. Hover a point for growth vs the one before.</p>${lineChart(aovPts,v=>money(v))}</div></div>
     <h3 class="rphead">Quality and speed</h3><div class="rptiles">
       ${tile("Star rating",m.rating==null?"–":"★ "+m.rating.toFixed(1),`<span class="small">${m.ratingN} approved ${m.ratingN===1?"review":"reviews"} this period</span>`)}
@@ -1670,6 +1670,7 @@ function invoicingView(){
   if(paid.length)h+=`<section class="section"><div class="donehead" style="margin-top:0"><h2>Paid <span class="small num">(${paid.length})</span></h2><button class="linkbtn" data-act="togglepaid">${S.showPaid?"Hide":"Show"}</button></div>
     ${S.showPaid?`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Project</th><th>Invoice</th><th>Orbyt fee</th><th>Paid</th></tr></thead><tbody>${paid.map(r=>`<tr><td>${r.v?esc(r.v.name):""}</td><td>${esc(r.p.address)}<div class="small">${esc(r.b.category)}</div></td><td class="small">${esc(r.inv.number||"")}</td><td class="money">${money2(r.fee)}</td><td class="num">${fmtStamp(r.inv.paidAt)}</td></tr>`).join("")}</tbody></table></div>`:""}</section>`;
   if(typeof listingInvoicing==="function")h+=listingInvoicing();
+  if(typeof promoInvoicing==="function")h+=promoInvoicing();
   h+=pmInvoicing();
   return h;
 }
@@ -2561,7 +2562,9 @@ document.addEventListener("click",e=>{
     if(t.dataset.mode==="end")guard(()=>col("vendors").doc(v.id).update({featured:false,featuredUntil:null}),"Special offer ended.");
     else{const base=on&&v.featuredUntil?new Date(v.featuredUntil+"T12:00:00"):new Date();base.setDate(base.getDate()+30);
       const until=base.getFullYear()+"-"+String(base.getMonth()+1).padStart(2,"0")+"-"+String(base.getDate()).padStart(2,"0");
-      guard(()=>col("vendors").doc(v.id).update({featured:true,featuredUntil:until}),`Special offer live until ${fmtDate(until)}. ${v.name} gets a confirmation email.`)}}
+      const startD=on&&v.featuredUntil?addDaysIso(v.featuredUntil+"T12:00:00",1):isoDay(new Date());
+      guard(async()=>{await col("vendors").doc(v.id).update({featured:true,featuredUntil:until});
+        if(Array.isArray(D.vendor_billing))fail((await sb.from("listing_payments").insert({vendor_id:v.id,amount:20,period_start:startD,period_end:until,kind:"promo",note:(v.promoOffer||"").slice(0,200)})).error,"offer payment")},`Special offer live until ${fmtDate(until)}. ${v.name} gets a confirmation email.`)}}
   else if(a==="approve")guard(()=>col("reviews").doc(t.dataset.id).update({approved:t.dataset.v==="1"}),t.dataset.v==="1"?"Review approved":"Review hidden");
   else if(a==="loadsamples")guard(loadSamples,"Example data loaded");
   else if(a==="clearsamples")guard(async()=>{

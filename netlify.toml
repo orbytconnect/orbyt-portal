@@ -1,5 +1,5 @@
 # Netlify publishes the site/ folder as is. There is no build step.
-# The one function, netlify/functions/push.mjs, sends push notifications.
+# Functions: push.mjs sends push notifications; stripe-checkout, stripe-portal and stripe-webhook handle card payments.
 [build]
   publish = "site"
   command = ""

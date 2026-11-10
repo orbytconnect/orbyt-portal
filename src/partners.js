@@ -81,7 +81,7 @@ function partnerView(v){
   const parts=[fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false),
     fold("port","Business overview and portfolio","","What agents see when I introduce you",portfolioCard(v),false)];
   if(typeof reviewInviteCard==="function"){const sent=typeof rrFor==="function"?rrFor(v.id):[];parts.push(fold("rr","Reviews from agents you've worked with",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Invite agents you've worked with",reviewInviteCard(v),!!S.rrMore))}
-  parts.push(fold("refer","Refer someone to Orbyt",refCountPill(),"A ready-made message to send",referralCard("vendor"),false));
+  parts.push(fold("refer","Refer someone to Orbyt",refCountPill(),"A ready-made message to send",referralCard("partner"),false));
   return h+`<section class="section folds"><div class="sechead" style="margin-bottom:8px"><div><h2>Your profile</h2><span class="small">Tap one to open it.</span></div></div>${parts.join("")}</section>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="reachedout"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   guard(async()=>{fail((await sb.from("intros").update({reached_out_at:new Date().toISOString()}).eq("id",t.dataset.id)).error,"introduction");await S.db.reload()},"Marked. Thanks for reaching out.")},true);

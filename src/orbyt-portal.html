@@ -824,7 +824,7 @@ function renderRoleSelect(){
   if(!S.session){el.innerHTML="";return}
   const k=kind(),v=k==="vendor"?vendorById(roleVal()):null;
   const name=k==="orbyt"?"Ashleigh Stumler":k==="agent"?roleVal():(v?v.name:"Vendor");
-  el.innerHTML=`<span class="whoname"><span class="strong">${esc(name)}</span><span class="small">${k==="orbyt"?"Orbyt admin":k==="agent"?"Agent":typeof isPartner==="function"&&isPartner(vendorById(roleVal()))?"Closing partner":"Vendor partner"}</span></span>${k!=="orbyt"&&typeof helpView==="function"?`<button class="btn ghost sm" data-act="help">Help</button>`:""}<button class="btn ghost sm" data-act="signout">Sign out</button>`;
+  el.innerHTML=`<span class="whoname"><span class="strong">${esc(name)}</span><span class="small">${k==="orbyt"?"Orbyt admin":k==="agent"?"Agent":typeof isPartner==="function"&&isPartner(vendorById(roleVal()))?"Closing partner":"Vendor partner"}</span></span>${typeof appView==="function"&&!isStandalone()?`<button class="btn ghost sm" data-act="getapp">Get the app</button>`:""}${k!=="orbyt"&&typeof helpView==="function"?`<button class="btn ghost sm" data-act="help">Help</button>`:""}<button class="btn ghost sm" data-act="signout">Sign out</button>`;
 }
 const allLoaded=()=>["vendors","projects","bids","reviews","mytasks","taskstate","favorites","settings"].every(k=>S.loaded[k]);
 

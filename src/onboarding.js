@@ -16,14 +16,24 @@ window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();S.installEv
 window.addEventListener("appinstalled",()=>{S.installEvt=null;if(typeof setupMark==="function"&&S.session)setupMark("setup-bookmark").then(()=>render()).catch(()=>{})});
 const appSteps=()=>isIOS()?`In Safari, tap the Share button, then Add to Home Screen. Orbyt gets its own icon and opens full screen.`
   :/android/i.test(navigator.userAgent)?`In Chrome, tap the menu (⋮), then Install app or Add to Home screen. Orbyt gets its own icon and opens full screen.`
-  :`On a computer, bookmark ${PORTAL_HOST} (Cmd+D on a Mac, Ctrl+D on Windows), or use the install icon at the right of Chrome's address bar. On your phone, open ${PORTAL_HOST} and add it to your home screen.`;
+  :isMacSafari()?`In Safari, choose File in the menu bar, then Add to Dock. Orbyt opens in its own window from your Dock.`
+  :/Chrome|Edg\//.test(navigator.userAgent)?`In Chrome, click the install icon at the right end of the address bar. Or open the menu (⋮), then Cast, save, and share, then Install page as app.`
+  :`Bookmark ${PORTAL_HOST} so it's one click away (Cmd+D on a Mac, Ctrl+D on Windows).`;
+const isMacSafari=()=>/Macintosh/.test(navigator.userAgent)&&/Safari\//.test(navigator.userAgent)&&!/Chrome|Chromium|Edg\/|Firefox/.test(navigator.userAgent)&&!(navigator.maxTouchPoints>1);
+// a dialog anyone can open from the header: this device's steps, a one-tap install where the browser allows it, and a code to open Orbyt on a phone
+function appView(){const url="https://"+PORTAL_HOST;
+  return `<div class="scrim" data-act="appclose"></div><div class="vcard appcard" role="dialog" aria-modal="true" aria-labelledby="ap-title">
+    <div class="vchead"><div style="min-width:0"><div class="eyebrow">Orbyt on your phone</div><h2 id="ap-title" style="font-weight:500;margin-top:4px">Get the Orbyt app</h2></div><button class="xbtn" data-act="appclose" aria-label="Close">×</button></div>
+    ${isStandalone()?`<p>You're already using the Orbyt app on this device.</p>`:`<p style="margin:8px 0 0">${esc(appSteps())}</p>${S.installEvt?`<p style="margin:10px 0 0"><button class="btn" type="button" data-act="installapp">Install the app</button></p>`:""}`}
+    ${isPhone()?"":`<div class="appqr"><div class="appqrcode">${typeof qrSvg==="function"?qrSvg(url):""}</div><div><div class="strong">On your phone</div><p class="small" style="margin:4px 0 0">Scan this with your phone's camera to open Orbyt. Then on iPhone, tap Share, then Add to Home Screen. On Android, tap the menu (⋮), then Install app.</p></div></div>`}
+    <p class="small" style="margin:12px 0 0">No app store needed. The first time you open it, sign in once.</p></div>`}
 
 function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="btn ghost sm" type="button" data-act="${act}" ${extra||""}>${label}</button>`;
   const done=id=>a("Done","setupdone",`data-id="${id}"`);
   const emails={vendor:"New bid requests, being picked for a job, and reminders",agent:"Introductions, new quotes, and updates on your projects",partner:"New introductions to agents"}[r];
   const common=[
     {id:"setup-bookmark",label:isPhone()?"Add Orbyt to your home screen":"Keep Orbyt one click away",hint:S.installEvt?"Install the Orbyt app in one tap. It gets its own icon and opens full screen, like any other app.":appSteps(),
-      done:setupDone("setup-bookmark")||isStandalone(),act:S.installEvt?a("Install the app","installapp")+" "+done("setup-bookmark"):done("setup-bookmark")},
+      done:setupDone("setup-bookmark")||isStandalone(),act:(S.installEvt?a("Install the app","installapp"):a("Show me how","getapp"))+" "+done("setup-bookmark")},
     {id:"setup-emails",label:"Watch for Orbyt emails",hint:`${emails} come by email from ${HELP_EMAIL}. Add it to your contacts so nothing lands in spam.`,done:setupDone("setup-emails"),act:a("Got it","setupdone",'data-id="setup-emails"')}];
   if(r==="agent"){const agent=roleVal(),ps=S.projects.filter(p=>isOnProject(p,agent));
     const refd=w=>setupDone("setup-ref-"+w);
@@ -92,11 +102,13 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">How Orbyt works</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
     <div class="helpbody">${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}
       ${sec("Emails to expect",`<p>Orbyt emails come from <span class="strong">${HELP_EMAIL}</span>. Add it to your contacts so nothing lands in spam.</p><ul>${emails.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`)}
-      ${sec("Get the Orbyt app",`<p>Orbyt works like an app on your phone, with no app store needed. ${esc(appSteps())}</p>${S.installEvt?`<p style="margin-top:8px"><button class="btn sm" type="button" data-act="installapp">Install the app</button></p>`:""}<p class="small" style="margin-top:6px">The first time you open it from your home screen, sign in once. Links in Orbyt emails open in your browser.</p>`)}
+      ${sec("Get the Orbyt app",`<p>Orbyt works like an app on your phone, with no app store needed. ${esc(appSteps())}</p><p style="margin-top:8px"><button class="btn sm" type="button" data-act="getapp">Get the app</button></p><p class="small" style="margin-top:6px">The first time you open it from your home screen, sign in once. Links in Orbyt emails open in your browser.</p>`)}
       <div class="callout" style="margin-top:6px"><div class="strong">Need help or found a bug?</div><p class="small" style="margin:4px 0 0">${contactLine()}</p></div></div></div>`}
 
-document.addEventListener("click",e=>{const t=e.target.closest('[data-act="installapp"],[data-act="setupdone"],[data-act="setupshow"],[data-act="help"],[data-act="helpclose"],[data-act="gofold"],[data-act="setupref"]');if(!t)return;
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="getapp"],[data-act="appclose"],[data-act="installapp"],[data-act="setupdone"],[data-act="setupshow"],[data-act="help"],[data-act="helpclose"],[data-act="gofold"],[data-act="setupref"]');if(!t)return;
   e.preventDefault();e.stopImmediatePropagation();const a=t.dataset.act;
+  if(a==="getapp"){S.appInfo=true;S.help=false;render();return}
+  if(a==="appclose"){S.appInfo=false;render();return}
   if(a==="installapp"){const ev=S.installEvt;if(!ev){toast("Use your browser's menu to install Orbyt.");return}
     ev.prompt();ev.userChoice.then(c=>{S.installEvt=null;if(c&&c.outcome==="accepted")setupMark("setup-bookmark").then(()=>render()).catch(()=>{});else render()}).catch(()=>{});return}
   if(a==="help"){S.help=true;render();return}
@@ -109,4 +121,4 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="insta
 // sending a referral (copy, email or text) checks off the matching step
 document.addEventListener("click",e=>{const t=e.target.closest('.refcard [data-act="refcopy"], .refcard a.btn');if(!t||kind()!=="agent")return;
   const id="setup-ref-"+(S.refWho||"agent");if(!setupDone(id))setTimeout(()=>{setupMark(id).then(()=>render()).catch(()=>{})},400)},false);
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.help){S.help=false;render()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(S.help||S.appInfo)){S.help=false;S.appInfo=false;render()}});

@@ -566,7 +566,8 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 .setuplist li:first-child{border-top:0}.setupdot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:12px;color:#fff}
 .setuplist li.done .setupdot{background:var(--teal,#3F7266);border-color:var(--teal,#3F7266)}.setuplist li.done .strong{color:var(--muted);font-weight:400}
 @media (max-width:640px){.setuplist li.done>span.small:last-child{display:none}.setuplist li{grid-template-columns:22px minmax(0,1fr)}.setuplist li>div:last-child,.setuplist li>span.small:last-child{grid-column:2}}
-.setupback{margin:0 0 18px}.helpcard{max-width:720px}.helpbody{display:grid;gap:4px;margin-top:8px}.helpsec h3{margin:12px 0 2px;font-size:16px}.helpsec p{margin:0;line-height:1.55}.helpsec ul{margin:4px 0 0;padding-left:20px;line-height:1.6}
+@media (max-width:640px){.as{flex-wrap:wrap;gap:8px 12px;width:100%}.as .whoname{flex-basis:100%}.as .linkbtn,.as a{white-space:nowrap}}
+.setupback{margin:0 0 18px}.appcard{max-width:520px}.appqr{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}.appqrcode{background:#fff;border-radius:10px;padding:8px}.appqrcode svg{width:100%;height:auto;display:block}.helpcard{max-width:720px}.helpbody{display:grid;gap:4px;margin-top:8px}.helpsec h3{margin:12px 0 2px;font-size:16px}.helpsec p{margin:0;line-height:1.55}.helpsec ul{margin:4px 0 0;padding-left:20px;line-height:1.6}
 .candlinks{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 .myrevs{display:grid;gap:10px}.myrev{margin:0;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.myrev .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .hcpot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
@@ -924,7 +925,7 @@ function renderRoleSelect(){
   if(!S.session){el.innerHTML="";return}
   const k=kind(),v=k==="vendor"?vendorById(roleVal()):null;
   const name=k==="orbyt"?"Ashleigh Stumler":k==="agent"?roleVal():(v?v.name:"Vendor");
-  el.innerHTML=`<span class="whoname"><span class="strong">${esc(name)}</span><span class="small">${k==="orbyt"?"Orbyt admin":k==="agent"?"Agent":typeof isPartner==="function"&&isPartner(vendorById(roleVal()))?"Closing partner":"Vendor partner"}</span></span>${k!=="orbyt"&&typeof helpView==="function"?`<button class="btn ghost sm" data-act="help">Help</button>`:""}${myAgreementBtn()}<button class="btn ghost sm" data-act="signout">Sign out</button>`;
+  el.innerHTML=`<span class="whoname"><span class="strong">${esc(name)}</span><span class="small">${k==="orbyt"?"Orbyt admin":k==="agent"?"Agent":typeof isPartner==="function"&&isPartner(vendorById(roleVal()))?"Closing partner":"Vendor partner"}</span></span>${typeof appView==="function"&&!isStandalone()?`<button class="btn ghost sm" data-act="getapp">Get the app</button>`:""}${k!=="orbyt"&&typeof helpView==="function"?`<button class="btn ghost sm" data-act="help">Help</button>`:""}${myAgreementBtn()}<button class="btn ghost sm" data-act="signout">Sign out</button>`;
 }
 const allLoaded=()=>["vendors","projects","bids","reviews","mytasks","taskstate","favorites","settings"].every(k=>S.loaded[k]);
 
@@ -938,6 +939,7 @@ function render(){
   else if(S.agreementView&&S.session)h+=agreementViewer();
   else if(S.myDetails&&S.session&&typeof myDetailsView==="function")h+=myDetailsView();
   else if(S.help&&S.session&&typeof helpView==="function")h+=helpView();
+  else if(S.appInfo&&S.session&&typeof appView==="function")h+=appView();
   else if(S.vendorCard)h+=vendorCard(vendorById(S.vendorCard));
   else if(S.nudge&&kind()==="orbyt")h+=nudgeDialog();
   else if(S.clientShare&&kind()!=="vendor")h+=clientDialog();
@@ -4456,14 +4458,24 @@ window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();S.installEv
 window.addEventListener("appinstalled",()=>{S.installEvt=null;if(typeof setupMark==="function"&&S.session)setupMark("setup-bookmark").then(()=>render()).catch(()=>{})});
 const appSteps=()=>isIOS()?`In Safari, tap the Share button, then Add to Home Screen. Orbyt gets its own icon and opens full screen.`
   :/android/i.test(navigator.userAgent)?`In Chrome, tap the menu (⋮), then Install app or Add to Home screen. Orbyt gets its own icon and opens full screen.`
-  :`On a computer, bookmark ${PORTAL_HOST} (Cmd+D on a Mac, Ctrl+D on Windows), or use the install icon at the right of Chrome's address bar. On your phone, open ${PORTAL_HOST} and add it to your home screen.`;
+  :isMacSafari()?`In Safari, choose File in the menu bar, then Add to Dock. Orbyt opens in its own window from your Dock.`
+  :/Chrome|Edg\//.test(navigator.userAgent)?`In Chrome, click the install icon at the right end of the address bar. Or open the menu (⋮), then Cast, save, and share, then Install page as app.`
+  :`Bookmark ${PORTAL_HOST} so it's one click away (Cmd+D on a Mac, Ctrl+D on Windows).`;
+const isMacSafari=()=>/Macintosh/.test(navigator.userAgent)&&/Safari\//.test(navigator.userAgent)&&!/Chrome|Chromium|Edg\/|Firefox/.test(navigator.userAgent)&&!(navigator.maxTouchPoints>1);
+// a dialog anyone can open from the header: this device's steps, a one-tap install where the browser allows it, and a code to open Orbyt on a phone
+function appView(){const url="https://"+PORTAL_HOST;
+  return `<div class="scrim" data-act="appclose"></div><div class="vcard appcard" role="dialog" aria-modal="true" aria-labelledby="ap-title">
+    <div class="vchead"><div style="min-width:0"><div class="eyebrow">Orbyt on your phone</div><h2 id="ap-title" style="font-weight:500;margin-top:4px">Get the Orbyt app</h2></div><button class="xbtn" data-act="appclose" aria-label="Close">×</button></div>
+    ${isStandalone()?`<p>You're already using the Orbyt app on this device.</p>`:`<p style="margin:8px 0 0">${esc(appSteps())}</p>${S.installEvt?`<p style="margin:10px 0 0"><button class="btn" type="button" data-act="installapp">Install the app</button></p>`:""}`}
+    ${isPhone()?"":`<div class="appqr"><div class="appqrcode">${typeof qrSvg==="function"?qrSvg(url):""}</div><div><div class="strong">On your phone</div><p class="small" style="margin:4px 0 0">Scan this with your phone's camera to open Orbyt. Then on iPhone, tap Share, then Add to Home Screen. On Android, tap the menu (⋮), then Install app.</p></div></div>`}
+    <p class="small" style="margin:12px 0 0">No app store needed. The first time you open it, sign in once.</p></div>`}
 
 function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="btn ghost sm" type="button" data-act="${act}" ${extra||""}>${label}</button>`;
   const done=id=>a("Done","setupdone",`data-id="${id}"`);
   const emails={vendor:"New bid requests, being picked for a job, and reminders",agent:"Introductions, new quotes, and updates on your projects",partner:"New introductions to agents"}[r];
   const common=[
     {id:"setup-bookmark",label:isPhone()?"Add Orbyt to your home screen":"Keep Orbyt one click away",hint:S.installEvt?"Install the Orbyt app in one tap. It gets its own icon and opens full screen, like any other app.":appSteps(),
-      done:setupDone("setup-bookmark")||isStandalone(),act:S.installEvt?a("Install the app","installapp")+" "+done("setup-bookmark"):done("setup-bookmark")},
+      done:setupDone("setup-bookmark")||isStandalone(),act:(S.installEvt?a("Install the app","installapp"):a("Show me how","getapp"))+" "+done("setup-bookmark")},
     {id:"setup-emails",label:"Watch for Orbyt emails",hint:`${emails} come by email from ${HELP_EMAIL}. Add it to your contacts so nothing lands in spam.`,done:setupDone("setup-emails"),act:a("Got it","setupdone",'data-id="setup-emails"')}];
   if(r==="agent"){const agent=roleVal(),ps=S.projects.filter(p=>isOnProject(p,agent));
     const refd=w=>setupDone("setup-ref-"+w);
@@ -4532,11 +4544,13 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">How Orbyt works</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
     <div class="helpbody">${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}
       ${sec("Emails to expect",`<p>Orbyt emails come from <span class="strong">${HELP_EMAIL}</span>. Add it to your contacts so nothing lands in spam.</p><ul>${emails.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`)}
-      ${sec("Get the Orbyt app",`<p>Orbyt works like an app on your phone, with no app store needed. ${esc(appSteps())}</p>${S.installEvt?`<p style="margin-top:8px"><button class="btn sm" type="button" data-act="installapp">Install the app</button></p>`:""}<p class="small" style="margin-top:6px">The first time you open it from your home screen, sign in once. Links in Orbyt emails open in your browser.</p>`)}
+      ${sec("Get the Orbyt app",`<p>Orbyt works like an app on your phone, with no app store needed. ${esc(appSteps())}</p><p style="margin-top:8px"><button class="btn sm" type="button" data-act="getapp">Get the app</button></p><p class="small" style="margin-top:6px">The first time you open it from your home screen, sign in once. Links in Orbyt emails open in your browser.</p>`)}
       <div class="callout" style="margin-top:6px"><div class="strong">Need help or found a bug?</div><p class="small" style="margin:4px 0 0">${contactLine()}</p></div></div></div>`}
 
-document.addEventListener("click",e=>{const t=e.target.closest('[data-act="installapp"],[data-act="setupdone"],[data-act="setupshow"],[data-act="help"],[data-act="helpclose"],[data-act="gofold"],[data-act="setupref"]');if(!t)return;
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="getapp"],[data-act="appclose"],[data-act="installapp"],[data-act="setupdone"],[data-act="setupshow"],[data-act="help"],[data-act="helpclose"],[data-act="gofold"],[data-act="setupref"]');if(!t)return;
   e.preventDefault();e.stopImmediatePropagation();const a=t.dataset.act;
+  if(a==="getapp"){S.appInfo=true;S.help=false;render();return}
+  if(a==="appclose"){S.appInfo=false;render();return}
   if(a==="installapp"){const ev=S.installEvt;if(!ev){toast("Use your browser's menu to install Orbyt.");return}
     ev.prompt();ev.userChoice.then(c=>{S.installEvt=null;if(c&&c.outcome==="accepted")setupMark("setup-bookmark").then(()=>render()).catch(()=>{});else render()}).catch(()=>{});return}
   if(a==="help"){S.help=true;render();return}
@@ -4549,7 +4563,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="insta
 // sending a referral (copy, email or text) checks off the matching step
 document.addEventListener("click",e=>{const t=e.target.closest('.refcard [data-act="refcopy"], .refcard a.btn');if(!t||kind()!=="agent")return;
   const id="setup-ref-"+(S.refWho||"agent");if(!setupDone(id))setTimeout(()=>{setupMark(id).then(()=>render()).catch(()=>{})},400)},false);
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.help){S.help=false;render()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(S.help||S.appInfo)){S.help=false;S.appInfo=false;render()}});
 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.quoteView){S.quoteView=null;render()}});
 liveBoot();

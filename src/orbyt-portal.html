@@ -926,7 +926,7 @@ function agentView(){
   const ps=S.projects.filter(p=>isOnProject(p,agent));
   if(!["tasks","projects","favorites","team","card"].includes(S.tab))S.tab="tasks";
   let h=`<section class="hello"><div><h1>Hi ${esc(agent.split(" ")[0])}</h1>
-    <p>See new bids as they come in, compare them side by side, view a PDF of each vendor's quote, and see who's booked for every project. Check off tasks as you go, or save them for later.</p>
+    <p>See new quotes as they come in, review them in one place, open a PDF of each vendor's quote, and see who's booked for every project. Check off tasks as you go, or save them for later.</p>
     ${S.canWrite?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
     ${S.canWrite?`<div class="actions"><button class="btn" data-act="newproject">New project</button></div>`:""}</section>`;
   if(S.openForm==="newarea")h+=`<form class="form" data-form="market" data-agent="1" style="margin-bottom:20px"><h3>Where should Orbyt go next?</h3><p class="small" style="margin:0">Tell me where you have listings or buyers outside ${esc(AREAS.slice(0,3).join(", "))} and the rest of my current areas. Enough requests and I'll start recruiting vendors there.</p>

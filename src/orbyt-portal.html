@@ -1144,6 +1144,7 @@ function requestDetail(b){
         <label class="field"><span>What changed from your bid? (optional)</span><input type="text" id="vd-n-${esc(b.id)}" name="note" placeholder="Added the garage door, +$150"></label></div>
         <div class="actions"><button class="btn sm" type="submit">${b.done?"Send final amount":"Mark job complete"}</button><span class="small">${esc(firstName(p.agent))} confirms the amount, and Orbyt's fee is based on it.</span></div></form>`:""}</div>`;
   else h+=(b.status==="declined"&&b.declineStage==="request"?"":sum)+`<p class="small" style="margin:10px 0 0">${b.status==="passed"?"The client went another way on this one. Thanks for bidding.":b.status==="declined"?(b.declineStage==="request"?"You let Ashleigh know you can't bid on this one":"You let them know you can't take this one")+(b.declineReason&&b.declineReason!=="Other"?` (${esc(b.declineReason.toLowerCase())}).`:"."):"Your bid is with the agent and their client. You'll see it here when they decide."}</p>`;
+  if(b.status==="passed"&&typeof lostBox==="function")h+=lostBox(b);
   return h+`</div></article>`;
 }
 const STATUS_LABEL={requested:"Requested",submitted:"Submitted",changes:"Changes requested",chosen:"Waiting to confirm",selected:"Booked",passed:"Not picked",declined:"Can't take it"};
@@ -2041,7 +2042,7 @@ function vendorDocs(vid){const v=vendorById(vid);if(!v)return"";const L=[];
   return L.join(" · ")}
 // for Ashleigh's vendor card: everything they've added about their work, at the top
 function workBlock(v){const links=candWorkLinks(v),photos=(v.photoIds||[]).slice(0,5);
-  return `<div><span class="eyebrow">Their work</span>${links?`<div class="candlinks" style="margin-top:4px">${links}</div>`:`<div class="small" style="margin-top:4px">No overview, portfolio, website or Instagram added yet</div>`}
+  return `${typeof lostSummary==="function"?lostSummary(v):""}<div><span class="eyebrow">Their work</span>${links?`<div class="candlinks" style="margin-top:4px">${links}</div>`:`<div class="small" style="margin-top:4px">No overview, portfolio, website or Instagram added yet</div>`}
     ${photos.length?`<div class="thumbs">${photos.map(id=>`<a href="${esc(blobHref(id))}" target="_blank" rel="noopener"><img src="${esc(blobHref(id))}" alt="Recent work by ${esc(v.name)}"></a>`).join("")}</div>`:""}</div>`}
 // the vendor's own materials, one tap away while matching
 function candWorkLinks(v){const L=[];const a=(u,t)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>`:"";
@@ -2120,7 +2121,7 @@ function projectDetail(p,mode){
     const shown=bids;
     if(shown.length){
       h+=`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Bid</th><th>Timeline</th><th>Notes</th><th>PDF</th><th></th></tr></thead><tbody>${shown.map(b=>{const v=vendorById(b.vendorId);
-        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}
+        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}${typeof lostTag==="function"?lostTag(b):""}
           ${b.introNote?`<div class="intronote">${b.introducedBy==="auto"?"":isOrbyt?"Your note: ":"From Ashleigh: "}“${esc(b.introNote)}”</div>`:""}
           ${b.availChecked&&b.status==="requested"?`<div class="small">${isOrbyt?"Availability checked":"Ashleigh confirmed they're available"}</div>`:""}</td>
         <td class="money">${b.status==="requested"?'<span class="small">Waiting</span>':money(b.amount)}</td>
@@ -2133,6 +2134,7 @@ function projectDetail(p,mode){
           <div class="actions"><button class="btn" type="submit">Send request</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></form></td></tr>`:""}
         ${S.openForm==="review:proj:"+b.id?`<tr><td colspan="6">${reviewForm(b)}</td></tr>`:""}`}).join("")}</tbody></table></div>`;
       if(sel)h+=nextSteps(sel,p,isOrbyt);
+      if(sel&&!isOrbyt&&typeof lostAsk==="function")h+=lostAsk(p,c,sel);
       if(!sel&&priced.length)h+=`<p class="small" style="margin:8px 0 0">${isOrbyt?"The client":"Your client"} usually makes the final call. Record their pick here once they decide.</p>`;
       if(sel&&!isOrbyt&&reviewDue(sel)&&S.openForm==="review:proj:"+sel.id)h+=`<div class="callout good"><h3>The job's done. How did ${esc(bidName(sel))} do?</h3>${reviewForm(sel,S.preRating)}</div>`;
       else if(sel&&reviewDue(sel)&&!isOrbyt)h+=`<p style="margin:10px 0 0"><button class="btn ghost sm" data-act="form" data-key="review:proj:${esc(sel.id)}">Review ${esc(bidName(sel))}</button></p>`;

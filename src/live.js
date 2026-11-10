@@ -57,7 +57,7 @@ function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D
 const BID_COLS=["project_id","category","vendor_id","vendor_name","status","introduced_at","introduced_by","intro_note","avail_checked","suggest_rank",
   "requested_at","amount","days","note","quote_path","quote_name","quote_is_image","submitted_at","rev","prev_amount","change_note","changes_at","changes_by",
   "chosen_at","confirmed_at","start_date","confirm_note","decline_reason","decline_stage","decline_note","declined_at","step_agreement","step_paid","done",
-  "done_at","done_by","available_from","final_amount","final_note","final_reported_by","final_reported_at","final_confirmed_at","final_dispute","fee_type"];
+  "done_at","done_by","available_from","final_amount","final_note","final_reported_by","final_reported_at","final_confirmed_at","final_dispute","fee_type","lost_reason","lost_note","lost_gap","lost_at"];
 function appBids(){const INV=byKey(D.invoices,"bid_id");
   return(D.bids||[]).map(b=>{const o={id:b.id};for(const c of BID_COLS)o[camel(c)]=b[c];
     o.vendorId=b.vendor_id||"";o.vendorName=b.vendor_name||"";o.amount=b.amount==null?null:Number(b.amount);o.finalAmount=b.final_amount==null?null:Number(b.final_amount);
@@ -1042,6 +1042,8 @@ function vendorFolds(v){
     parts.push(fold("rr","Reviews from past clients",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Invite agents you've worked with",reviewInviteCard(v),!!S.rrMore))}
   if(v.approved!==false){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
     parts.push(fold("promo","Special offer",on?`<span class="pill featured">Live until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"","Share a deal with Orbyt clients, $20 for 30 days",promoCard(v),!!S.promoOpen))}
+  {const lc=typeof lostCard==="function"?lostCard(v):"";if(lc){const n=S.bids.filter(b=>b.vendorId===v.id&&b.lostReason).length;
+    parts.push(fold("lost","Why quotes didn't win",`<span class="pill">${n}</span>`,"What agents told you",lc,false))}}
   parts.push(fold("refer","Refer someone to Orbyt",refCountPill(),"A ready-made message to send",referralCard("vendor"),false));
   return `<section class="section folds"><div class="sechead" style="margin-bottom:8px"><div><h2>Your profile</h2><span class="small">Finish these when you have a minute. Tap one to open it.</span></div></div>${parts.join("")}</section>`}
 function agentFolds(){if(kind()!=="agent"||!S.canWrite)return"";
@@ -1152,3 +1154,43 @@ document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form=
   const row={promo_offer:offer||null,promo_details:details||null};if(wantReq)row.promo_requested_at=new Date().toISOString();
   S.promoOpen=true;
   guard(async()=>{fail((await sb.from("vendors").update(row).eq("id",v.id)).error,"offer");await S.db.reload()},wantReq?"Request sent. I'll email you a payment link.":"Offer saved.")},true);
+
+/* ---------- why a quote didn't win: the agent says, the vendor learns ---------- */
+const LOST_REASONS=[["price","Price"],["timing","Timing or availability"],["known","Went with someone we've used before"],["client","The client's choice"],["scope","Scope or approach"],["speed","Response time"],["other","Something else"]];
+const LOST_FOR_VENDOR={price:"Another quote came in lower",timing:"The timing didn't work for this one",known:"They went with a vendor they've worked with before",client:"The client chose another vendor",scope:"Another quote was a better fit for the scope",speed:"Another vendor got back sooner",other:"They shared a note"};
+const lostLabel=k=>(LOST_REASONS.find(x=>x[0]===k)||["",""])[1];
+const lostForVendor=b=>(LOST_FOR_VENDOR[b.lostReason]||"")+(b.lostReason==="price"&&b.lostGap?`, ${b.lostGap} than yours`:"")+".";
+// agent, right after picking: why not the others (optional)
+function lostAsk(p,c,sel){if(!S.canWrite||!sel||!(D.bids||[]).some(x=>"lost_reason" in x))return"";
+  const ask=bidsFor(p.id,c).filter(b=>b.status==="passed"&&b.amount!=null&&!b.lostReason&&b.vendorId);
+  if(!ask.length||(S.lostSkip||[]).includes(p.id+"|"+c))return"";
+  return `<div class="callout lostask"><h3>Why not the others? <span class="small">Optional</span></h3>
+    <p class="small" style="margin:0">A quick reason helps these vendors price and plan. They'll see it with your first name. If it's price, they see roughly how much lower the booked quote was, never the amount or who it was.</p>
+    ${ask.map(b=>`<form class="lostform" data-form="lost" data-id="${esc(b.id)}" novalidate><div class="lostrow"><div class="lostwho"><span class="strong">${esc(bidName(b))}</span> <span class="small">${money(b.amount)}</span></div>
+      <select name="reason" id="lr-${esc(b.id)}" aria-label="Reason for ${esc(bidName(b))}"><option value="">Pick a reason</option>${LOST_REASONS.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join("")}</select>
+      <input type="text" name="note" id="ln-${esc(b.id)}" maxlength="500" placeholder="Anything to add? (optional)" aria-label="Note for ${esc(bidName(b))}">
+      <button class="btn sm" type="submit">Send</button></div><p class="small warntext losterr" role="alert" style="margin:4px 0 0" hidden></p></form>`).join("")}
+    <div class="actions" style="margin-top:6px"><button class="linkbtn" type="button" data-act="lostskip" data-key="${esc(p.id+"|"+c)}">Skip for now</button></div></div>`}
+// one line on the bid row: what the agent shared
+function lostTag(b){if(!b.lostReason)return"";const who=kind()==="vendor"?"":kind()==="orbyt"?"Why: ":"You shared: ";
+  return `<div class="small losttag">${who}${esc(kind()==="vendor"?lostForVendor(b):lostLabel(b.lostReason)+(b.lostReason==="price"&&b.lostGap?` (booked quote ${b.lostGap})`:""))}${b.lostNote?` · “${esc(b.lostNote)}”`:""}</div>`}
+// vendor: the feedback on one bid
+function lostBox(b){if(!b.lostReason)return"";const p=projById(b.projectId);
+  return `<div class="callout lostbox" style="margin-top:10px"><div class="eyebrow">Why ${esc(firstName(p?p.agent:"the agent"))} went another way</div><div class="strong">${esc(lostForVendor(b))}</div>${b.lostNote?`<p class="small" style="margin:4px 0 0">“${esc(b.lostNote)}”</p>`:""}</div>`}
+// vendor: every reason so far, to spot a pattern
+function lostCard(v){const bs=S.bids.filter(b=>b.vendorId===v.id&&b.lostReason).sort((a,b)=>String(b.lostAt).localeCompare(String(a.lostAt)));
+  if(!bs.length)return"";const counts={};bs.forEach(b=>counts[b.lostReason]=(counts[b.lostReason]||0)+1);
+  return `<p class="small" style="margin:0">When an agent goes another way, they can tell you why. Here's what they've said so far.</p>
+    <div class="actions" style="margin:2px 0 6px">${Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<span class="pill">${esc(({price:"Price",timing:"Timing",known:"Went with someone they knew",client:"Client's choice",scope:"Scope",speed:"Response time",other:"Other"})[k]||k)} · ${n}</span>`).join("")}</div>
+    <div class="lostlist">${bs.slice(0,12).map(b=>{const p=projById(b.projectId);return `<div class="lostitem"><div class="small">${esc(b.category)}${p?" · "+esc(p.address):""} · ${esc(fmtDate(String(b.lostAt||"").slice(0,10)))}</div><div>${esc(lostForVendor(b))}${b.lostNote?` <span class="small">“${esc(b.lostNote)}”</span>`:""}</div></div>`}).join("")}</div>`}
+// Ashleigh: a vendor's pattern, on their card
+function lostSummary(v){const bs=S.bids.filter(b=>b.vendorId===v.id&&b.lostReason);if(!bs.length)return"";const counts={};bs.forEach(b=>counts[b.lostReason]=(counts[b.lostReason]||0)+1);
+  return `<div class="small" style="margin-top:6px">Why quotes weren't picked: ${Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`${esc(lostLabel(k))} ${n}`).join(" · ")}</div>`}
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="lost"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const fd=new FormData(f),reason=String(fd.get("reason")||""),note=String(fd.get("note")||"").trim(),er=f.querySelector(".losterr");
+  const bad=!reason?"Pick a reason, or skip this one.":reason==="other"&&!note?"Add a short note for Something else.":"";
+  if(bad){if(er){er.textContent=bad;er.hidden=false}return}
+  guard(async()=>{fail((await sb.from("bids").update({lost_reason:reason,lost_note:note||null}).eq("id",f.dataset.id)).error,"feedback");await S.db.reload()},"Sent. Thanks, that helps them.")},true);
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="lostskip"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  S.lostSkip=[...(S.lostSkip||[]),t.dataset.key];render()},true);
+document.addEventListener("input",e=>{const f=e.target.closest('form[data-form="lost"]');if(!f)return;const er=f.querySelector(".losterr");if(er&&!er.hidden){er.hidden=true;er.textContent=""}});

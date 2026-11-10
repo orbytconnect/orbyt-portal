@@ -125,9 +125,9 @@ sub("""<p class="small" style="margin:0">A private link to this page is coming w
 sub("Your client sees vendor names, prices, timelines, ratings and the quote PDFs.",
     "Your client sees vendor names, prices, timelines and ratings.")
 # Agents tab for Ashleigh
-sub('''["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false).length+pending],''',
-    '''["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false).length+pending],["agents","Agents",(D.profiles||[]).filter(p=>p.role==="agent"&&p.status==="pending").length],''')
-sub('''["dash","pipeline","projects","vendors","invoicing","reports"].includes(S.tab)''', '''["dash","pipeline","projects","vendors","agents","invoicing","reports"].includes(S.tab)''')
+sub('''["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false&&!(typeof isPartner==="function"&&isPartner(v))).length+pending],''',
+    '''["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false&&!(typeof isPartner==="function"&&isPartner(v))).length+pending],["agents","Agents",(D.profiles||[]).filter(p=>p.role==="agent"&&p.status==="pending").length],''')
+sub('''["dash","pipeline","projects","vendors","partners","invoicing","reports"].includes(S.tab)''', '''["dash","pipeline","projects","vendors","partners","agents","invoicing","reports"].includes(S.tab)''')
 sub('''  if(S.tab==="vendors")return h+rosterView();''', '''  if(S.tab==="vendors")return h+rosterView();
   if(S.tab==="agents")return h+agentsView();''')
 # Vendor Network Agreement

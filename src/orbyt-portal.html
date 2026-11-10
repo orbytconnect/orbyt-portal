@@ -1163,7 +1163,7 @@ function emptyStart(){
 }
 function orbytView(){
   if(S.tab==="reviews")S.tab="vendors";
-  if(S.tab==="tasks"||!["dash","pipeline","projects","vendors","invoicing","reports"].includes(S.tab))S.tab="dash";
+  if(S.tab==="tasks"||!["dash","pipeline","projects","vendors","partners","invoicing","reports"].includes(S.tab))S.tab="dash";
   const pending=S.reviews.filter(r=>!r.approved).length;
   let h=`<section class="hello"><div><h1>Hi Ashleigh</h1>
     <p>See every project at a glance, including what needs matching, who's bid and who's booked. Hand-pick the vendors you introduce for each home, add your own tasks, and book your client's pick.</p></div>
@@ -1172,8 +1172,9 @@ function orbytView(){
   const tm=S.config.timer;if(tm&&tm.startedAt){const mins=Math.max(0,Math.floor((Date.now()-Date.parse(tm.startedAt))/6e4)),tp=projById(tm.projectId);
     h+=`<div class="timerbar" role="status"><span><span class="dotlive" aria-hidden="true"></span>Timer running${tp?" on "+esc(tp.address):""} · ${esc((LOGTYPES.find(x=>x[0]===tm.type)||[,"Matching"])[1])} · <span class="num">${Math.floor(mins/60)}:${String(mins%60).padStart(2,"0")}</span></span>
       <span class="actions"><button class="btn sm" data-act="stoptimer">Stop and log</button><button class="linkbtn" data-act="canceltimer">Discard</button></span></div>`}
-  h+=tabs([["dash","Dashboard",splitTasks(orbytAlerts()).open.length],["pipeline","Pipeline",0],["projects","Matching",0],["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false).length+pending],["invoicing","Invoicing",invRows().filter(r=>r.status==="ready").length],["reports","Reports",0]]);
+  h+=tabs([["dash","Dashboard",splitTasks(orbytAlerts()).open.length],["pipeline","Pipeline",0],["projects","Matching",0],["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false&&!(typeof isPartner==="function"&&isPartner(v))).length+pending],...(typeof partnersAdminView==="function"?[["partners","Closing partners",partnersAll().filter(v=>v.approved===false).length+listingDue().length]]:[]),["invoicing","Invoicing",invRows().filter(r=>r.status==="ready").length],["reports","Reports",0]]);
   if(S.tab==="vendors")return h+rosterView();
+  if(S.tab==="partners"&&typeof partnersAdminView==="function")return h+partnersAdminView();
   if(S.tab==="invoicing")return h+invoicingView();
   if(S.tab==="reports")return h+reportsView();
   if(S.tab==="pipeline")return h+pipelineView();
@@ -1236,6 +1237,7 @@ function moneyItems(){
   for(const p of S.projects.filter(p=>PM_ON&&p.pm)){const team=(p.categories||[]).map(c=>teamBid(p.id,c)).filter(Boolean),quoted=team.reduce((a,b)=>a+(b.amount||0),0),fee=Math.max(500,cents(quoted*0.1)),inv=p.pmInvoice||{};
     if(inv.status==="paid")items.push({date:isoDay(inv.paidAt||today),stage:"paid",sub:"Project management, paid",amt:fee,label:`${p.agent} · ${p.address} · Project management`});
     else items.push({date:inv.status==="invoiced"?later(in2(isoDay(inv.at))):today,stage:"exp",sub:inv.status==="invoiced"?"Project management, invoiced":"Project management, not invoiced yet",amt:fee,est:!inv.status,label:`${p.agent} · ${p.address} · Project management`})}
+  if(typeof listingMoneyItems==="function")items.push(...listingMoneyItems());
   return items.sort((a,b)=>a.date.localeCompare(b.date));
 }
 function fcBuckets(from,to){
@@ -1316,7 +1318,8 @@ function rpMetrics(a,b){
   const intro=S.bids.filter(x=>inR(dayOf(x.introducedAt||x.requestedAt),a,b));
   const funnel=[["Introduced",intro.length],["Sent a bid",intro.filter(x=>x.submittedAt).length],["Added to team",intro.filter(x=>x.chosenAt||x.status==="selected").length],
     ["Vendor confirmed",intro.filter(x=>x.status==="selected").length],["Job finished",intro.filter(x=>x.status==="selected"&&jobDoneAt(x,projById(x.projectId))).length]];
-  return{projects:projs.length,total,newC,active,aov,orders:orders.length,rev:vendorRev+pmRev,vendorRev,pmRev,waived,collected,rating,ratingN:revs.length,
+  const listRev=typeof listingRev==="function"?listingRev(a,b):0;
+  return{projects:projs.length,total,newC,active,aov,orders:orders.length,rev:vendorRev+pmRev,vendorRev,pmRev,listRev,totalRev:vendorRev+pmRev+listRev,waived,collected,rating,ratingN:revs.length,
     speedTeam:median(speedTeam),speedTeamN:speedTeam.length,speedIntro:median(speedIntro),retention:prevActive.size?kept/prevActive.size:null,prevActiveN:prevActive.size,kept,repeatRate:total?repeatC/total:null,repeatC,funnel};
 }
 function stalledItems(){
@@ -1376,13 +1379,13 @@ function lineChart(points,fmt,aria){
 function revChart(a,b){
   const B=fcBuckets(a,b).map(k=>{const vend=invRows().filter(r=>inR(dayOf(r.doneAt),k.a,k.b)).reduce((s,r)=>s+r.fee,0);
     const pm=S.projects.filter(p=>p.pm&&inR(dayOf(p.createdAt),k.a,k.b)).reduce((s,p)=>{const q=(p.categories||[]).map(c=>teamBid(p.id,c)).filter(Boolean).reduce((t,x)=>t+(x.amount||0),0);return s+Math.max(500,cents(q*0.1))},0);
-    return{...k,paid:vend,exp:pm,pos:0}});
-  const max=Math.max(...B.map(x=>x.paid+x.exp),0);if(!max)return`<p class="small" style="margin:0">No revenue earned in this range yet.</p>`;
+    return{...k,paid:vend,exp:pm,pos:typeof listingRev==="function"?listingRev(k.a,k.b):0}});
+  const max=Math.max(...B.map(x=>x.paid+x.exp+x.pos),0);if(!max)return`<p class="small" style="margin:0">No revenue earned in this range yet.</p>`;
   const nice=(()=>{const m=Math.pow(10,Math.floor(Math.log10(max))),f=max/m;return(f<=1?1:f<=2?2:f<=5?5:10)*m})();
   const W=720,H=200,L=52,Rr=8,T=12,Bt=28,pw=W-L-Rr,ph=H-T-Bt,slot=pw/B.length,bw=Math.max(6,Math.min(44,slot*0.62)),y=v=>T+ph-(v/nice)*ph,every=Math.ceil(B.length/12);
   let g=[0,.5,1].map(f=>`<line x1="${L}" x2="${W-Rr}" y1="${y(f*nice)}" y2="${y(f*nice)}" class="fcgrid"/><text x="${L-8}" y="${y(f*nice)+4}" text-anchor="end" class="fcax">${f*nice>=1000?"$"+(f*nice/1000).toFixed(1).replace(".0","")+"k":"$"+Math.round(f*nice)}</text>`).join("");
-  B.forEach((k,i)=>{const x=L+slot*i+(slot-bw)/2,tot=k.paid+k.exp;let base=0;const seg=(v,cls,name,top)=>{if(!v)return"";const y0=y(base),y1=y(base+v);base+=v;return`<rect x="${x}" y="${y1}" width="${bw}" height="${Math.max(1,y0-y1-(top?0:2))}" class="${cls}" rx="${top?3:0}"><title>${esc(k.label)}: ${name} ${money2(v)}</title></rect>`};
-    g+=seg(k.paid,"fcpaid","Vendor fees",!k.exp)+seg(k.exp,"fcexp",PM_ON?"Project management":"Expected fees",true);if(i%every===0)g+=`<text x="${x+bw/2}" y="${H-8}" text-anchor="middle" class="fcax">${esc(k.label)}</text>`});
+  B.forEach((k,i)=>{const x=L+slot*i+(slot-bw)/2,tot=k.paid+k.exp+k.pos;let base=0;const seg=(v,cls,name,top)=>{if(!v)return"";const y0=y(base),y1=y(base+v);base+=v;return`<rect x="${x}" y="${y1}" width="${bw}" height="${Math.max(1,y0-y1-(top?0:2))}" class="${cls}" rx="${top?3:0}"><title>${esc(k.label)}: ${name} ${money2(v)}</title></rect>`};
+    g+=seg(k.paid,"fcpaid","Vendor fees",!k.exp&&!k.pos)+seg(k.exp,"fcexp",PM_ON?"Project management":"Expected fees",!k.pos)+seg(k.pos,"fcpos","Closing partner listings",true);if(i%every===0)g+=`<text x="${x+bw/2}" y="${H-8}" text-anchor="middle" class="fcax">${esc(k.label)}</text>`});
   return `<div class="fcchart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Net revenue by period">${g}<line x1="${L}" x2="${W-Rr}" y1="${y(0)}" y2="${y(0)}" class="fcbase"/></svg></div>`;
 }
 function rpHeader(a,b,pa,pb){const P=S.rp.period,V=S.rp.view,btn=(v,l)=>`<button data-act="rpperiod" data-v="${v}" aria-pressed="${P===v}">${l}</button>`,vb=(v,l)=>`<button data-act="rpview" data-v="${v}" aria-pressed="${V===v}">${l}</button>`;
@@ -1423,7 +1426,7 @@ function invMetrics(a,b){
     ppaq:m.active.length?projs.length/m.active.length*(91/days):null,pmAttach:projs.length?projs.filter(p=>p.pm).length/projs.length:null,
     buySide:projs.length?projs.filter(p=>p.clientType==="Buyer"||p.clientType==="Both").length/projs.length:null,topAgents:top3(revBy),topVendors:top3(venBy),
     dtp,overduePct:outAmt?overAmt/outAmt:null,outAmt,topPick:ranked.length?ranked.filter(x=>x.suggestRank>=0&&x.suggestRank<3).length/ranked.length:null,topPickN:ranked.length,
-    hours,hoursPerProj:projs.length&&hours?hours/projs.length:null,revPerHour:hours?m.rev/hours:null,spendA,spendV,cacA,cacV:spendV&&newV?spendV/newV:null,newV,payback:cacA!=null&&revPerAgentMo?cacA/revPerAgentMo:null,revPerAgentMo};
+    hours,hoursPerProj:projs.length&&hours?hours/projs.length:null,revPerHour:hours?m.totalRev/hours:null,spendA,spendV,cacA,cacV:spendV&&newV?spendV/newV:null,newV,payback:cacA!=null&&revPerAgentMo?cacA/revPerAgentMo:null,revPerAgentMo};
 }
 function cohortTable(b){
   const first={},act={};S.projects.filter(p=>p.createdAt&&dayOf(p.createdAt)<=b).forEach(p=>{const mo=dayOf(p.createdAt).slice(0,7);if(!first[p.agent]||mo<first[p.agent])first[p.agent]=mo;(act[p.agent]=act[p.agent]||new Set()).add(mo)});
@@ -1453,7 +1456,7 @@ function investorView(){
   return `<section class="fcpanel">${rpHeader(a,b,pa,pb)}
     <h3 class="rphead">Scale</h3><div class="rptiles">
       ${rpTile("Gross booking value",money(m.gbv),rpDl(m.gbv,pm.gbv)+`<span class="small">${m.bookings} confirmed ${m.bookings===1?"booking":"bookings"}</span>`,"Total vendor spend booked through Orbyt, by the date the vendor confirmed")}
-      ${rpTile("Net revenue",money2(m.rev),rpDl(m.rev,pm.rev),"Orbyt fees earned, after waived fees")}
+      ${rpTile("Net revenue",money2(m.totalRev),rpDl(m.totalRev,pm.totalRev)+`<span class="small">Job fees ${money2(m.rev)} · Listings ${money2(m.listRev)}</span>`,"Orbyt job fees earned after waived fees, plus closing partner listing fees collected")}
       ${rpTile("Take rate",rpPct(m.take),`<span class="small">Vendor fees ÷ value of finished jobs</span>`,"Falls as repeat bookings grow, since repeats are 2%")}
       ${rpTile("Active agents",m.active.length,rpDl(m.active.length,pm.active.length)+`<span class="small">${m.newC.length} new</span>`)}</div>
     <div class="rpcharts"><div><h3>Gross booking value by month</h3><p class="small" style="margin:2px 0 8px">Hover a bar for month-over-month growth.</p>${barChart(series.map(p=>({label:p.label,v:p.gbv,g:p.gg})),moneyK,"Gross booking value by month")}</div>
@@ -1615,12 +1618,12 @@ function reportsView(){
       ${tile("Retention",pct(m.retention),m.prevActiveN?`<span class="small">${m.kept} of ${m.prevActiveN} from the prior period came back</span>`:`<span class="small">No customers in the prior period</span>`)}
       ${tile("Repeat customers",pct(m.repeatRate),`<span class="small">${m.repeatC} with 2 or more projects</span>`)}</div>
     <h3 class="rphead">Revenue</h3><div class="rptiles">
-      ${tile("Net revenue",money2(m.rev),dl(m.rev,pm.rev))}
+      ${tile("Net revenue",money2(m.totalRev),dl(m.totalRev,pm.totalRev)+`<span class="small">Job fees ${money2(m.rev)} · Listings ${money2(m.listRev)}</span>`)}
       ${tile("Collected",money2(m.collected),`<span class="small">Paid in this period</span>`)}
       ${tile("AOV",m.aov==null?"–":money(m.aov),`${dl(m.aov,pm.aov)}<span class="small">Avg booked vendor spend per project (${m.orders})</span>`)}
       ${tile("Revenue per project",m.orders?money2(m.rev/m.orders):"–",`<span class="small">Orbyt fees per booked project</span>`)}</div>
-    <div class="rpcharts"><div><h3>Net revenue</h3><p class="small" style="margin:2px 0 8px"><i class="sw fcpaid"></i>Vendor fees, by job finish date ${PM_ON?`<i class="sw fcexp" style="margin-left:10px"></i>Project management`:""}</p>${revChart(a,b)}
-        <p class="small" style="margin:6px 0 0">Vendor fees ${money2(m.vendorRev)}${PM_ON?` · Project management ${money2(m.pmRev)}`:""}${m.waived?` · ${m.waived} ${m.waived===1?"fee":"fees"} waived`:""}</p></div>
+    <div class="rpcharts"><div><h3>Net revenue</h3><p class="small" style="margin:2px 0 8px"><i class="sw fcpaid"></i>Vendor fees, by job finish date ${PM_ON?`<i class="sw fcexp" style="margin-left:10px"></i>Project management`:""}<i class="sw fcpos" style="margin-left:10px"></i>Closing partner listings, by payment date</p>${revChart(a,b)}
+        <p class="small" style="margin:6px 0 0">Vendor fees ${money2(m.vendorRev)}${PM_ON?` · Project management ${money2(m.pmRev)}`:""} · Closing partner listings ${money2(m.listRev)}${m.waived?` · ${m.waived} ${m.waived===1?"fee":"fees"} waived`:""}</p></div>
       <div><h3>AOV over time</h3><p class="small" style="margin:2px 0 8px">Average booked vendor spend per project. Hover a point for growth vs the one before.</p>${lineChart(aovPts,v=>money(v))}</div></div>
     <h3 class="rphead">Quality and speed</h3><div class="rptiles">
       ${tile("Star rating",m.rating==null?"–":"★ "+m.rating.toFixed(1),`<span class="small">${m.ratingN} approved ${m.ratingN===1?"review":"reviews"} this period</span>`)}
@@ -1666,6 +1669,7 @@ function invoicingView(){
       <td style="white-space:nowrap">${S.canWrite?`<button class="btn sm" data-act="markpaid" data-id="${esc(r.b.id)}">Mark paid</button> <button class="linkbtn" data-act="uninvoice" data-id="${esc(r.b.id)}">Undo</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="small">No unpaid invoices.</p>`}</section>`;
   if(paid.length)h+=`<section class="section"><div class="donehead" style="margin-top:0"><h2>Paid <span class="small num">(${paid.length})</span></h2><button class="linkbtn" data-act="togglepaid">${S.showPaid?"Hide":"Show"}</button></div>
     ${S.showPaid?`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Project</th><th>Invoice</th><th>Orbyt fee</th><th>Paid</th></tr></thead><tbody>${paid.map(r=>`<tr><td>${r.v?esc(r.v.name):""}</td><td>${esc(r.p.address)}<div class="small">${esc(r.b.category)}</div></td><td class="small">${esc(r.inv.number||"")}</td><td class="money">${money2(r.fee)}</td><td class="num">${fmtStamp(r.inv.paidAt)}</td></tr>`).join("")}</tbody></table></div>`:""}</section>`;
+  if(typeof listingInvoicing==="function")h+=listingInvoicing();
   h+=pmInvoicing();
   return h;
 }
@@ -1716,8 +1720,9 @@ function orbytAlerts(){
     when:new Date(Date.now()-x.days*864e5).toISOString(),act:x.pid?{a:"openmatch",id:x.pid,label:"Open project"}:null,auto:false,resurface:3,nudge:x.nudge});
   for(const su of (S.signups||[]).filter(x=>x.kind==="agent"))A.push({id:"agentsu-"+su.id,cls:"k-ink",label:"Agent sign-up",title:`${su.name} wants to join${su.brokerage?" ("+su.brokerage+")":""}`,
     meta:[(su.areas||[]).join(", "),su.email,ago(su.createdAt)].filter(Boolean).join(" · "),when:su.createdAt||"",act:{a:"approveagent",id:su.id,label:"Approve"},auto:su.status==="approved",autoLabel:"Approved"});
-  for(const v of S.vendors.filter(v=>v.approved===false))A.push({id:"vrev-"+v.id,cls:"k-ink",label:"Vendor sign-up",title:`${v.name} wants to join (${vsv(v).join(", ")})`,
-    meta:[v.areaNote||v.areas?.join(", "),v.source,v.createdAt?ago(v.createdAt):""].filter(Boolean).join(" · "),when:v.createdAt||"",act:{a:"vcard",id:v.id,label:"Review"},auto:false});
+  for(const v of S.vendors.filter(v=>v.approved===false)){const cp=typeof isPartner==="function"&&isPartner(v);A.push({id:"vrev-"+v.id,cls:"k-ink",label:cp?"Closing partner sign-up":"Vendor sign-up",title:`${v.name} wants to join (${vsv(v).join(", ")})`,
+    meta:[v.areaNote||v.areas?.join(", "),v.source,v.createdAt?ago(v.createdAt):""].filter(Boolean).join(" · "),when:v.createdAt||"",act:{a:"vcard",id:v.id,label:"Review"},auto:false})}
+  if(typeof listingAlerts==="function")A.push(...listingAlerts());
   if(typeof insuranceAlerts==="function")A.push(...insuranceAlerts());
   if(typeof closingAlerts==="function")A.push(...closingAlerts());
   return A;
@@ -2197,7 +2202,7 @@ function wixExportPanel(){
     <div class="actions"><button class="btn ghost" data-act="cancel">Done</button></div></div>`;
 }
 function rosterView(){
-  const all=[...S.vendors].sort((a,b)=>vsv(a)[0].localeCompare(vsv(b)[0])||a.name.localeCompare(b.name));
+  const all=S.vendors.filter(v=>!(typeof isPartner==="function"&&isPartner(v))).sort((a,b)=>vsv(a)[0].localeCompare(vsv(b)[0])||a.name.localeCompare(b.name));
   let h=S.canWrite?(S.openForm==="vendor"?vendorForm():S.openForm==="vimport"?vendorImportPanel():`<div class="actions" style="margin-bottom:16px"><button class="btn" data-act="form" data-key="vendor">Add a vendor</button><button class="btn ghost" data-act="form" data-key="vimport">Import vendor sign-ups</button>${S.downloads?`<button class="btn ghost" data-act="form" data-key="wixexport">Export for Wix</button>`:""}</div>`):"";
   if(S.openForm==="wixexport")h+=wixExportPanel();
   h+=reviewQueue();
@@ -2209,7 +2214,7 @@ function rosterView(){
     &&(!f.price||(f.price==="none"?!(priceStats(v.id)||{}).tier:(priceStats(v.id)||{}).tier===f.price)));
   const on=q||f.cat||f.area||f.status||f.cred||f.promo||f.rating||f.price;
   const sel=(id,label,val,opts)=>`<label class="field"><span>${label}</span><select id="${id}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${v===val?"selected":""}>${esc(t)}</option>`).join("")}</select></label>`;
-  const usedCats=[...CATS,...(typeof CLOSING!=="undefined"?CLOSING:[])].filter(c=>all.some(v=>vsv(v).includes(c)));
+  const usedCats=[...CATS].filter(c=>all.some(v=>vsv(v).includes(c)));
   h+=`<div class="rfilters"><label class="field rsearch"><span>Search</span><input type="text" id="rs-q" value="${esc(f.q)}" placeholder="Name or contact"></label>
     ${sel("rs-cat","Service",f.cat,[["","All services"],...usedCats.map(c=>[c,c])])}
     ${sel("rs-area","Area",f.area,[["","All areas"],...AREAS.map(a=>[a,a])])}

@@ -183,10 +183,10 @@ function listingInvoicing(){if(!partnersAll().length&&!listingPays().length)retu
   const monthStart=today.slice(0,8)+"01",pays=listingPays().slice().sort((a,b)=>String(b.paid_at).localeCompare(String(a.paid_at)));
   const thisMonth=pays.filter(x=>String(x.paid_at).slice(0,10)>=monthStart).reduce((s,x)=>s+Number(x.amount||0),0);
   const paying=partnersLive().filter(v=>listingStatus(v).key==="paid").length;
-  return `<section class="section"><h2>Closing partner listings</h2><p class="small" style="margin:4px 0 12px">Flat $${LISTING_FEE} a month marketing listings, after a ${LISTING_FREE_DAYS}-day free period. Tracked separately from vendor job fees.</p>
+  return `<section class="section"><h2>Closing partner marketing fees</h2><p class="small" style="margin:4px 0 12px">Flat $${LISTING_FEE} a month marketing listings, after a ${LISTING_FREE_DAYS}-day free period. Tracked separately from vendor job fees.</p>
     <div class="stats" style="--n:3;margin-bottom:14px">
       <div class="stat static"><span class="eyebrow">Due now</span><b class="num ${due.length?"warntext":""}">${money2(due.reduce((s,x)=>s+x.amt,0))}</b><span class="small">${due.length} ${due.length===1?"partner":"partners"}</span></div>
-      <div class="stat static"><span class="eyebrow">Collected this month</span><b class="num">${money2(thisMonth)}</b><span class="small">Listing fees</span></div>
+      <div class="stat static"><span class="eyebrow">Collected this month</span><b class="num">${money2(thisMonth)}</b><span class="small">Marketing fees</span></div>
       <div class="stat static"><span class="eyebrow">Monthly recurring</span><b class="num">${money2(paying*LISTING_FEE)}</b><span class="small">${paying} paying</span></div></div>
     <h3 style="margin:16px 0 8px">Due now</h3>${due.length?`<div class="tablewrap"><table><thead><tr><th>Partner</th><th>Since</th><th>Owed</th><th></th></tr></thead><tbody>${due.map(x=>`<tr><td><button class="vlink strong" data-act="vcard" data-id="${esc(x.v.id)}">${esc(x.v.name)}</button><div class="small">${esc([x.v.contactName,vEmail(x.v)].filter(Boolean).join(" · "))}</div></td>
       <td class="num">${fmtDate(x.np.start)}</td><td class="money">${money2(x.amt)}<div class="small">${x.months} ${x.months===1?"month":"months"}</div></td><td>${S.canWrite?`<button class="btn sm" data-act="listingpaid" data-id="${esc(x.v.id)}">Mark a month paid</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="small">Nothing due.</p>`}
@@ -197,14 +197,14 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="alllp
 
 /* money for forecasts and reports: listing payments recorded, and the next 12 months of expected fees */
 function listingMoneyItems(){const items=[],today=dayKey();
-  for(const x of listingPays()){const v=vendorById(x.vendor_id);items.push({date:String(x.paid_at).slice(0,10),stage:"paid",sub:"Listing fee, paid",amt:Number(x.amount||0),label:`${v?v.name:"Closing partner"} · Closing partner listing`,listing:true})}
+  for(const x of listingPays()){const v=vendorById(x.vendor_id);items.push({date:String(x.paid_at).slice(0,10),stage:"paid",sub:"Closing partner marketing fee, paid",amt:Number(x.amount||0),label:`${v?v.name:"Closing partner"} · Marketing fee`,listing:true})}
   for(const v of partnersLive()){let np=nextPeriod(v);if(!np)continue;
-    for(let i=0;i<12;i++){items.push({date:np.start<today?today:np.start,stage:"exp",sub:np.start<today?"Listing fee, due":"Listing fee",amt:LISTING_FEE,est:np.start>=today,label:`${v.name} · Closing partner listing`,listing:true});
+    for(let i=0;i<12;i++){items.push({date:np.start<today?today:np.start,stage:"exp",sub:np.start<today?"Closing partner marketing fee, due":"Closing partner marketing fee",amt:LISTING_FEE,est:np.start>=today,label:`${v.name} · Marketing fee`,listing:true});
       const s=addMonthIso(np.start,1);np={start:s}}}
   return items}
 const listingRev=(a,b)=>listingPays().filter(x=>inR(String(x.paid_at).slice(0,10),a,b)).reduce((s,x)=>s+Number(x.amount||0),0);
 
 /* Ashleigh's dashboard: fees due */
 function listingAlerts(){return listingDue().map(x=>{const vt=typeof vTo==="function"?vTo(x.v):null;
-  return{id:"listdue-"+x.v.id+"-"+x.np.start,cls:"k-warn",label:"Listing fee due",title:`${x.v.name} owes ${money2(x.amt)} for their closing partner listing`,meta:`Due since ${fmtDate(x.np.start)}`,when:x.np.start,act:{a:"tab",tab:"partners",label:"Open"},auto:false,resurface:7,
+  return{id:"listdue-"+x.v.id+"-"+x.np.start,cls:"k-warn",label:"Marketing fee due",title:`${x.v.name} owes ${money2(x.amt)} in closing partner marketing fees`,meta:`Due since ${fmtDate(x.np.start)}`,when:x.np.start,act:{a:"tab",tab:"partners",label:"Open"},auto:false,resurface:7,
     nudge:vt?{to:vt,subject:"Your Orbyt closing partner listing",text:`Hi ${vt.greet}, it's Ashleigh with Orbyt. A friendly reminder that the $${LISTING_FEE} monthly fee for your Orbyt closing partner listing is due. Let me know if you have any questions, or if you'd like to cancel. Thank you!`}:null}})}

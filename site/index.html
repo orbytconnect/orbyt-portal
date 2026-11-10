@@ -1491,7 +1491,7 @@ function revChart(a,b){
   const W=720,H=200,L=52,Rr=8,T=12,Bt=28,pw=W-L-Rr,ph=H-T-Bt,slot=pw/B.length,bw=Math.max(6,Math.min(44,slot*0.62)),y=v=>T+ph-(v/nice)*ph,every=Math.ceil(B.length/12);
   let g=[0,.5,1].map(f=>`<line x1="${L}" x2="${W-Rr}" y1="${y(f*nice)}" y2="${y(f*nice)}" class="fcgrid"/><text x="${L-8}" y="${y(f*nice)+4}" text-anchor="end" class="fcax">${f*nice>=1000?"$"+(f*nice/1000).toFixed(1).replace(".0","")+"k":"$"+Math.round(f*nice)}</text>`).join("");
   B.forEach((k,i)=>{const x=L+slot*i+(slot-bw)/2,tot=k.paid+k.exp+k.pos;let base=0;const seg=(v,cls,name,top)=>{if(!v)return"";const y0=y(base),y1=y(base+v);base+=v;return`<rect x="${x}" y="${y1}" width="${bw}" height="${Math.max(1,y0-y1-(top?0:2))}" class="${cls}" rx="${top?3:0}"><title>${esc(k.label)}: ${name} ${money2(v)}</title></rect>`};
-    g+=seg(k.paid,"fcpaid","Vendor fees",!k.exp&&!k.pos)+seg(k.exp,"fcexp",PM_ON?"Project management":"Expected fees",!k.pos)+seg(k.pos,"fcpos","Closing partner listings",true);if(i%every===0)g+=`<text x="${x+bw/2}" y="${H-8}" text-anchor="middle" class="fcax">${esc(k.label)}</text>`});
+    g+=seg(k.paid,"fcpaid","Vendor fees",!k.exp&&!k.pos)+seg(k.exp,"fcexp",PM_ON?"Project management":"Expected fees",!k.pos)+seg(k.pos,"fcpos","Closing partner marketing fees",true);if(i%every===0)g+=`<text x="${x+bw/2}" y="${H-8}" text-anchor="middle" class="fcax">${esc(k.label)}</text>`});
   return `<div class="fcchart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Net revenue by period">${g}<line x1="${L}" x2="${W-Rr}" y1="${y(0)}" y2="${y(0)}" class="fcbase"/></svg></div>`;
 }
 function rpHeader(a,b,pa,pb){const P=S.rp.period,V=S.rp.view,btn=(v,l)=>`<button data-act="rpperiod" data-v="${v}" aria-pressed="${P===v}">${l}</button>`,vb=(v,l)=>`<button data-act="rpview" data-v="${v}" aria-pressed="${V===v}">${l}</button>`;
@@ -1562,7 +1562,7 @@ function investorView(){
   return `<section class="fcpanel">${rpHeader(a,b,pa,pb)}
     <h3 class="rphead">Scale</h3><div class="rptiles">
       ${rpTile("Gross booking value",money(m.gbv),rpDl(m.gbv,pm.gbv)+`<span class="small">${m.bookings} confirmed ${m.bookings===1?"booking":"bookings"}</span>`,"Total vendor spend booked through Orbyt, by the date the vendor confirmed")}
-      ${rpTile("Net revenue",money2(m.totalRev),rpDl(m.totalRev,pm.totalRev)+`<span class="small">Job fees ${money2(m.rev)} · Listings ${money2(m.listRev)}</span>`,"Orbyt job fees earned after waived fees, plus closing partner listing fees collected")}
+      ${rpTile("Net revenue",money2(m.totalRev),rpDl(m.totalRev,pm.totalRev)+`<span class="small">Job fees ${money2(m.rev)} · Closing partner marketing fees ${money2(m.listRev)}</span>`,"Orbyt job fees earned after waived fees, plus closing partner marketing fees collected")}
       ${rpTile("Take rate",rpPct(m.take),`<span class="small">Vendor fees ÷ value of finished jobs</span>`,"Falls as repeat bookings grow, since repeats are 2%")}
       ${rpTile("Active agents",m.active.length,rpDl(m.active.length,pm.active.length)+`<span class="small">${m.newC.length} new</span>`)}</div>
     <div class="rpcharts"><div><h3>Gross booking value by month</h3><p class="small" style="margin:2px 0 8px">Hover a bar for month-over-month growth.</p>${barChart(series.map(p=>({label:p.label,v:p.gbv,g:p.gg})),moneyK,"Gross booking value by month")}</div>
@@ -1724,12 +1724,12 @@ function reportsView(){
       ${tile("Retention",pct(m.retention),m.prevActiveN?`<span class="small">${m.kept} of ${m.prevActiveN} from the prior period came back</span>`:`<span class="small">No customers in the prior period</span>`)}
       ${tile("Repeat customers",pct(m.repeatRate),`<span class="small">${m.repeatC} with 2 or more projects</span>`)}</div>
     <h3 class="rphead">Revenue</h3><div class="rptiles">
-      ${tile("Net revenue",money2(m.totalRev),dl(m.totalRev,pm.totalRev)+`<span class="small">Job fees ${money2(m.rev)} · Listings ${money2(m.listRev)}</span>`)}
+      ${tile("Net revenue",money2(m.totalRev),dl(m.totalRev,pm.totalRev)+`<span class="small">Job fees ${money2(m.rev)} · Closing partner marketing fees ${money2(m.listRev)}</span>`)}
       ${tile("Collected",money2(m.collected),`<span class="small">Paid in this period</span>`)}
       ${tile("AOV",m.aov==null?"–":money(m.aov),`${dl(m.aov,pm.aov)}<span class="small">Avg booked vendor spend per project (${m.orders})</span>`)}
       ${tile("Revenue per project",m.orders?money2(m.rev/m.orders):"–",`<span class="small">Orbyt fees per booked project</span>`)}</div>
-    <div class="rpcharts"><div><h3>Net revenue</h3><p class="small" style="margin:2px 0 8px"><i class="sw fcpaid"></i>Vendor fees, by job finish date ${PM_ON?`<i class="sw fcexp" style="margin-left:10px"></i>Project management`:""}<i class="sw fcpos" style="margin-left:10px"></i>Closing partner listings, by payment date</p>${revChart(a,b)}
-        <p class="small" style="margin:6px 0 0">Vendor fees ${money2(m.vendorRev)}${PM_ON?` · Project management ${money2(m.pmRev)}`:""} · Closing partner listings ${money2(m.listRev)}${m.waived?` · ${m.waived} ${m.waived===1?"fee":"fees"} waived`:""}</p></div>
+    <div class="rpcharts"><div><h3>Net revenue</h3><p class="small" style="margin:2px 0 8px"><i class="sw fcpaid"></i>Vendor fees, by job finish date ${PM_ON?`<i class="sw fcexp" style="margin-left:10px"></i>Project management`:""}<i class="sw fcpos" style="margin-left:10px"></i>Closing partner marketing fees, by payment date</p>${revChart(a,b)}
+        <p class="small" style="margin:6px 0 0">Vendor fees ${money2(m.vendorRev)}${PM_ON?` · Project management ${money2(m.pmRev)}`:""} · Closing partner marketing fees ${money2(m.listRev)}${m.waived?` · ${m.waived} ${m.waived===1?"fee":"fees"} waived`:""}</p></div>
       <div><h3>AOV over time</h3><p class="small" style="margin:2px 0 8px">Average booked vendor spend per project. Hover a point for growth vs the one before.</p>${lineChart(aovPts,v=>money(v))}</div></div>
     <h3 class="rphead">Quality and speed</h3><div class="rptiles">
       ${tile("Star rating",m.rating==null?"–":"★ "+m.rating.toFixed(1),`<span class="small">${m.ratingN} approved ${m.ratingN===1?"review":"reviews"} this period</span>`)}
@@ -4517,10 +4517,10 @@ function listingInvoicing(){if(!partnersAll().length&&!listingPays().length)retu
   const monthStart=today.slice(0,8)+"01",pays=listingPays().slice().sort((a,b)=>String(b.paid_at).localeCompare(String(a.paid_at)));
   const thisMonth=pays.filter(x=>String(x.paid_at).slice(0,10)>=monthStart).reduce((s,x)=>s+Number(x.amount||0),0);
   const paying=partnersLive().filter(v=>listingStatus(v).key==="paid").length;
-  return `<section class="section"><h2>Closing partner listings</h2><p class="small" style="margin:4px 0 12px">Flat $${LISTING_FEE} a month marketing listings, after a ${LISTING_FREE_DAYS}-day free period. Tracked separately from vendor job fees.</p>
+  return `<section class="section"><h2>Closing partner marketing fees</h2><p class="small" style="margin:4px 0 12px">Flat $${LISTING_FEE} a month marketing listings, after a ${LISTING_FREE_DAYS}-day free period. Tracked separately from vendor job fees.</p>
     <div class="stats" style="--n:3;margin-bottom:14px">
       <div class="stat static"><span class="eyebrow">Due now</span><b class="num ${due.length?"warntext":""}">${money2(due.reduce((s,x)=>s+x.amt,0))}</b><span class="small">${due.length} ${due.length===1?"partner":"partners"}</span></div>
-      <div class="stat static"><span class="eyebrow">Collected this month</span><b class="num">${money2(thisMonth)}</b><span class="small">Listing fees</span></div>
+      <div class="stat static"><span class="eyebrow">Collected this month</span><b class="num">${money2(thisMonth)}</b><span class="small">Marketing fees</span></div>
       <div class="stat static"><span class="eyebrow">Monthly recurring</span><b class="num">${money2(paying*LISTING_FEE)}</b><span class="small">${paying} paying</span></div></div>
     <h3 style="margin:16px 0 8px">Due now</h3>${due.length?`<div class="tablewrap"><table><thead><tr><th>Partner</th><th>Since</th><th>Owed</th><th></th></tr></thead><tbody>${due.map(x=>`<tr><td><button class="vlink strong" data-act="vcard" data-id="${esc(x.v.id)}">${esc(x.v.name)}</button><div class="small">${esc([x.v.contactName,vEmail(x.v)].filter(Boolean).join(" · "))}</div></td>
       <td class="num">${fmtDate(x.np.start)}</td><td class="money">${money2(x.amt)}<div class="small">${x.months} ${x.months===1?"month":"months"}</div></td><td>${S.canWrite?`<button class="btn sm" data-act="listingpaid" data-id="${esc(x.v.id)}">Mark a month paid</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:`<p class="small">Nothing due.</p>`}
@@ -4531,16 +4531,16 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="alllp
 
 /* money for forecasts and reports: listing payments recorded, and the next 12 months of expected fees */
 function listingMoneyItems(){const items=[],today=dayKey();
-  for(const x of listingPays()){const v=vendorById(x.vendor_id);items.push({date:String(x.paid_at).slice(0,10),stage:"paid",sub:"Listing fee, paid",amt:Number(x.amount||0),label:`${v?v.name:"Closing partner"} · Closing partner listing`,listing:true})}
+  for(const x of listingPays()){const v=vendorById(x.vendor_id);items.push({date:String(x.paid_at).slice(0,10),stage:"paid",sub:"Closing partner marketing fee, paid",amt:Number(x.amount||0),label:`${v?v.name:"Closing partner"} · Marketing fee`,listing:true})}
   for(const v of partnersLive()){let np=nextPeriod(v);if(!np)continue;
-    for(let i=0;i<12;i++){items.push({date:np.start<today?today:np.start,stage:"exp",sub:np.start<today?"Listing fee, due":"Listing fee",amt:LISTING_FEE,est:np.start>=today,label:`${v.name} · Closing partner listing`,listing:true});
+    for(let i=0;i<12;i++){items.push({date:np.start<today?today:np.start,stage:"exp",sub:np.start<today?"Closing partner marketing fee, due":"Closing partner marketing fee",amt:LISTING_FEE,est:np.start>=today,label:`${v.name} · Marketing fee`,listing:true});
       const s=addMonthIso(np.start,1);np={start:s}}}
   return items}
 const listingRev=(a,b)=>listingPays().filter(x=>inR(String(x.paid_at).slice(0,10),a,b)).reduce((s,x)=>s+Number(x.amount||0),0);
 
 /* Ashleigh's dashboard: fees due */
 function listingAlerts(){return listingDue().map(x=>{const vt=typeof vTo==="function"?vTo(x.v):null;
-  return{id:"listdue-"+x.v.id+"-"+x.np.start,cls:"k-warn",label:"Listing fee due",title:`${x.v.name} owes ${money2(x.amt)} for their closing partner listing`,meta:`Due since ${fmtDate(x.np.start)}`,when:x.np.start,act:{a:"tab",tab:"partners",label:"Open"},auto:false,resurface:7,
+  return{id:"listdue-"+x.v.id+"-"+x.np.start,cls:"k-warn",label:"Marketing fee due",title:`${x.v.name} owes ${money2(x.amt)} in closing partner marketing fees`,meta:`Due since ${fmtDate(x.np.start)}`,when:x.np.start,act:{a:"tab",tab:"partners",label:"Open"},auto:false,resurface:7,
     nudge:vt?{to:vt,subject:"Your Orbyt closing partner listing",text:`Hi ${vt.greet}, it's Ashleigh with Orbyt. A friendly reminder that the $${LISTING_FEE} monthly fee for your Orbyt closing partner listing is due. Let me know if you have any questions, or if you'd like to cancel. Thank you!`}:null}})}
 
 

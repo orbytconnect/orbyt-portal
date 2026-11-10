@@ -8,6 +8,12 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#18314F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Orbyt">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&family=Julius+Sans+One&display=swap">
 <style>
@@ -559,7 +565,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 .setuplist{list-style:none;margin:0;padding:0;display:grid}.setuplist li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
 .setuplist li:first-child{border-top:0}.setupdot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:12px;color:#fff}
 .setuplist li.done .setupdot{background:var(--teal,#3F7266);border-color:var(--teal,#3F7266)}.setuplist li.done .strong{color:var(--muted);font-weight:400}
-@media (max-width:640px){.setuplist li{grid-template-columns:22px minmax(0,1fr)}.setuplist li>div:last-child,.setuplist li>span.small:last-child{grid-column:2}}
+@media (max-width:640px){.setuplist li.done>span.small:last-child{display:none}.setuplist li{grid-template-columns:22px minmax(0,1fr)}.setuplist li>div:last-child,.setuplist li>span.small:last-child{grid-column:2}}
 .setupback{margin:0 0 18px}.helpcard{max-width:720px}.helpbody{display:grid;gap:4px;margin-top:8px}.helpsec h3{margin:12px 0 2px;font-size:16px}.helpsec p{margin:0;line-height:1.55}.helpsec ul{margin:4px 0 0;padding-left:20px;line-height:1.6}
 .candlinks{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 .myrevs{display:grid;gap:10px}.myrev{margin:0;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.myrev .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -4441,13 +4447,23 @@ function setupMark(id){const key=roleKey();if(!key||!S.canWrite)return Promise.r
   return S.db.doc("taskstate/"+key).set({done:{...doneMap(),[id]:now()},nudged:nudgedMap()})}
 const setupRole=()=>{const k=kind();if(k==="vendor"){const v=vendorById(roleVal());return isPartner(v)?"partner":"vendor"}return k};
 const contactLine=()=>`Questions, or something not working? Email <a href="mailto:${HELP_EMAIL}?subject=${encodeURIComponent("Orbyt portal help")}">${HELP_EMAIL}</a>. A screenshot helps.`;
-const bookmarkHint=`Bookmark ${PORTAL_HOST} so it's one click away: press Cmd+D on a Mac or Ctrl+D on Windows. On your phone, tap Share, then Add to Home Screen.`;
+// the home screen app: installable from the browser, no app store needed
+const isStandalone=()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(_){return false}};
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const isPhone=()=>isIOS()||/android/i.test(navigator.userAgent);
+if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();S.installEvt=e;if(S.session)render()});
+window.addEventListener("appinstalled",()=>{S.installEvt=null;if(typeof setupMark==="function"&&S.session)setupMark("setup-bookmark").then(()=>render()).catch(()=>{})});
+const appSteps=()=>isIOS()?`In Safari, tap the Share button, then Add to Home Screen. Orbyt gets its own icon and opens full screen.`
+  :/android/i.test(navigator.userAgent)?`In Chrome, tap the menu (⋮), then Install app or Add to Home screen. Orbyt gets its own icon and opens full screen.`
+  :`On a computer, bookmark ${PORTAL_HOST} (Cmd+D on a Mac, Ctrl+D on Windows), or use the install icon at the right of Chrome's address bar. On your phone, open ${PORTAL_HOST} and add it to your home screen.`;
 
 function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="btn ghost sm" type="button" data-act="${act}" ${extra||""}>${label}</button>`;
   const done=id=>a("Done","setupdone",`data-id="${id}"`);
   const emails={vendor:"New bid requests, being picked for a job, and reminders",agent:"Introductions, new quotes, and updates on your projects",partner:"New introductions to agents"}[r];
   const common=[
-    {id:"setup-bookmark",label:"Bookmark the portal",hint:bookmarkHint,done:setupDone("setup-bookmark"),act:done("setup-bookmark")},
+    {id:"setup-bookmark",label:isPhone()?"Add Orbyt to your home screen":"Keep Orbyt one click away",hint:S.installEvt?"Install the Orbyt app in one tap. It gets its own icon and opens full screen, like any other app.":appSteps(),
+      done:setupDone("setup-bookmark")||isStandalone(),act:S.installEvt?a("Install the app","installapp")+" "+done("setup-bookmark"):done("setup-bookmark")},
     {id:"setup-emails",label:"Watch for Orbyt emails",hint:`${emails} come by email from ${HELP_EMAIL}. Add it to your contacts so nothing lands in spam.`,done:setupDone("setup-emails"),act:a("Got it","setupdone",'data-id="setup-emails"')}];
   if(r==="agent"){const agent=roleVal(),ps=S.projects.filter(p=>isOnProject(p,agent));
     const refd=w=>setupDone("setup-ref-"+w);
@@ -4516,11 +4532,13 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">How Orbyt works</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
     <div class="helpbody">${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}
       ${sec("Emails to expect",`<p>Orbyt emails come from <span class="strong">${HELP_EMAIL}</span>. Add it to your contacts so nothing lands in spam.</p><ul>${emails.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`)}
-      ${sec("Keep the portal handy",p(esc(bookmarkHint)))}
+      ${sec("Get the Orbyt app",`<p>Orbyt works like an app on your phone, with no app store needed. ${esc(appSteps())}</p>${S.installEvt?`<p style="margin-top:8px"><button class="btn sm" type="button" data-act="installapp">Install the app</button></p>`:""}<p class="small" style="margin-top:6px">The first time you open it from your home screen, sign in once. Links in Orbyt emails open in your browser.</p>`)}
       <div class="callout" style="margin-top:6px"><div class="strong">Need help or found a bug?</div><p class="small" style="margin:4px 0 0">${contactLine()}</p></div></div></div>`}
 
-document.addEventListener("click",e=>{const t=e.target.closest('[data-act="setupdone"],[data-act="setupshow"],[data-act="help"],[data-act="helpclose"],[data-act="gofold"],[data-act="setupref"]');if(!t)return;
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="installapp"],[data-act="setupdone"],[data-act="setupshow"],[data-act="help"],[data-act="helpclose"],[data-act="gofold"],[data-act="setupref"]');if(!t)return;
   e.preventDefault();e.stopImmediatePropagation();const a=t.dataset.act;
+  if(a==="installapp"){const ev=S.installEvt;if(!ev){toast("Use your browser's menu to install Orbyt.");return}
+    ev.prompt();ev.userChoice.then(c=>{S.installEvt=null;if(c&&c.outcome==="accepted")setupMark("setup-bookmark").then(()=>render()).catch(()=>{});else render()}).catch(()=>{});return}
   if(a==="help"){S.help=true;render();return}
   if(a==="helpclose"){S.help=false;render();return}
   if(a==="setupdone"){if(t.dataset.id==="setup-hide")S.setupOpen=false;guard(()=>setupMark(t.dataset.id),t.dataset.id==="setup-hide"?"Hidden. Bring it back anytime with Show the checklist, or from Help.":"Checked off");return}

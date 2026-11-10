@@ -41,7 +41,7 @@ def sub(old, new, count=1):
 
 # full HTML document for hosting
 sub('<title>Orbyt Portal</title>\n<meta name="claude:viewport-fit-sides" content="cover">',
-    '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Orbyt Portal</title>\n<meta name="robots" content="noindex">\n<link rel="icon" href="/favicon.svg" type="image/svg+xml">\n<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">\n<link rel="apple-touch-icon" href="/apple-touch-icon.png">')
+    '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Orbyt Portal</title>\n<meta name="robots" content="noindex">\n<link rel="icon" href="/favicon.svg" type="image/svg+xml">\n<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">\n<link rel="apple-touch-icon" href="/apple-touch-icon.png">\n<link rel="manifest" href="/manifest.webmanifest">\n<meta name="theme-color" content="#18314F">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-title" content="Orbyt">\n<meta name="apple-mobile-web-app-status-bar-style" content="default">')
 sub("</style>", """.quoteframe{width:100%;height:70vh;border:1px solid var(--line);border-radius:8px;background:#fff}
 .clientpage{max-width:760px;margin:28px auto 40px}
 .clientpage h1{margin:6px 0 4px}
@@ -102,7 +102,7 @@ sub("</style>\n</head>", """.note{white-space:pre-line}
 .setuplist{list-style:none;margin:0;padding:0;display:grid}.setuplist li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
 .setuplist li:first-child{border-top:0}.setupdot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:12px;color:#fff}
 .setuplist li.done .setupdot{background:var(--teal,#3F7266);border-color:var(--teal,#3F7266)}.setuplist li.done .strong{color:var(--muted);font-weight:400}
-@media (max-width:640px){.setuplist li{grid-template-columns:22px minmax(0,1fr)}.setuplist li>div:last-child,.setuplist li>span.small:last-child{grid-column:2}}
+@media (max-width:640px){.setuplist li.done>span.small:last-child{display:none}.setuplist li{grid-template-columns:22px minmax(0,1fr)}.setuplist li>div:last-child,.setuplist li>span.small:last-child{grid-column:2}}
 .setupback{margin:0 0 18px}.helpcard{max-width:720px}.helpbody{display:grid;gap:4px;margin-top:8px}.helpsec h3{margin:12px 0 2px;font-size:16px}.helpsec p{margin:0;line-height:1.55}.helpsec ul{margin:4px 0 0;padding-left:20px;line-height:1.6}
 .candlinks{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 .myrevs{display:grid;gap:10px}.myrev{margin:0;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.myrev .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}

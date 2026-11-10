@@ -3055,7 +3055,7 @@ begin
                                      'sender', 'https://portal.orbytconnect.com/.netlify/functions/push'), true)
   on conflict (key) do update set value = public.settings.value || excluded.value, is_public = true;
   -- a new key means old subscriptions won't work any more
-  delete from public.push_subscriptions;
+  delete from public.push_subscriptions where true;
 end $$;
 revoke execute on function public.push_setup(text, text) from public, anon;
 grant execute on function public.push_setup(text, text) to authenticated;

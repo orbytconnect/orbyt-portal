@@ -1132,7 +1132,7 @@ function availToggle(v){if(kind()!=="vendor"||!S.canWrite||v.approved===false)re
     <span class="small">${on?"I'll keep matching you to new jobs.":"I won't send new requests while you're paused. Jobs you already have stay as they are."}</span></div>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="myavail"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   const v=vendorById(myVendorId());if(!v)return;const want=t.dataset.v==="1";if((v.available!==false)===want)return;
-  guard(async()=>{fail((await sb.from("vendors").update({available:want}).eq("id",v.id)).error,"availability");await S.db.reload()},want?"You're taking new work again.":"Paused. No new requests until you switch back.")},true);
+  guard(async()=>{fail((await sb.from("vendors").update({available:want}).eq("id",v.id)).error,"availability");if(typeof setupMark==="function")try{await setupMark("setup-avail")}catch(_){}await S.db.reload()},want?"You're taking new work again.":"Paused. No new requests until you switch back.")},true);
 
 /* ---------- vendors: a special offer for Orbyt clients (internally: featured) ---------- */
 function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));

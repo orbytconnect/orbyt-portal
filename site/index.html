@@ -553,6 +553,14 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
 .lostrow{display:grid;grid-template-columns:minmax(140px,1fr) minmax(170px,1fr) minmax(160px,1.4fr) auto;gap:8px;align-items:center;margin-top:8px}.lostform{margin:0}
 @media (max-width:760px){.lostrow{grid-template-columns:1fr 1fr}.lostrow .lostwho{grid-column:1/-1}}
 .losttag{margin-top:4px;color:var(--muted)}.lostlist{display:grid;gap:8px}.lostitem{border-top:1px solid var(--line);padding-top:6px}
+.setup{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:16px 18px;margin:0 0 22px}
+.setuphead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.setuphead h2{font-size:20px;margin:2px 0 0;font-weight:500}
+.setupbar{height:6px;border-radius:999px;background:var(--line);margin:12px 0 6px;overflow:hidden}.setupbar span{display:block;height:100%;background:var(--teal,#3F7266);border-radius:999px}
+.setuplist{list-style:none;margin:0;padding:0;display:grid}.setuplist li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.setuplist li:first-child{border-top:0}.setupdot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:12px;color:#fff}
+.setuplist li.done .setupdot{background:var(--teal,#3F7266);border-color:var(--teal,#3F7266)}.setuplist li.done .strong{color:var(--muted);font-weight:400}
+@media (max-width:640px){.setuplist li{grid-template-columns:22px minmax(0,1fr)}.setuplist li>div:last-child,.setuplist li>span.small:last-child{grid-column:2}}
+.helpcard{max-width:720px}.helpbody{display:grid;gap:4px;margin-top:8px}.helpsec h3{margin:12px 0 2px;font-size:16px}.helpsec p{margin:0;line-height:1.55}.helpsec ul{margin:4px 0 0;padding-left:20px;line-height:1.6}
 .candlinks{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 .myrevs{display:grid;gap:10px}.myrev{margin:0;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.myrev .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .hcpot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
@@ -798,7 +806,7 @@ function agentTasks(agent){
     for(const b of bidsFor(p.id)){
       const vn=bidName(b),cat=b.category.toLowerCase();
       if(!["requested","changes"].includes(b.status)&&b.submittedAt)T.push({id:"bid-"+b.id+"-"+(b.rev||0),cls:"k-bid",label:b.rev?"Updated bid":"New bid",title:b.rev?`${vn} updated their ${cat} bid for ${p.address}`:`${vn} sent a ${cat} bid for ${p.address}`,
-        meta:`${money(b.amount)}${timeline(b)?", "+timeline(b):""} · ${ago(b.submittedAt)}`,when:b.submittedAt,act:{a:"open",id:p.id,label:"Compare all"},auto:ONTEAM.includes(b.status)||b.status==="passed",autoLabel:ONTEAM.includes(b.status)?"Added to your team":"Went with another vendor",
+        meta:`${money(b.amount)}${timeline(b)?", "+timeline(b):""} · ${ago(b.submittedAt)}`,when:b.submittedAt,act:{a:"open",id:p.id,label:"See all quotes"},auto:ONTEAM.includes(b.status)||b.status==="passed",autoLabel:ONTEAM.includes(b.status)?"Added to your team":"Went with another vendor",
           extra:b.status==="submitted"&&!teamBid(p.id,b.category)?`<button class="btn sm" data-act="select" data-id="${esc(b.id)}">Add to team</button>`:""});
       if(b.status==="selected"&&b.confirmedAt){const st=b.steps||{};
         T.push({id:"finish-"+b.id,cls:"k-warn",urgent:true,label:"Next steps",title:`${vn} confirmed ${cat} at ${p.address}. Sign their agreement and pay them directly`,
@@ -910,7 +918,7 @@ function renderRoleSelect(){
   if(!S.session){el.innerHTML="";return}
   const k=kind(),v=k==="vendor"?vendorById(roleVal()):null;
   const name=k==="orbyt"?"Ashleigh Stumler":k==="agent"?roleVal():(v?v.name:"Vendor");
-  el.innerHTML=`<span class="whoname"><span class="strong">${esc(name)}</span><span class="small">${k==="orbyt"?"Orbyt admin":k==="agent"?"Agent":"Vendor partner"}</span></span>${myAgreementBtn()}<button class="btn ghost sm" data-act="signout">Sign out</button>`;
+  el.innerHTML=`<span class="whoname"><span class="strong">${esc(name)}</span><span class="small">${k==="orbyt"?"Orbyt admin":k==="agent"?"Agent":typeof isPartner==="function"&&isPartner(vendorById(roleVal()))?"Closing partner":"Vendor partner"}</span></span>${k!=="orbyt"&&typeof helpView==="function"?`<button class="btn ghost sm" data-act="help">Help</button>`:""}${myAgreementBtn()}<button class="btn ghost sm" data-act="signout">Sign out</button>`;
 }
 const allLoaded=()=>["vendors","projects","bids","reviews","mytasks","taskstate","favorites","settings"].every(k=>S.loaded[k]);
 
@@ -923,6 +931,7 @@ function render(){
   if(S.quoteView&&S.session)h+=quoteViewer();
   else if(S.agreementView&&S.session)h+=agreementViewer();
   else if(S.myDetails&&S.session&&typeof myDetailsView==="function")h+=myDetailsView();
+  else if(S.help&&S.session&&typeof helpView==="function")h+=helpView();
   else if(S.vendorCard)h+=vendorCard(vendorById(S.vendorCard));
   else if(S.nudge&&kind()==="orbyt")h+=nudgeDialog();
   else if(S.clientShare&&kind()!=="vendor")h+=clientDialog();
@@ -1017,6 +1026,7 @@ function agentView(){
     <p>See new quotes as they come in, review them in one place, open a PDF of each vendor's quote, and see who's booked for every project. Check off tasks as you go, or save them for later.</p>
     ${S.canWrite?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
     ${S.canWrite?`<div class="actions"><button class="btn" data-act="newproject">New project</button></div>`:""}</section>`;
+  if(typeof setupCard==="function")h+=setupCard();
   if(S.openForm==="newarea")h+=`<form class="form" data-form="market" data-agent="1" style="margin-bottom:20px"><h3>Where should Orbyt go next?</h3><p class="small" style="margin:0">Tell me where you have listings or buyers outside ${esc(AREAS.slice(0,3).join(", "))} and the rest of my current areas. Enough requests and I'll start recruiting vendors there.</p>
     <div class="grid"><label class="field"><span>Area</span><input type="text" id="na-area" name="area" required placeholder="Temecula, Orange County"></label><label class="field"><span>Note (optional)</span><input type="text" id="na-note" name="note" placeholder="I list 6 to 8 homes a year there"></label></div>
     <div class="actions"><button class="btn sm" type="submit">Send request</button><button class="btn ghost sm" type="button" data-act="cancel">Cancel</button></div></form>`;
@@ -1126,6 +1136,7 @@ function vendorView(){
     <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
+  if(typeof setupCard==="function")h+=setupCard();
   h+=vendorStats(v,mine);
   const foot=typeof vendorFolds==="function"?vendorFolds(v):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
   h+=statStrip([
@@ -4030,7 +4041,7 @@ function availToggle(v){if(kind()!=="vendor"||!S.canWrite||v.approved===false)re
     <span class="small">${on?"I'll keep matching you to new jobs.":"I won't send new requests while you're paused. Jobs you already have stay as they are."}</span></div>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="myavail"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   const v=vendorById(myVendorId());if(!v)return;const want=t.dataset.v==="1";if((v.available!==false)===want)return;
-  guard(async()=>{fail((await sb.from("vendors").update({available:want}).eq("id",v.id)).error,"availability");await S.db.reload()},want?"You're taking new work again.":"Paused. No new requests until you switch back.")},true);
+  guard(async()=>{fail((await sb.from("vendors").update({available:want}).eq("id",v.id)).error,"availability");if(typeof setupMark==="function")try{await setupMark("setup-avail")}catch(_){}await S.db.reload()},want?"You're taking new work again.":"Paused. No new requests until you switch back.")},true);
 
 /* ---------- vendors: a special offer for Orbyt clients (internally: featured) ---------- */
 function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
@@ -4372,6 +4383,7 @@ function partnerView(v){
   let h=`<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for joining. I'll check your license and references and reach out before your first introduction.</p>`:""}
     <p>When an agent in the network needs what you do, I'll introduce you here and by email. Reach out to the agent, then mark it below. You're a founding partner, so there's no fee.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${ratingHtml(v.id)}</div></section>`;
+  if(typeof setupCard==="function"&&v.approved!==false)h+=setupCard();
   if(!Array.isArray(D.intros))return h+`<div class="emptystate"><h2>Almost ready</h2><p>Introductions switch on with the next Orbyt update. Check back soon.</p></div>`;
   h+=`<section class="section"><div class="sechead"><h2>New introductions</h2></div>${open.length?`<div class="introlist">${open.map(card).join("")}</div>`:`<p class="small">No new introductions right now. When an agent asks for ${esc(vsv(v).map(x=>x.toLowerCase()).join(" or "))} help, you'll get an email and it shows up here.</p>`}
     ${past.length?`<details class="fold" style="margin-top:12px"><summary><span class="foldtitle">Past introductions</span><span class="pill">${past.length}</span></summary><div class="foldbody"><div class="introlist">${past.map(card).join("")}</div></div></details>`:""}</section>`;
@@ -4419,6 +4431,102 @@ function closingAlerts(){const A=[];if(!Array.isArray(D.intros))return A;
   for(const p of S.projects)for(const c of p.closing||[])if(!introsFor(p.id,c).length)
     A.push({id:"closing-"+p.id+"-"+c,cls:"k-warn",label:"Closing partner",title:`${firstName(p.agent)} needs ${c.toLowerCase()} for ${p.address}`,meta:(client(p)?client(p)+" · ":"")+ago(p.createdAt),when:p.createdAt,act:{a:"openmatch",id:p.id,label:"Introduce"}});
   return A}
+
+
+/* ---------- getting started: a checklist on each dashboard, and a Help page ---------- */
+const HELP_EMAIL="ashleigh@orbytconnect.com";
+const PORTAL_HOST="portal.orbytconnect.com";
+const setupDone=id=>!!doneMap()[id];
+function setupMark(id){const key=roleKey();if(!key||!S.canWrite)return Promise.resolve();
+  return S.db.doc("taskstate/"+key).set({done:{...doneMap(),[id]:now()},nudged:nudgedMap()})}
+const setupRole=()=>{const k=kind();if(k==="vendor"){const v=vendorById(roleVal());return isPartner(v)?"partner":"vendor"}return k};
+const contactLine=()=>`Questions, or something not working? Email <a href="mailto:${HELP_EMAIL}?subject=${encodeURIComponent("Orbyt portal help")}">${HELP_EMAIL}</a>. A screenshot helps.`;
+const bookmarkHint=`Bookmark ${PORTAL_HOST} so it's one click away: press Cmd+D on a Mac or Ctrl+D on Windows. On your phone, tap Share, then Add to Home Screen.`;
+
+function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="btn ghost sm" type="button" data-act="${act}" ${extra||""}>${label}</button>`;
+  const done=id=>a("Done","setupdone",`data-id="${id}"`);
+  const emails={vendor:"New bid requests, being picked for a job, and reminders",agent:"Introductions, new quotes, and updates on your projects",partner:"New introductions to agents"}[r];
+  const common=[
+    {id:"setup-bookmark",label:"Bookmark the portal",hint:bookmarkHint,done:setupDone("setup-bookmark"),act:done("setup-bookmark")},
+    {id:"setup-emails",label:"Watch for Orbyt emails",hint:`${emails} come by email from ${HELP_EMAIL}. Add it to your contacts so nothing lands in spam.`,done:setupDone("setup-emails"),act:a("Got it","setupdone",'data-id="setup-emails"')}];
+  if(r==="agent"){const agent=roleVal(),ps=S.projects.filter(p=>isOnProject(p,agent));
+    const refd=w=>setupDone("setup-ref-"+w);
+    return[
+      {id:"np",label:"Start your first project",hint:"Add the address, what the home needs, and your timing. I'll introduce vendors who fit.",done:ps.length>0,act:a("New project","newproject")},
+      {id:"fav",label:"Save a vendor to your favorites",hint:"Open any vendor's card and tap Save to favorites. Favorites get matched to you first.",done:favIds(agent).length>0,act:a("Open Favorites","tab",'data-tab="favorites"')},
+      {id:"card",label:"Make a home team card for a buyer",hint:"A printable card with your pros, and a code that sends their requests back to you.",done:!!(typeof hcSaved==="function"&&hcSaved()),act:a("Make the card","tab",'data-tab="card"')},
+      {id:"team",label:"Add your assistant or team",hint:"Anyone in Always share with sees your projects and gets the emails.",done:defaultTeamOf(agent).length>0,act:a("Always share with","tab",'data-tab="team"')},
+      {id:"setup-ref-agent",label:"Refer an agent",hint:"Know an agent who'd like this? Send them a ready-made message with your link.",done:refd("agent"),act:a("Refer an agent","setupref",'data-who="agent"')},
+      {id:"setup-ref-vendor",label:"Refer a vendor you trust",hint:"Your favorite painter or cleaner can join with you as a reference.",done:refd("vendor"),act:a("Refer a vendor","setupref",'data-who="vendor"')},
+      ...common]}
+  const v=vendorById(roleVal());if(!v)return[];
+  const rr=typeof rrFor==="function"?rrFor(v.id).length:0;
+  if(r==="partner")return[
+    {id:"ov",label:"Add your business overview",hint:"One PDF about your company and what you offer. Agents see it when I introduce you.",done:!!v.overviewPdf,act:a("Add it","gofold",'data-fold="port"')},
+    {id:"rr",label:"Invite agents you've worked with to review you",hint:"Reviews from agents who know your work go a long way.",done:rr>0,act:a("Invite agents","gofold",'data-fold="rr"')},
+    ...common];
+  const ins=typeof insState==="function"?insState(v):null;
+  return[
+    {id:"ov",label:"Add your business overview",hint:"One PDF with your services and what sets you apart. Agents and their clients can open it next to your quotes.",done:!!v.overviewPdf,act:a("Add it","gofold",'data-fold="port"')},
+    {id:"ins",label:"Add your insurance certificate",hint:"I need it before I can introduce you for some trades. It's checked in a few seconds.",done:!ins||!!ins.introsOk,act:a("Add it","gofold",'data-fold="ins"')},
+    {id:"rr",label:"Invite 2 or 3 past agents to review you",hint:"Your profile has reviews before your first Orbyt job.",done:rr>0,act:a("Invite agents","gofold",'data-fold="rr"')},
+    {id:"setup-avail",label:"Let me know you're taking new work",hint:"Use the Taking new work switch at the top of your dashboard. Switch to Paused anytime you're booked up.",done:setupDone("setup-avail")||v.available===false,act:a("I'm taking work","setupdone",'data-id="setup-avail"')},
+    ...common]}
+
+function setupCard(){if(!S.canWrite||!S.session||setupDone("setup-hide"))return"";
+  const items=setupItems();if(!items.length)return"";const left=items.filter(x=>!x.done);if(!left.length)return"";
+  const n=items.length-left.length;
+  return `<section class="setup" aria-label="Get set up"><div class="setuphead"><div><div class="eyebrow">Get set up</div><h2>${n?`${n} of ${items.length} done`:"A few quick steps to get the most out of Orbyt"}</h2></div>
+      <div class="actions"><button class="linkbtn" type="button" data-act="help">How Orbyt works</button><button class="linkbtn" type="button" data-act="setupdone" data-id="setup-hide">Hide this</button></div></div>
+    <div class="setupbar" role="progressbar" aria-valuemin="0" aria-valuemax="${items.length}" aria-valuenow="${n}"><span style="width:${Math.round(n/items.length*100)}%"></span></div>
+    <ol class="setuplist">${items.map(x=>`<li class="${x.done?"done":""}"><span class="setupdot" aria-hidden="true">${x.done?"✓":""}</span><div class="setuptext"><span class="strong">${esc(x.label)}</span>${x.done?"":`<div class="small">${esc(x.hint)}</div>`}</div>${x.done?`<span class="small">Done</span>`:`<div>${x.act}</div>`}</li>`).join("")}</ol>
+    <p class="small" style="margin:10px 0 0">${contactLine()}</p></section>`}
+
+/* the Help page, written for each role */
+function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t}</h3>${b}</div>`,p=x=>`<p>${x}</p>`;
+  const emails={
+    agent:["When I introduce vendors for your project","When a vendor sends or updates a quote","When a vendor confirms a job, can't take it, or marks it done","Daily reminders about anything waiting on you"],
+    vendor:["New bid requests, with the details and the agent's timing","When an agent asks for changes to your quote","When you're picked, and reminders to confirm","Reminders about your insurance certificate and open requests"],
+    partner:["New introductions, with the agent's contact details","Your approval, and anything I need from you"]}[r]||[];
+  const body={
+    agent:[
+      sec("1. Start a project",p("Tap New project and add the address, what the home needs, and your timing. Buying side? Choose Buyer, and add closing partners like a lender or title if your client needs them.")),
+      sec("2. Meet your vendors",p("I introduce vendors who fit the home, your timing and your area. You get an email and a task when they're introduced, and another when each quote comes in.")),
+      sec("3. Review quotes",p("Open the project to see each quote, its timeline, and the vendor's PDF. Ask a vendor for changes, ask me for another option, or tap Send quotes to client to share a private page with your client.")),
+      sec("4. Pick and book",p("Tap Add to team on the one you want. The vendor confirms and reaches out to schedule, and your client pays them directly. When the job's done, confirm the final amount and leave a quick review. If you like, tell the others why you went another way. It helps them improve.")),
+      sec("5. Build your bench",p("Save vendors you like to Favorites, add your assistant or team to Always share with, and make a home team card for your buyers so they come back to you when they need someone.")),
+      sec("6. Grow the network",p("Know an agent or a vendor who'd be a good fit? Use Refer someone to Orbyt on your dashboard. It sends a ready-made message with your link."))],
+    vendor:[
+      sec("1. Set up your profile",p("Add your business overview PDF, your portfolio, and your insurance certificate under Your profile. Invite agents you've worked with to review you.")),
+      sec("2. Answer bid requests",p("New requests come by email and show at the top of your dashboard. Open one, add your price and timeline, and upload your quote as a PDF or a photo. Can't take it? Let me know with one tap, so I can line up someone else.")),
+      sec("3. When you're picked",p("Confirm the job and propose a start date, then reach out to the agent to schedule. Share your agreement and payment details with the client directly. You run the job your way.")),
+      sec("4. When the job's done",p("Mark it complete with your final invoice amount. The agent confirms it, and Orbyt's fee is based on that amount, as set out in your terms.")),
+      sec("5. Reviews and feedback",p("Every job earns an agent review, and you can copy any review for your own marketing. When an agent goes another way, they can tell you why, so you can see what's winning work.")),
+      sec("6. Your availability",p("Use the Taking new work switch at the top of your dashboard. While you're Paused, I won't send new requests."))],
+    partner:[
+      sec("1. Introductions",p("When an agent in the network needs what you do, I introduce you by email and on your dashboard. Reach out to the agent, then tap I've reached out.")),
+      sec("2. Your profile",p("Add your business overview PDF and invite agents you've worked with to review you. Agents see both when I introduce you.")),
+      sec("3. Your availability",p("Use the Taking new work switch at the top of your dashboard. While you're Paused, I won't send new introductions.")),
+      sec("4. Free for founding partners",p("There's no fee to be a founding closing partner. Your terms explain how any future membership would work."))]}[r]||[];
+  return `<div class="scrim" data-act="helpclose"></div><div class="vcard wide helpcard" role="dialog" aria-modal="true" aria-labelledby="hp-title">
+    <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">How Orbyt works</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
+    <div class="helpbody">${body.join("")}
+      ${sec("Emails to expect",`<p>Orbyt emails come from <span class="strong">${HELP_EMAIL}</span>. Add it to your contacts so nothing lands in spam.</p><ul>${emails.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`)}
+      ${sec("Keep the portal handy",p(esc(bookmarkHint)))}
+      <div class="callout" style="margin-top:6px"><div class="strong">Need help or found a bug?</div><p class="small" style="margin:4px 0 0">${contactLine()}</p></div></div></div>`}
+
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="setupdone"],[data-act="help"],[data-act="helpclose"],[data-act="gofold"],[data-act="setupref"]');if(!t)return;
+  e.preventDefault();e.stopImmediatePropagation();const a=t.dataset.act;
+  if(a==="help"){S.help=true;render();return}
+  if(a==="helpclose"){S.help=false;render();return}
+  if(a==="setupdone"){guard(()=>setupMark(t.dataset.id),t.dataset.id==="setup-hide"?"Hidden. You can find How Orbyt works under Help anytime.":"Checked off");return}
+  const openFold=k=>{const d=document.querySelector(`details.fold[data-fold="${k}"]`);if(d){d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"});return true}return false};
+  if(a==="gofold"){if(!openFold(t.dataset.fold))toast("You'll find it under Your profile once you're approved.");return}
+  if(a==="setupref"){S.refWho=t.dataset.who;render();setTimeout(()=>openFold("refer"),30)}},true);
+// sending a referral (copy, email or text) checks off the matching step
+document.addEventListener("click",e=>{const t=e.target.closest('.refcard [data-act="refcopy"], .refcard a.btn');if(!t||kind()!=="agent")return;
+  const id="setup-ref-"+(S.refWho||"agent");if(!setupDone(id))setTimeout(()=>{setupMark(id).then(()=>render()).catch(()=>{})},400)},false);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.help){S.help=false;render()}});
 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.quoteView){S.quoteView=null;render()}});
 liveBoot();

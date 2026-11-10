@@ -1,7 +1,7 @@
 import re, pathlib, sys
 HERE = pathlib.Path(__file__).resolve().parent
 src = (HERE / "orbyt-portal.html").read_text()
-live = (HERE / "live.js").read_text() + "\n" + (HERE / "homecard.js").read_text() + "\n" + (HERE / "partners.js").read_text()
+live = (HERE / "live.js").read_text() + "\n" + (HERE / "homecard.js").read_text() + "\n" + (HERE / "partners.js").read_text() + "\n" + (HERE / "onboarding.js").read_text()
 qrlib = (HERE / "vendor" / "qrcode-generator.min.js").read_text()
 L = src.split("\n")
 
@@ -96,6 +96,14 @@ sub("</style>\n</head>", """.note{white-space:pre-line}
 .lostrow{display:grid;grid-template-columns:minmax(140px,1fr) minmax(170px,1fr) minmax(160px,1.4fr) auto;gap:8px;align-items:center;margin-top:8px}.lostform{margin:0}
 @media (max-width:760px){.lostrow{grid-template-columns:1fr 1fr}.lostrow .lostwho{grid-column:1/-1}}
 .losttag{margin-top:4px;color:var(--muted)}.lostlist{display:grid;gap:8px}.lostitem{border-top:1px solid var(--line);padding-top:6px}
+.setup{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:16px 18px;margin:0 0 22px}
+.setuphead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.setuphead h2{font-size:20px;margin:2px 0 0;font-weight:500}
+.setupbar{height:6px;border-radius:999px;background:var(--line);margin:12px 0 6px;overflow:hidden}.setupbar span{display:block;height:100%;background:var(--teal,#3F7266);border-radius:999px}
+.setuplist{list-style:none;margin:0;padding:0;display:grid}.setuplist li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.setuplist li:first-child{border-top:0}.setupdot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:12px;color:#fff}
+.setuplist li.done .setupdot{background:var(--teal,#3F7266);border-color:var(--teal,#3F7266)}.setuplist li.done .strong{color:var(--muted);font-weight:400}
+@media (max-width:640px){.setuplist li{grid-template-columns:22px minmax(0,1fr)}.setuplist li>div:last-child,.setuplist li>span.small:last-child{grid-column:2}}
+.helpcard{max-width:720px}.helpbody{display:grid;gap:4px;margin-top:8px}.helpsec h3{margin:12px 0 2px;font-size:16px}.helpsec p{margin:0;line-height:1.55}.helpsec ul{margin:4px 0 0;padding-left:20px;line-height:1.6}
 .candlinks{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 .myrevs{display:grid;gap:10px}.myrev{margin:0;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.myrev .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .hcpot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
@@ -125,7 +133,8 @@ sub('''  if(S.tab==="vendors")return h+rosterView();''', '''  if(S.tab==="vendor
 sub("""h+=protoBanner()+(k==="vendor"?vendorView():""", """h+=protoBanner()+(showTermsGate()?termsGate():k==="vendor"?vendorView():""")
 sub("""  if(S.quoteView&&S.session)h+=quoteViewer();""", """  if(S.quoteView&&S.session)h+=quoteViewer();
   else if(S.agreementView&&S.session)h+=agreementViewer();
-  else if(S.myDetails&&S.session&&typeof myDetailsView==="function")h+=myDetailsView();""")
+  else if(S.myDetails&&S.session&&typeof myDetailsView==="function")h+=myDetailsView();
+  else if(S.help&&S.session&&typeof helpView==="function")h+=helpView();""")
 sub("""<button class="btn ghost sm" data-act="signout">Sign out</button>`;""", """${myAgreementBtn()}<button class="btn ghost sm" data-act="signout">Sign out</button>`;""")
 sub("""v.insured?"Insurance checked":"Insurance not checked"}</p>""", """v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}${kind()==="orbyt"?insuranceAdminLine(v)+businessLine(v)+reviewReqLine(v):""}""")
 sub("""${v.approved===false?'<span class="pill late">Needs review</span>':""} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.sample?""", """${v.approved===false?'<span class="pill late">Needs review</span>':""}${agreementPill(v)} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.sample?""")

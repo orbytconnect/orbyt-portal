@@ -73,6 +73,7 @@ function partnerView(v){
   let h=`<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for joining. I'll check your license and references and reach out before your first introduction.</p>`:""}
     <p>When an agent in the network needs what you do, I'll introduce you here and by email. Reach out to the agent, then mark it below. You're a founding partner, so there's no fee.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${ratingHtml(v.id)}</div></section>`;
+  if(typeof setupCard==="function"&&v.approved!==false)h+=setupCard();
   if(!Array.isArray(D.intros))return h+`<div class="emptystate"><h2>Almost ready</h2><p>Introductions switch on with the next Orbyt update. Check back soon.</p></div>`;
   h+=`<section class="section"><div class="sechead"><h2>New introductions</h2></div>${open.length?`<div class="introlist">${open.map(card).join("")}</div>`:`<p class="small">No new introductions right now. When an agent asks for ${esc(vsv(v).map(x=>x.toLowerCase()).join(" or "))} help, you'll get an email and it shows up here.</p>`}
     ${past.length?`<details class="fold" style="margin-top:12px"><summary><span class="foldtitle">Past introductions</span><span class="pill">${past.length}</span></summary><div class="foldbody"><div class="introlist">${past.map(card).join("")}</div></div></details>`:""}</section>`;

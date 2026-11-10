@@ -712,7 +712,7 @@ function agentTasks(agent){
     for(const b of bidsFor(p.id)){
       const vn=bidName(b),cat=b.category.toLowerCase();
       if(!["requested","changes"].includes(b.status)&&b.submittedAt)T.push({id:"bid-"+b.id+"-"+(b.rev||0),cls:"k-bid",label:b.rev?"Updated bid":"New bid",title:b.rev?`${vn} updated their ${cat} bid for ${p.address}`:`${vn} sent a ${cat} bid for ${p.address}`,
-        meta:`${money(b.amount)}${timeline(b)?", "+timeline(b):""} · ${ago(b.submittedAt)}`,when:b.submittedAt,act:{a:"open",id:p.id,label:"Compare all"},auto:ONTEAM.includes(b.status)||b.status==="passed",autoLabel:ONTEAM.includes(b.status)?"Added to your team":"Went with another vendor",
+        meta:`${money(b.amount)}${timeline(b)?", "+timeline(b):""} · ${ago(b.submittedAt)}`,when:b.submittedAt,act:{a:"open",id:p.id,label:"See all quotes"},auto:ONTEAM.includes(b.status)||b.status==="passed",autoLabel:ONTEAM.includes(b.status)?"Added to your team":"Went with another vendor",
           extra:b.status==="submitted"&&!teamBid(p.id,b.category)?`<button class="btn sm" data-act="select" data-id="${esc(b.id)}">Add to team</button>`:""});
       if(b.status==="selected"&&b.confirmedAt){const st=b.steps||{};
         T.push({id:"finish-"+b.id,cls:"k-warn",urgent:true,label:"Next steps",title:`${vn} confirmed ${cat} at ${p.address}. Sign their agreement and pay them directly`,
@@ -824,7 +824,7 @@ function renderRoleSelect(){
   if(!S.session){el.innerHTML="";return}
   const k=kind(),v=k==="vendor"?vendorById(roleVal()):null;
   const name=k==="orbyt"?"Ashleigh Stumler":k==="agent"?roleVal():(v?v.name:"Vendor");
-  el.innerHTML=`<span class="whoname"><span class="strong">${esc(name)}</span><span class="small">${k==="orbyt"?"Orbyt admin":k==="agent"?"Agent":"Vendor partner"}</span></span><button class="btn ghost sm" data-act="signout">Sign out</button>`;
+  el.innerHTML=`<span class="whoname"><span class="strong">${esc(name)}</span><span class="small">${k==="orbyt"?"Orbyt admin":k==="agent"?"Agent":typeof isPartner==="function"&&isPartner(vendorById(roleVal()))?"Closing partner":"Vendor partner"}</span></span>${k!=="orbyt"&&typeof helpView==="function"?`<button class="btn ghost sm" data-act="help">Help</button>`:""}<button class="btn ghost sm" data-act="signout">Sign out</button>`;
 }
 const allLoaded=()=>["vendors","projects","bids","reviews","mytasks","taskstate","favorites","settings"].every(k=>S.loaded[k]);
 
@@ -929,6 +929,7 @@ function agentView(){
     <p>See new quotes as they come in, review them in one place, open a PDF of each vendor's quote, and see who's booked for every project. Check off tasks as you go, or save them for later.</p>
     ${S.canWrite?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
     ${S.canWrite?`<div class="actions"><button class="btn" data-act="newproject">New project</button></div>`:""}</section>`;
+  if(typeof setupCard==="function")h+=setupCard();
   if(S.openForm==="newarea")h+=`<form class="form" data-form="market" data-agent="1" style="margin-bottom:20px"><h3>Where should Orbyt go next?</h3><p class="small" style="margin:0">Tell me where you have listings or buyers outside ${esc(AREAS.slice(0,3).join(", "))} and the rest of my current areas. Enough requests and I'll start recruiting vendors there.</p>
     <div class="grid"><label class="field"><span>Area</span><input type="text" id="na-area" name="area" required placeholder="Temecula, Orange County"></label><label class="field"><span>Note (optional)</span><input type="text" id="na-note" name="note" placeholder="I list 6 to 8 homes a year there"></label></div>
     <div class="actions"><button class="btn sm" type="submit">Send request</button><button class="btn ghost sm" type="button" data-act="cancel">Cancel</button></div></form>`;
@@ -1038,6 +1039,7 @@ function vendorView(){
     <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
+  if(typeof setupCard==="function")h+=setupCard();
   h+=vendorStats(v,mine);
   const foot=typeof vendorFolds==="function"?vendorFolds(v):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
   h+=statStrip([

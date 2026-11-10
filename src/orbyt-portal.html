@@ -621,7 +621,7 @@ function toast(m){const t=document.createElement("div");t.className="toast";t.te
 
 // featured placement: on, and not past its end date
 // Ashleigh's Vendors list: request, paid, and end date in one cell
-function promoCell(v){if(typeof isPartner==="function"&&isPartner(v))return`<span class="small">Closing partner</span>`;const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
+function promoCell(v){if(typeof isPartner==="function"&&isPartner(v))return typeof listingCell==="function"?listingCell(v):`<span class="small">Closing partner</span>`;const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
   return `${on?`<div class="small">Until ${esc(fmtDate(v.featuredUntil)||"you end it")}</div>`:""}${req?`<div><span class="pill comparing">${on?"Renewal requested":"Requested"}</span></div>`:""}
     <div><button class="linkbtn" style="white-space:nowrap" data-act="feature" data-id="${esc(v.id)}">${on?"Add 30 days":"Mark offer paid"}</button></div>${on?`<div><button class="linkbtn" data-act="feature" data-mode="end" data-id="${esc(v.id)}">End offer</button></div>`:""}`}
 function featuredNow(v){if(!v||!v.featured)return false;if(!v.featuredUntil)return true;const t=new Date();const d=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");return v.featuredUntil>=d}
@@ -924,7 +924,7 @@ function tabs(list){return `<div class="tabs" role="tablist">${list.map(([id,lab
 function agentView(){
   const agent=roleVal();const T=agentTasks(agent);const openN=splitTasks(T).open.length;
   const ps=S.projects.filter(p=>isOnProject(p,agent));
-  if(!["tasks","projects","favorites","team","card"].includes(S.tab))S.tab="tasks";
+  if(!["tasks","projects","favorites","team","card","closingdir"].includes(S.tab))S.tab="tasks";
   let h=`<section class="hello"><div><h1>Hi ${esc(agent.split(" ")[0])}</h1>
     <p>See new quotes as they come in, review them in one place, open a PDF of each vendor's quote, and see who's booked for every project. Check off tasks as you go, or save them for later.</p>
     ${S.canWrite?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
@@ -941,7 +941,8 @@ function agentView(){
     {key:"received",label:"Bids received",list:ab.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"agent"),empty:"No new bids to look at."},
     {key:"accepted",label:"Bids accepted",list:ab.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"agent"),empty:"No vendors booked yet."}]);
   const favs=favIds(agent).map(vendorById).filter(Boolean);
-  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],["favorites",`Favorites <span class="small num">(${favs.length})</span>`,0],["team",`Always share with <span class="small num">(${defaultTeamOf(agent).length})</span>`,0],...(typeof hcView==="function"&&S.canWrite?[["card","Home team card",0]]:[])]);
+  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],["favorites",`Favorites <span class="small num">(${favs.length})</span>`,0],["team",`Always share with <span class="small num">(${defaultTeamOf(agent).length})</span>`,0],...(typeof closingDirectory==="function"?[["closingdir","Closing partners",0]]:[]),...(typeof hcView==="function"&&S.canWrite?[["card","Home team card",0]]:[])]);
+  if(S.tab==="closingdir"&&typeof closingDirectory==="function")return h+closingDirectory();
   if(S.tab==="team")return h+myTeamView(agent);
   if(S.tab==="card"&&typeof hcView==="function")return h+hcView(agent);
   if(S.openForm==="newproject")h+=newProjectForm(agent);
@@ -2262,7 +2263,7 @@ function newProjectForm(agent){
     <label class="field np-lp"><span>Expected list price ($)</span><input type="number" id="np-lp" name="listPrice" min="0" step="1000" inputmode="numeric" placeholder="1,250,000"></label></div>
     <div class="field"><span>Services needed</span><div class="checks">${CATS.map((c,i)=>`<label><input type="checkbox" id="np-cat-${i}" name="cat" value="${c}">${c}</label>`).join("")}</div>${moreChecks("cat","np-ms")}
       <div><button class="linkbtn" type="button" data-act="fullprep">Full-service listing prep (checks staging, cleaning, photography, landscaping and painting)</button></div></div>
-    ${typeof CLOSING!=="undefined"?`<div class="field"><span>Closing partners (optional)</span><div class="checks">${CLOSING.map((c,i)=>`<label><input type="checkbox" id="np-cl-${i}" name="closing" value="${c}">${c}</label>`).join("")}</div><small class="small">Lender, title, escrow or insurance contacts for your client. ${closingNote}</small></div>`:""}
+    ${typeof CLOSING!=="undefined"?`<div class="field"><span>Closing partners (optional)</span><div class="checks">${CLOSING.map((c,i)=>`<label><input type="checkbox" id="np-cl-${i}" name="closing" value="${c}">${c}</label>`).join("")}</div><small class="small">See local lender, title, escrow or insurance options from the closing partner directory. ${closingNote}</small></div>`:""}
     <div class="grid"><label class="field"><span>Something else? Separate with commas</span><input type="text" id="np-other" name="otherCats" placeholder="Anything not listed above"></label>
     ${PM_ON?`<label class="field"><span>Interested in project management?</span><select id="np-pmi" name="pmInterest"><option value="" selected disabled hidden>Choose one</option><option value="yes">Yes</option><option value="maybe">Maybe, tell me more</option><option value="no">Not right now</option></select></label>`:""}</div>
     <label class="field"><span>Anything I should know? Vendors see this too</span><textarea id="np-notes" name="notes" placeholder="Gate code, pets, what your client cares about most"></textarea></label>

@@ -40,7 +40,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
     return{id:v.id,userId:v.user_id,name:v.name,contactName:v.contact_name||"",email:v.email||"",phone:v.phone||"",web:v.website||"",
       services:v.services||[],category:(v.services||[])[0]||"",areas:normAreas(v.areas||[]),areaNote:v.area_note||"",years:v.years_in_business||"",
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
-      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",kind:v.kind||"vendor",license:v.license_number||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",overviewPdfName:v.overview_pdf_name||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
+      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",kind:v.kind||"vendor",license:v.license_number||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",listingPaidThrough:a.listing_paid_through||"",overviewPdfName:v.overview_pdf_name||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
       pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
       legalName:p.legal_name||"",dba:p.dba||"",businessType:p.business_type||"",signerTitle:p.signer_title||"",marketingOptOut:!!p.marketing_opt_out,
@@ -132,7 +132,7 @@ function blobHref(id){return signedUrl(id)||"#"}
 const pick=(d,map)=>{const o={};for(const[k,col]of Object.entries(map))if(k in d)o[col]=typeof d[k]==="string"&&col.match(/_(date|at)$|^target_date$|^due$/)?nz(d[k]):d[k];return o};
 const VENDOR_MAP={name:"name",contactName:"contact_name",email:"email",phone:"phone",web:"website",services:"services",areas:"areas",areaNote:"area_note",
   years:"years_in_business",team:"team_size",leadTime:"lead_time",worksWithAgents:"works_with_agents",portfolioUrl:"portfolio_url",available:"available",source:"source"};
-const VADMIN_MAP={approved:"approved",featured:"featured",featuredUntil:"featured_until",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
+const VADMIN_MAP={approved:"approved",featured:"featured",featuredUntil:"featured_until",listingPaidThrough:"listing_paid_through",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
 const VPRIV_MAP={pricing:"pricing",references:"references_text",heard:"heard_about",signupNotes:"signup_notes",promoInterest:"promo_interest",coiUrl:"coi_url"};
 const PROJ_MAP={sqft:"sqft",closing:"closing",agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
   targetDate:"target_date",categories:"categories",notes:"notes",addedServices:"added_services",listed:"listed",listedAt:"listed_at",workOrder:"work_order",source:"source",createdBy:"created_by"};
@@ -548,7 +548,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="agsta
 const TERMS={
   vendor:{version:"vendor-terms-2026-10-25",title:"Orbyt Vendor Terms of Use",path:"terms/vendor.html"},
   agent:{version:"agent-terms-2026-10-25",title:"Orbyt Agent Terms of Use",path:"terms/agent.html"},
-  partner:{version:"partner-terms-2026-11-03",title:"Orbyt Closing Partner Terms",path:"terms/partner.html"}};
+  partner:{version:"partner-terms-2026-11-10",title:"Orbyt Closing Partner Marketing Services Agreement",path:"terms/partner.html"}};
 // closing partners sign in as vendors but agree to their own terms
 const termsRole=()=>{const r=myRole();return r==="vendor"&&typeof isPartner==="function"&&isPartner(vendorById(myVendorId()))?"partner":r};
 const termsUrl=r=>new URL(TERMS[r].path,portalHome()).href;
@@ -586,9 +586,9 @@ const SHORT={
     "You contract with and bill the client directly, in your own name, and you're responsible for your work. Add Orbyt's short client notice (Schedule 2) to your quotes.",
     "Keep your licenses current and carry general liability insurance of at least $1M per occurrence and $2M aggregate. Depending on your services, Orbyt also needs to be named as an additional insured (Schedule 3).",
     "You cover claims about your work, Orbyt's liability is limited, and most disputes go to individual arbitration in San Diego."],
-  partner:["Orbyt introduces you to agents in the network whose clients need what you offer. You reach out, and the agent connects you with their client.",
-    "Orbyt is never paid for introductions or closings, and you never give anyone anything for a referral. Clients are always free to choose any provider.",
-    "Founding partners are free. If Orbyt adds a paid membership, it will be a flat fee with 30 days' notice, and you can choose not to continue.",
+  partner:["Orbyt sells you marketing: a listing in its closing partner directory for agents, rotating spotlights in Orbyt's emails and posts, and invitations to networking and education events.",
+    "It's an open directory. Any licensed provider can list, agents see partners in a rotating order, and Orbyt doesn't refer, recommend or introduce anyone. Nothing anyone pays is for referrals.",
+    "Your first 90 days are free, then it's $20 a month, billed monthly. The fee is flat and never depends on contacts or closings. Cancel anytime.",
     "Keep your licenses current, follow the rules for your industry, and contact a client only with the agent's or the client's permission.",
     "Orbyt's liability is limited, and disputes go to individual arbitration in San Diego."],
   agent:["Orbyt doesn't charge agents for introductions. Vendors pay Orbyt a fee on work that comes from them.",
@@ -633,8 +633,8 @@ const termsForm=r=>{const v=r!=="agent"?vendorById(myVendorId()):null;
 function termsGate(){
   const r=termsRole(),done=!!currentAcceptance(S.uid,r);
   if(r==="partner"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
-    return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>You're approved, ${esc(first)}</h1>
-      <p>You're a founding closing partner, free of charge. Here's how introductions work${done?".":", and the terms to agree to."}</p></div></section>
+    return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>Your listing is live, ${esc(first)}</h1>
+      <p>Here's how your closing partner listing works${done?".":", and the updated agreement to accept. Your first 90 days are free from the day you accept it."}</p></div></section>
       ${shortVersion("partner")}${done?`<div class="actions" style="margin-bottom:28px"><button class="btn" data-act="feesok">Sounds good, take me to my dashboard</button>
         <span class="small">You agreed to the ${termsLink("partner")} when you signed up.</span></div>`:termsForm("partner")}`}
   if(r==="vendor"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
@@ -676,7 +676,7 @@ function agreementLine(v){const t=v.userId&&currentAcceptance(v.userId,"vendor")
   else if(v.userId)rows.push(`<p class="small warntext" style="margin:6px 0 0">${v.approved===false?"Hasn't agreed to the current Vendor Terms of Use. They'll be asked right after you approve them.":"Hasn't agreed to the current Vendor Terms of Use yet. They'll be asked when they next sign in."}</p>`);
   if(old)rows.push(`<p class="small" style="margin:6px 0 0">Earlier agreement signed ${esc(fmtStamp(old.signed_at))} by ${esc(old.signer_name)} · <button class="linkbtn" data-act="agview" data-id="${esc(old.id)}">View</button></p>`);
   return rows.join("")}
-const agreementPill=v=>v.userId&&v.approved!==false&&Array.isArray(D.terms_acceptances)&&!currentAcceptance(v.userId,"vendor")?' <span class="pill late">Terms not accepted</span>':"";
+const agreementPill=v=>v.userId&&v.approved!==false&&Array.isArray(D.terms_acceptances)&&!currentAcceptance(v.userId,typeof isPartner==="function"&&isPartner(v)?"partner":"vendor")?' <span class="pill late">Terms not accepted</span>':"";
 const agentTermsLine=uid=>{if(!uid)return"";const t=currentAcceptance(uid,"agent");
   return t?`<div class="small">Agreed to terms ${esc(fmtStamp(t.accepted_at))}</div>`:`<div class="small warntext">Hasn't agreed to terms yet</div>`};
 const myAgreementBtn=()=>{const r=myRole();if(!r)return"";const old=r==="vendor"&&agreementsFor(myVendorId())[0];
@@ -1090,16 +1090,16 @@ function refCountPill(){if(S.refCount==null&&!S.refCountLoading&&sb){S.refCountL
   return S.refCount?`<span class="pill set">${S.refCount} joined</span>`:""}
 function refMessage(me,who){const link=refLink(who);
   if(who==="partner"){
-    if(me==="partner")return `Hi! I've joined Orbyt as a closing partner. It's a new San Diego network that connects real estate agents with trusted local pros, and founding closing partners join free. I thought you'd be a great fit. Here's the link: ${link}`;
-    if(me==="vendor")return `Hi! I'm part of Orbyt, a new San Diego network that connects real estate agents with trusted local pros. It now includes lenders, title, escrow and insurance, and I thought of you. Founding closing partners join free. Here's the link: ${link}`;
-    return `Hi! I've joined Orbyt, a new San Diego network that connects agents with trusted local pros, and it now includes lenders, title, escrow and insurance. I thought of you. Founding closing partners join free, and Ashleigh introduces you when an agent in the network needs what you do. Here's the link: ${link}`}
-  if(me==="partner"&&who==="agent")return `Hi! I've joined Orbyt, a new San Diego service that lines up trusted local pros for agents' listings and buyers, from painters and cleaners to lenders and title. You send one request, Ashleigh introduces vetted pros who fit, and it's free for agents. Here's the link if you want to take a look: ${link}`;
+    if(me==="partner")return `Hi! I've joined Orbyt as a closing partner. It's a new San Diego network that connects real estate agents with trusted local pros, and closing partners can list free for 90 days. I thought you'd be a great fit. Here's the link: ${link}`;
+    if(me==="vendor")return `Hi! I'm part of Orbyt, a new San Diego network that connects real estate agents with trusted local pros. It now includes lenders, title, escrow and insurance, and I thought of you. Closing partners can list free for 90 days. Here's the link: ${link}`;
+    return `Hi! I've joined Orbyt, a new San Diego network that connects agents with trusted local pros, and it now includes lenders, title, escrow and insurance. I thought of you. Closing partners get a listing in the directory agents use, and it's free for the first 90 days. Here's the link: ${link}`}
+  if(me==="partner"&&who==="agent")return `Hi! I've joined Orbyt, a new San Diego service that lines up trusted local pros for agents' listings and buyers, from painters and cleaners to stagers and handymen, with a directory of lenders, title, escrow and insurance too. You send one request, Ashleigh introduces vendors who fit, and it's free for agents. Here's the link if you want to take a look: ${link}`;
   if(me==="partner"&&who==="vendor")return `Hi! I've joined Orbyt, a new San Diego network that introduces local vendors to real estate agents. Ashleigh is looking for good people in every trade, so I thought of you. There's no cost to join, and you only pay when an introduction turns into a paid job. Here's the link: ${link}`;
   if(me==="vendor"&&who==="vendor")return `Hi! I just joined Orbyt, a new San Diego network that introduces local vendors to real estate agents getting homes ready to list. It's just getting started and Ashleigh is looking for good people in every trade, so I thought of you. There's no cost to join, and you only pay when an introduction turns into a paid job. Here's the link: ${link}`;
   if(me==="vendor")return `Hi! I've joined Orbyt, a new San Diego service that helps agents line up local vendors for their listings and their buyers. It covers the usual painters, cleaners and stagers, plus the ones you might not have on speed dial, like window treatments, pool service, pest control, lenders, title and more. You send one request, Ashleigh introduces vetted vendors who fit, and you review their quotes in one place. It's free for agents. If you have a listing coming up, it might save you a few calls: ${link}`;
   if(who==="vendor")return `Hi! I've joined Orbyt, a new San Diego network that connects agents with local vendors for listing prep, and I thought of you. Vendors join with references from agents they've worked with, so I'm happy to be one of yours. There's no cost to join, and you only pay when an introduction turns into a paid job. Here's the link: ${link}`;
   return `Hi! I just joined Orbyt, a new San Diego service that lines up local vendors for listings and buyers. It covers the usual painters, cleaners and stagers, plus the ones you might not have on speed dial, like window treatments, pool service, pest control, lenders, title and more. You send one request with what the home needs, Ashleigh introduces vendors who fit, and you review their quotes in one place. It's free for agents, and it's just getting started, so it felt like a good time to get in early. Here's the link if you want to take a look: ${link}`}
-function referralCard(me){const who=S.refWho||(me==="partner"?"partner":me==="vendor"?"vendor":"agent"),msg=refMessage(me,who),subj=who==="partner"?"Join Orbyt as a founding closing partner":who==="vendor"?"An easier way to get listing work":"An easier way to line up vendors for your listings";
+function referralCard(me){const who=S.refWho||(me==="partner"?"partner":me==="vendor"?"vendor":"agent"),msg=refMessage(me,who),subj=who==="partner"?"List your business with Orbyt":who==="vendor"?"An easier way to get listing work":"An easier way to line up vendors for your listings";
   return `<div class="refcard"><p class="small" style="margin:0">Know someone who'd be a good fit? Send them this. It includes your own sign-up link, so I'll know they came from you.</p>
     <div class="seg" role="group" aria-label="Who are you inviting?"><button type="button" class="segbtn ${who==="agent"?"on":""}" data-act="refwho" data-v="agent" aria-pressed="${who==="agent"}">An agent</button><button type="button" class="segbtn ${who==="vendor"?"on":""}" data-act="refwho" data-v="vendor" aria-pressed="${who==="vendor"}">A vendor</button><button type="button" class="segbtn ${who==="partner"?"on":""}" data-act="refwho" data-v="partner" aria-pressed="${who==="partner"}">A closing partner</button></div>
     <textarea class="insemail refmsg" id="ref-msg" rows="4" aria-label="Message to send">${esc(msg)}</textarea>
@@ -1133,12 +1133,15 @@ document.addEventListener("click",async e=>{const t=e.target.closest('[data-act=
 
 /* ---------- vendors: taking new work, or paused ---------- */
 function availToggle(v){if(kind()!=="vendor"||!S.canWrite||v.approved===false)return"";const on=v.available!==false;
+  if(typeof isPartner==="function"&&isPartner(v))return `<div class="availtoggle"><span class="small strong">Show my listing?</span><div class="seg" role="group" aria-label="Show my listing">
+    <button class="segbtn ${on?"on":""}" type="button" data-act="myavail" data-v="1" aria-pressed="${on}">Showing</button><button class="segbtn ${on?"":"on"}" type="button" data-act="myavail" data-v="0" aria-pressed="${!on}">Hidden</button></div>
+    <span class="small">${on?"Agents can find you in the directory.":"Your listing is hidden from agents until you switch it back. Hiding doesn't cancel or pause billing."}</span></div>`;
   return `<div class="availtoggle"><span class="small strong">Taking new work?</span><div class="seg" role="group" aria-label="Taking new work">
     <button class="segbtn ${on?"on":""}" type="button" data-act="myavail" data-v="1" aria-pressed="${on}">Yes</button><button class="segbtn ${on?"":"on"}" type="button" data-act="myavail" data-v="0" aria-pressed="${!on}">Paused</button></div>
     <span class="small">${on?"I'll keep matching you to new jobs.":"I won't send new requests while you're paused. Jobs you already have stay as they are."}</span></div>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="myavail"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   const v=vendorById(myVendorId());if(!v)return;const want=t.dataset.v==="1";if((v.available!==false)===want)return;
-  guard(async()=>{fail((await sb.from("vendors").update({available:want}).eq("id",v.id)).error,"availability");if(typeof setupMark==="function")try{await setupMark("setup-avail")}catch(_){}await S.db.reload()},want?"You're taking new work again.":"Paused. No new requests until you switch back.")},true);
+  guard(async()=>{fail((await sb.from("vendors").update({available:want}).eq("id",v.id)).error,"availability");if(typeof setupMark==="function")try{await setupMark("setup-avail")}catch(_){}await S.db.reload()},typeof isPartner==="function"&&isPartner(v)?(want?"Your listing is showing again.":"Your listing is hidden."):want?"You're taking new work again.":"Paused. No new requests until you switch back.")},true);
 
 /* ---------- vendors: a special offer for Orbyt clients (internally: featured) ---------- */
 function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));

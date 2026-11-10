@@ -722,7 +722,7 @@ function toast(m){const t=document.createElement("div");t.className="toast";t.te
 
 // featured placement: on, and not past its end date
 // Ashleigh's Vendors list: request, paid, and end date in one cell
-function promoCell(v){if(typeof isPartner==="function"&&isPartner(v))return`<span class="small">Closing partner</span>`;const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
+function promoCell(v){if(typeof isPartner==="function"&&isPartner(v))return typeof listingCell==="function"?listingCell(v):`<span class="small">Closing partner</span>`;const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
   return `${on?`<div class="small">Until ${esc(fmtDate(v.featuredUntil)||"you end it")}</div>`:""}${req?`<div><span class="pill comparing">${on?"Renewal requested":"Requested"}</span></div>`:""}
     <div><button class="linkbtn" style="white-space:nowrap" data-act="feature" data-id="${esc(v.id)}">${on?"Add 30 days":"Mark offer paid"}</button></div>${on?`<div><button class="linkbtn" data-act="feature" data-mode="end" data-id="${esc(v.id)}">End offer</button></div>`:""}`}
 function featuredNow(v){if(!v||!v.featured)return false;if(!v.featuredUntil)return true;const t=new Date();const d=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");return v.featuredUntil>=d}
@@ -1029,7 +1029,7 @@ function tabs(list){return `<div class="tabs" role="tablist">${list.map(([id,lab
 function agentView(){
   const agent=roleVal();const T=agentTasks(agent);const openN=splitTasks(T).open.length;
   const ps=S.projects.filter(p=>isOnProject(p,agent));
-  if(!["tasks","projects","favorites","team","card"].includes(S.tab))S.tab="tasks";
+  if(!["tasks","projects","favorites","team","card","closingdir"].includes(S.tab))S.tab="tasks";
   let h=`<section class="hello"><div><h1>Hi ${esc(agent.split(" ")[0])}</h1>
     <p>See new quotes as they come in, review them in one place, open a PDF of each vendor's quote, and see who's booked for every project. Check off tasks as you go, or save them for later.</p>
     ${S.canWrite?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
@@ -1046,7 +1046,8 @@ function agentView(){
     {key:"received",label:"Bids received",list:ab.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"agent"),empty:"No new bids to look at."},
     {key:"accepted",label:"Bids accepted",list:ab.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"agent"),empty:"No vendors booked yet."}]);
   const favs=favIds(agent).map(vendorById).filter(Boolean);
-  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],["favorites",`Favorites <span class="small num">(${favs.length})</span>`,0],["team",`Always share with <span class="small num">(${defaultTeamOf(agent).length})</span>`,0],...(typeof hcView==="function"&&S.canWrite?[["card","Home team card",0]]:[])]);
+  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],["favorites",`Favorites <span class="small num">(${favs.length})</span>`,0],["team",`Always share with <span class="small num">(${defaultTeamOf(agent).length})</span>`,0],...(typeof closingDirectory==="function"?[["closingdir","Closing partners",0]]:[]),...(typeof hcView==="function"&&S.canWrite?[["card","Home team card",0]]:[])]);
+  if(S.tab==="closingdir"&&typeof closingDirectory==="function")return h+closingDirectory();
   if(S.tab==="team")return h+myTeamView(agent);
   if(S.tab==="card"&&typeof hcView==="function")return h+hcView(agent);
   if(S.openForm==="newproject")h+=newProjectForm(agent);
@@ -2368,7 +2369,7 @@ function newProjectForm(agent){
     <label class="field np-lp"><span>Expected list price ($)</span><input type="number" id="np-lp" name="listPrice" min="0" step="1000" inputmode="numeric" placeholder="1,250,000"></label></div>
     <div class="field"><span>Services needed</span><div class="checks">${CATS.map((c,i)=>`<label><input type="checkbox" id="np-cat-${i}" name="cat" value="${c}">${c}</label>`).join("")}</div>${moreChecks("cat","np-ms")}
       <div><button class="linkbtn" type="button" data-act="fullprep">Full-service listing prep (checks staging, cleaning, photography, landscaping and painting)</button></div></div>
-    ${typeof CLOSING!=="undefined"?`<div class="field"><span>Closing partners (optional)</span><div class="checks">${CLOSING.map((c,i)=>`<label><input type="checkbox" id="np-cl-${i}" name="closing" value="${c}">${c}</label>`).join("")}</div><small class="small">Lender, title, escrow or insurance contacts for your client. ${closingNote}</small></div>`:""}
+    ${typeof CLOSING!=="undefined"?`<div class="field"><span>Closing partners (optional)</span><div class="checks">${CLOSING.map((c,i)=>`<label><input type="checkbox" id="np-cl-${i}" name="closing" value="${c}">${c}</label>`).join("")}</div><small class="small">See local lender, title, escrow or insurance options from the closing partner directory. ${closingNote}</small></div>`:""}
     <div class="grid"><label class="field"><span>Something else? Separate with commas</span><input type="text" id="np-other" name="otherCats" placeholder="Anything not listed above"></label>
     ${PM_ON?`<label class="field"><span>Interested in project management?</span><select id="np-pmi" name="pmInterest"><option value="" selected disabled hidden>Choose one</option><option value="yes">Yes</option><option value="maybe">Maybe, tell me more</option><option value="no">Not right now</option></select></label>`:""}</div>
     <label class="field"><span>Anything I should know? Vendors see this too</span><textarea id="np-notes" name="notes" placeholder="Gate code, pets, what your client cares about most"></textarea></label>
@@ -2958,7 +2959,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
     return{id:v.id,userId:v.user_id,name:v.name,contactName:v.contact_name||"",email:v.email||"",phone:v.phone||"",web:v.website||"",
       services:v.services||[],category:(v.services||[])[0]||"",areas:normAreas(v.areas||[]),areaNote:v.area_note||"",years:v.years_in_business||"",
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
-      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",kind:v.kind||"vendor",license:v.license_number||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",overviewPdfName:v.overview_pdf_name||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
+      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",kind:v.kind||"vendor",license:v.license_number||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",listingPaidThrough:a.listing_paid_through||"",overviewPdfName:v.overview_pdf_name||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
       pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
       legalName:p.legal_name||"",dba:p.dba||"",businessType:p.business_type||"",signerTitle:p.signer_title||"",marketingOptOut:!!p.marketing_opt_out,
@@ -3050,7 +3051,7 @@ function blobHref(id){return signedUrl(id)||"#"}
 const pick=(d,map)=>{const o={};for(const[k,col]of Object.entries(map))if(k in d)o[col]=typeof d[k]==="string"&&col.match(/_(date|at)$|^target_date$|^due$/)?nz(d[k]):d[k];return o};
 const VENDOR_MAP={name:"name",contactName:"contact_name",email:"email",phone:"phone",web:"website",services:"services",areas:"areas",areaNote:"area_note",
   years:"years_in_business",team:"team_size",leadTime:"lead_time",worksWithAgents:"works_with_agents",portfolioUrl:"portfolio_url",available:"available",source:"source"};
-const VADMIN_MAP={approved:"approved",featured:"featured",featuredUntil:"featured_until",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
+const VADMIN_MAP={approved:"approved",featured:"featured",featuredUntil:"featured_until",listingPaidThrough:"listing_paid_through",licensed:"licensed",insured:"insured",repeatJobs:"repeat_jobs",approvedAt:"approved_at"};
 const VPRIV_MAP={pricing:"pricing",references:"references_text",heard:"heard_about",signupNotes:"signup_notes",promoInterest:"promo_interest",coiUrl:"coi_url"};
 const PROJ_MAP={sqft:"sqft",closing:"closing",agent:"agent_name",agentEmail:"agent_email",agentPhone:"agent_phone",brokerage:"brokerage",address:"address",area:"area",clientType:"client_type",
   targetDate:"target_date",categories:"categories",notes:"notes",addedServices:"added_services",listed:"listed",listedAt:"listed_at",workOrder:"work_order",source:"source",createdBy:"created_by"};
@@ -3466,7 +3467,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="agsta
 const TERMS={
   vendor:{version:"vendor-terms-2026-10-25",title:"Orbyt Vendor Terms of Use",path:"terms/vendor.html"},
   agent:{version:"agent-terms-2026-10-25",title:"Orbyt Agent Terms of Use",path:"terms/agent.html"},
-  partner:{version:"partner-terms-2026-11-03",title:"Orbyt Closing Partner Terms",path:"terms/partner.html"}};
+  partner:{version:"partner-terms-2026-11-10",title:"Orbyt Closing Partner Marketing Services Agreement",path:"terms/partner.html"}};
 // closing partners sign in as vendors but agree to their own terms
 const termsRole=()=>{const r=myRole();return r==="vendor"&&typeof isPartner==="function"&&isPartner(vendorById(myVendorId()))?"partner":r};
 const termsUrl=r=>new URL(TERMS[r].path,portalHome()).href;
@@ -3504,9 +3505,9 @@ const SHORT={
     "You contract with and bill the client directly, in your own name, and you're responsible for your work. Add Orbyt's short client notice (Schedule 2) to your quotes.",
     "Keep your licenses current and carry general liability insurance of at least $1M per occurrence and $2M aggregate. Depending on your services, Orbyt also needs to be named as an additional insured (Schedule 3).",
     "You cover claims about your work, Orbyt's liability is limited, and most disputes go to individual arbitration in San Diego."],
-  partner:["Orbyt introduces you to agents in the network whose clients need what you offer. You reach out, and the agent connects you with their client.",
-    "Orbyt is never paid for introductions or closings, and you never give anyone anything for a referral. Clients are always free to choose any provider.",
-    "Founding partners are free. If Orbyt adds a paid membership, it will be a flat fee with 30 days' notice, and you can choose not to continue.",
+  partner:["Orbyt sells you marketing: a listing in its closing partner directory for agents, rotating spotlights in Orbyt's emails and posts, and invitations to networking and education events.",
+    "It's an open directory. Any licensed provider can list, agents see partners in a rotating order, and Orbyt doesn't refer, recommend or introduce anyone. Nothing anyone pays is for referrals.",
+    "Your first 90 days are free, then it's $20 a month, billed monthly. The fee is flat and never depends on contacts or closings. Cancel anytime.",
     "Keep your licenses current, follow the rules for your industry, and contact a client only with the agent's or the client's permission.",
     "Orbyt's liability is limited, and disputes go to individual arbitration in San Diego."],
   agent:["Orbyt doesn't charge agents for introductions. Vendors pay Orbyt a fee on work that comes from them.",
@@ -3551,8 +3552,8 @@ const termsForm=r=>{const v=r!=="agent"?vendorById(myVendorId()):null;
 function termsGate(){
   const r=termsRole(),done=!!currentAcceptance(S.uid,r);
   if(r==="partner"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
-    return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>You're approved, ${esc(first)}</h1>
-      <p>You're a founding closing partner, free of charge. Here's how introductions work${done?".":", and the terms to agree to."}</p></div></section>
+    return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>Your listing is live, ${esc(first)}</h1>
+      <p>Here's how your closing partner listing works${done?".":", and the updated agreement to accept. Your first 90 days are free from the day you accept it."}</p></div></section>
       ${shortVersion("partner")}${done?`<div class="actions" style="margin-bottom:28px"><button class="btn" data-act="feesok">Sounds good, take me to my dashboard</button>
         <span class="small">You agreed to the ${termsLink("partner")} when you signed up.</span></div>`:termsForm("partner")}`}
   if(r==="vendor"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
@@ -3594,7 +3595,7 @@ function agreementLine(v){const t=v.userId&&currentAcceptance(v.userId,"vendor")
   else if(v.userId)rows.push(`<p class="small warntext" style="margin:6px 0 0">${v.approved===false?"Hasn't agreed to the current Vendor Terms of Use. They'll be asked right after you approve them.":"Hasn't agreed to the current Vendor Terms of Use yet. They'll be asked when they next sign in."}</p>`);
   if(old)rows.push(`<p class="small" style="margin:6px 0 0">Earlier agreement signed ${esc(fmtStamp(old.signed_at))} by ${esc(old.signer_name)} · <button class="linkbtn" data-act="agview" data-id="${esc(old.id)}">View</button></p>`);
   return rows.join("")}
-const agreementPill=v=>v.userId&&v.approved!==false&&Array.isArray(D.terms_acceptances)&&!currentAcceptance(v.userId,"vendor")?' <span class="pill late">Terms not accepted</span>':"";
+const agreementPill=v=>v.userId&&v.approved!==false&&Array.isArray(D.terms_acceptances)&&!currentAcceptance(v.userId,typeof isPartner==="function"&&isPartner(v)?"partner":"vendor")?' <span class="pill late">Terms not accepted</span>':"";
 const agentTermsLine=uid=>{if(!uid)return"";const t=currentAcceptance(uid,"agent");
   return t?`<div class="small">Agreed to terms ${esc(fmtStamp(t.accepted_at))}</div>`:`<div class="small warntext">Hasn't agreed to terms yet</div>`};
 const myAgreementBtn=()=>{const r=myRole();if(!r)return"";const old=r==="vendor"&&agreementsFor(myVendorId())[0];
@@ -4008,16 +4009,16 @@ function refCountPill(){if(S.refCount==null&&!S.refCountLoading&&sb){S.refCountL
   return S.refCount?`<span class="pill set">${S.refCount} joined</span>`:""}
 function refMessage(me,who){const link=refLink(who);
   if(who==="partner"){
-    if(me==="partner")return `Hi! I've joined Orbyt as a closing partner. It's a new San Diego network that connects real estate agents with trusted local pros, and founding closing partners join free. I thought you'd be a great fit. Here's the link: ${link}`;
-    if(me==="vendor")return `Hi! I'm part of Orbyt, a new San Diego network that connects real estate agents with trusted local pros. It now includes lenders, title, escrow and insurance, and I thought of you. Founding closing partners join free. Here's the link: ${link}`;
-    return `Hi! I've joined Orbyt, a new San Diego network that connects agents with trusted local pros, and it now includes lenders, title, escrow and insurance. I thought of you. Founding closing partners join free, and Ashleigh introduces you when an agent in the network needs what you do. Here's the link: ${link}`}
-  if(me==="partner"&&who==="agent")return `Hi! I've joined Orbyt, a new San Diego service that lines up trusted local pros for agents' listings and buyers, from painters and cleaners to lenders and title. You send one request, Ashleigh introduces vetted pros who fit, and it's free for agents. Here's the link if you want to take a look: ${link}`;
+    if(me==="partner")return `Hi! I've joined Orbyt as a closing partner. It's a new San Diego network that connects real estate agents with trusted local pros, and closing partners can list free for 90 days. I thought you'd be a great fit. Here's the link: ${link}`;
+    if(me==="vendor")return `Hi! I'm part of Orbyt, a new San Diego network that connects real estate agents with trusted local pros. It now includes lenders, title, escrow and insurance, and I thought of you. Closing partners can list free for 90 days. Here's the link: ${link}`;
+    return `Hi! I've joined Orbyt, a new San Diego network that connects agents with trusted local pros, and it now includes lenders, title, escrow and insurance. I thought of you. Closing partners get a listing in the directory agents use, and it's free for the first 90 days. Here's the link: ${link}`}
+  if(me==="partner"&&who==="agent")return `Hi! I've joined Orbyt, a new San Diego service that lines up trusted local pros for agents' listings and buyers, from painters and cleaners to stagers and handymen, with a directory of lenders, title, escrow and insurance too. You send one request, Ashleigh introduces vendors who fit, and it's free for agents. Here's the link if you want to take a look: ${link}`;
   if(me==="partner"&&who==="vendor")return `Hi! I've joined Orbyt, a new San Diego network that introduces local vendors to real estate agents. Ashleigh is looking for good people in every trade, so I thought of you. There's no cost to join, and you only pay when an introduction turns into a paid job. Here's the link: ${link}`;
   if(me==="vendor"&&who==="vendor")return `Hi! I just joined Orbyt, a new San Diego network that introduces local vendors to real estate agents getting homes ready to list. It's just getting started and Ashleigh is looking for good people in every trade, so I thought of you. There's no cost to join, and you only pay when an introduction turns into a paid job. Here's the link: ${link}`;
   if(me==="vendor")return `Hi! I've joined Orbyt, a new San Diego service that helps agents line up local vendors for their listings and their buyers. It covers the usual painters, cleaners and stagers, plus the ones you might not have on speed dial, like window treatments, pool service, pest control, lenders, title and more. You send one request, Ashleigh introduces vetted vendors who fit, and you review their quotes in one place. It's free for agents. If you have a listing coming up, it might save you a few calls: ${link}`;
   if(who==="vendor")return `Hi! I've joined Orbyt, a new San Diego network that connects agents with local vendors for listing prep, and I thought of you. Vendors join with references from agents they've worked with, so I'm happy to be one of yours. There's no cost to join, and you only pay when an introduction turns into a paid job. Here's the link: ${link}`;
   return `Hi! I just joined Orbyt, a new San Diego service that lines up local vendors for listings and buyers. It covers the usual painters, cleaners and stagers, plus the ones you might not have on speed dial, like window treatments, pool service, pest control, lenders, title and more. You send one request with what the home needs, Ashleigh introduces vendors who fit, and you review their quotes in one place. It's free for agents, and it's just getting started, so it felt like a good time to get in early. Here's the link if you want to take a look: ${link}`}
-function referralCard(me){const who=S.refWho||(me==="partner"?"partner":me==="vendor"?"vendor":"agent"),msg=refMessage(me,who),subj=who==="partner"?"Join Orbyt as a founding closing partner":who==="vendor"?"An easier way to get listing work":"An easier way to line up vendors for your listings";
+function referralCard(me){const who=S.refWho||(me==="partner"?"partner":me==="vendor"?"vendor":"agent"),msg=refMessage(me,who),subj=who==="partner"?"List your business with Orbyt":who==="vendor"?"An easier way to get listing work":"An easier way to line up vendors for your listings";
   return `<div class="refcard"><p class="small" style="margin:0">Know someone who'd be a good fit? Send them this. It includes your own sign-up link, so I'll know they came from you.</p>
     <div class="seg" role="group" aria-label="Who are you inviting?"><button type="button" class="segbtn ${who==="agent"?"on":""}" data-act="refwho" data-v="agent" aria-pressed="${who==="agent"}">An agent</button><button type="button" class="segbtn ${who==="vendor"?"on":""}" data-act="refwho" data-v="vendor" aria-pressed="${who==="vendor"}">A vendor</button><button type="button" class="segbtn ${who==="partner"?"on":""}" data-act="refwho" data-v="partner" aria-pressed="${who==="partner"}">A closing partner</button></div>
     <textarea class="insemail refmsg" id="ref-msg" rows="4" aria-label="Message to send">${esc(msg)}</textarea>
@@ -4051,12 +4052,15 @@ document.addEventListener("click",async e=>{const t=e.target.closest('[data-act=
 
 /* ---------- vendors: taking new work, or paused ---------- */
 function availToggle(v){if(kind()!=="vendor"||!S.canWrite||v.approved===false)return"";const on=v.available!==false;
+  if(typeof isPartner==="function"&&isPartner(v))return `<div class="availtoggle"><span class="small strong">Show my listing?</span><div class="seg" role="group" aria-label="Show my listing">
+    <button class="segbtn ${on?"on":""}" type="button" data-act="myavail" data-v="1" aria-pressed="${on}">Showing</button><button class="segbtn ${on?"":"on"}" type="button" data-act="myavail" data-v="0" aria-pressed="${!on}">Hidden</button></div>
+    <span class="small">${on?"Agents can find you in the directory.":"Your listing is hidden from agents until you switch it back. Hiding doesn't cancel or pause billing."}</span></div>`;
   return `<div class="availtoggle"><span class="small strong">Taking new work?</span><div class="seg" role="group" aria-label="Taking new work">
     <button class="segbtn ${on?"on":""}" type="button" data-act="myavail" data-v="1" aria-pressed="${on}">Yes</button><button class="segbtn ${on?"":"on"}" type="button" data-act="myavail" data-v="0" aria-pressed="${!on}">Paused</button></div>
     <span class="small">${on?"I'll keep matching you to new jobs.":"I won't send new requests while you're paused. Jobs you already have stay as they are."}</span></div>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="myavail"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   const v=vendorById(myVendorId());if(!v)return;const want=t.dataset.v==="1";if((v.available!==false)===want)return;
-  guard(async()=>{fail((await sb.from("vendors").update({available:want}).eq("id",v.id)).error,"availability");if(typeof setupMark==="function")try{await setupMark("setup-avail")}catch(_){}await S.db.reload()},want?"You're taking new work again.":"Paused. No new requests until you switch back.")},true);
+  guard(async()=>{fail((await sb.from("vendors").update({available:want}).eq("id",v.id)).error,"availability");if(typeof setupMark==="function")try{await setupMark("setup-avail")}catch(_){}await S.db.reload()},typeof isPartner==="function"&&isPartner(v)?(want?"Your listing is showing again.":"Your listing is hidden."):want?"You're taking new work again.":"Paused. No new requests until you switch back.")},true);
 
 /* ---------- vendors: a special offer for Orbyt clients (internally: featured) ---------- */
 function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
@@ -4210,9 +4214,9 @@ function hcView(agent){
         <div class="actions" style="margin-top:6px"><label class="btn ghost sm hcfile">${logo?"Replace logo":"Upload logo"}<input type="file" id="hc-logo" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label>${logo?`<button class="linkbtn" type="button" data-act="hclogodel">Remove</button>`:""}</div>
         <p class="small" style="margin:0">A PNG with a clear background looks best.</p></fieldset>
       <fieldset class="field hcfs"><legend class="legend">Six pros on the card</legend><p class="small" style="margin:0 0 6px">Pick from pros you've saved to favorites (marked ★) or worked with on a project. Anything else your client needs, I'll match from the network.</p>${rows}</fieldset>
-      ${typeof CLOSING!=="undefined"?`<fieldset class="field hcfs"><legend class="legend">Closing partners (optional)</legend><p class="small" style="margin:0 0 6px">Lenders, title, escrow and insurance you trust. ${esc(closingNote)}</p>
+      ${typeof CLOSING!=="undefined"?`<fieldset class="field hcfs"><legend class="legend">Closing partners (optional)</legend><p class="small" style="margin:0 0 6px">Pick from partners listed in the Orbyt directory. These are your picks. ${esc(closingNote)}</p>
         <div class="grid">${CLOSING.map((c,i)=>{const cur=(h.closing||[]).find(x=>x&&x.c===c)||{},fav=favIds(agent),ps=S.vendors.filter(v=>isPartner(v)&&vsv(v).includes(c)).sort((a,b)=>(fav.includes(b.id)-fav.includes(a.id))||a.name.localeCompare(b.name));
-          return `<label class="field"><span>${esc(c)}</span><select class="hc-cl" id="hc-cl-${i}" data-c="${esc(c)}"><option value="">Leave off</option>${ps.map(v=>`<option value="${esc(v.id)}" ${cur.v===v.id?"selected":""}>${esc(v.name)}${fav.includes(v.id)?" ★":""}</option>`).join("")}</select>${ps.length?"":`<small class="small">Save a ${esc(c.toLowerCase())} contact to your favorites to add one</small>`}</label>`}).join("")}</div></fieldset>`:""}
+          return `<label class="field"><span>${esc(c)}</span><select class="hc-cl" id="hc-cl-${i}" data-c="${esc(c)}"><option value="">Leave off</option>${ps.map(v=>`<option value="${esc(v.id)}" ${cur.v===v.id?"selected":""}>${esc(v.name)}${fav.includes(v.id)?" ★":""}</option>`).join("")}</select>${ps.length?"":`<small class="small">No ${esc(c.toLowerCase())} partners are listed yet</small>`}</label>`}).join("")}</div></fieldset>`:""}
       <fieldset class="field hcfs"><legend class="legend">Also on call</legend><div class="checks">${alsoOpts}</div></fieldset>
       <label class="checkrow"><input type="checkbox" id="hc-priority" name="priority" ${h.priority!==false?"checked":""}> Show "Booking through me gets you priority scheduling"</label>
       <label class="checkrow"><input type="checkbox" id="hc-phone" name="showPhone" ${h.showPhone!==false?"checked":""}> Show my phone number</label>
@@ -4325,21 +4329,41 @@ document.addEventListener("input",e=>{const f=e.target.closest('form[data-form="
 
 
 /* ---------- closing partners: lenders, title, escrow and homeowners insurance ----------
-   They join free under the Closing Partner Terms, never pay per introduction or closing, and use a light intro flow
-   (no bids, quotes, job fees, insurance tiers or special offers). */
+   They buy a marketing listing (Closing Partner Marketing Services Agreement): free for 90 days, then $20 a month.
+   Agents see every listed partner in an open directory, in a rotating order. Orbyt never picks, introduces or
+   recommends one, and partners never pay for referrals. No bids, job fees, insurance tiers or special offers. */
 const CLOSING=["Lender","Title","Escrow","Homeowners insurance"];
 const CLOSING_HINT={"Lender":"Mortgage lenders and loan officers","Title":"Title companies and title officers","Escrow":"Escrow companies and officers","Homeowners insurance":"Home and hazard insurance"};
 const isPartner=v=>!!v&&v.kind==="closing";
 const introsFor=(pid,c)=>(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.project_id===pid&&(!c||i.category===c));
 const partnersFor=c=>S.vendors.filter(v=>isPartner(v)&&v.approved!==false&&vsv(v).includes(c));
-const closingNote=`Orbyt isn't paid for these introductions, and your client is always free to choose any provider.`;
+const closingNote=`Listed closing partners pay Orbyt for advertising. Orbyt doesn't recommend one over another, and your client is always free to choose any provider.`;
+const LISTING_FEE=20,LISTING_FREE_DAYS=90;
+// everyone listed for a service, in an order that rotates daily so no one is always first
+const dayKey=()=>new Date().toISOString().slice(0,10);
+const rot=id=>{let h=2166136261;for(const ch of dayKey()+id){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0};
+const listedFor=c=>S.vendors.filter(v=>isPartner(v)&&v.approved!==false&&v.available!==false&&(!c||vsv(v).includes(c))).sort((a,b)=>rot(a.id)-rot(b.id));
+// the listing, as agents see it
+function partnerListing(v,area){const tel=String(v.phone||"").replace(/[^\d+]/g,""),web=safeUrl(v.web);
+  return `<div class="listing" style="background:#fff;border:1px solid var(--line,#E4E0D2);border-radius:10px;padding:10px 12px;margin:6px 0"><div class="listinghead" style="display:flex;justify-content:space-between;gap:10px"><div style="min-width:0"><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${v.contactName?`<span class="small"> · ${esc(v.contactName)}</span>`:""}
+      <div class="small">${esc(vsv(v).join(", "))}${v.license?` · License ${esc(v.license)}`:""}</div></div><div class="small">${ratingHtml(v.id)}</div></div>
+    <div class="small">${[v.phone?`<a href="tel:${esc(tel)}">${esc(v.phone)}</a>`:"",v.email?`<a href="mailto:${esc(v.email)}">${esc(v.email)}</a>`:"",web?`<a href="${esc(web)}" target="_blank" rel="noopener">Website</a>`:"",vendorDocs(v.id)].filter(Boolean).join(" · ")}</div>
+    <div class="small">Works in ${esc(areasShort(v.areas))}${area&&(v.areas||[]).includes(area)?` · <span class="strong">covers ${esc(String(area).split(" / ")[0])}</span>`:""}</div></div>`}
+// listing status: free for 90 days from agreeing, then $20 a month
+function listingAccept(v){const a=(D.terms_acceptances||[]).filter(x=>x.user_id===v.userId&&String(x.version||"").startsWith("partner-terms-")&&x.version>="partner-terms-2026-11-10").sort((x,y)=>String(x.accepted_at).localeCompare(String(y.accepted_at)))[0];return a?String(a.accepted_at).slice(0,10):""}
+function listingStatus(v){const acc=listingAccept(v),today=dayKey();
+  if(!acc)return{key:"agree",label:"Hasn't agreed to the marketing agreement yet"};
+  const free=addDaysIso(acc+"T12:00:00",LISTING_FREE_DAYS),paid=v.listingPaidThrough||"";
+  if(today<=free)return{key:"free",label:`Free until ${fmtDate(free)}`,free,paid};
+  if(paid&&paid>=today)return{key:"paid",label:`Paid through ${fmtDate(paid)}`,free,paid};
+  return{key:"due",label:`$${LISTING_FEE} due${paid?`, paid through ${fmtDate(paid)}`:` since ${fmtDate(free)}`}`,free,paid}}
 
 /* sign-up: portal.orbytconnect.com/join/partner */
 function partnerSignupView(){
   const ck=(name,list,hint)=>`<div class="checks">${list.map((x,i)=>`<label><input type="checkbox" id="su-${name}-${i}" name="${name}" value="${esc(x)}">${esc(x)}${hint&&hint[x]?`<span class="small"> · ${esc(hint[x])}</span>`:""}</label>`).join("")}</div>`;
   return `<section class="auth one"><div class="authcard"><div class="eyebrow">For closing partners</div>
     <h1>Lenders, title, escrow and insurance</h1>
-    <p class="small" style="margin:0">Join Orbyt's network of closing partners for San Diego agents. Founding partners are free, and Orbyt is never paid for introductions or closings.</p>
+    <p class="small" style="margin:0">List your business in Orbyt's closing partner directory for San Diego agents. Your first 90 days are free, then it's $20 a month for your marketing listing. Cancel anytime.</p>
     <form class="authform" data-proto="signup" data-kind="partner" novalidate>
       <p class="small" style="margin:0">Every field is required unless it says optional.</p>
       <label class="field"><span>Company name</span><input type="text" id="su-company" name="company" required></label>
@@ -4352,12 +4376,12 @@ function partnerSignupView(){
       <div class="field"><span>What do you offer?</span>${ck("svc",CLOSING,CLOSING_HINT)}</div>
       <div class="field"><span>Where do you work?</span>${ck("area",AREAS)}</div>
       <div class="grid"><label class="field"><span>Years in business</span><select id="su-years" name="years"><option value="">Choose one</option>${YEARS.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label></div>
-      <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="su-refs" name="references"></textarea></label>
+      <label class="field"><span>Agents you've worked with (optional)</span><textarea id="su-refs" name="references" placeholder="Names and phone numbers or emails. We can invite them to review you."></textarea></label>
       <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>
       <div class="grid"><label class="field"><span>Create a password (8+ characters)</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}
       <div class="reviewagree"><div class="eyebrow">Review and agree</div>
-        <h2>Free for founding partners</h2><p class="small" style="margin:0">No sign-up fee, no monthly fee, and never a fee per introduction or closing. If Orbyt adds a paid membership later, it will be a flat fee, you'll get 30 days' notice, and you can choose not to continue.</p>
+        <h2>Your marketing listing</h2><p class="small" style="margin:0">Free for your first 90 days, then $20 a month, billed monthly. It covers your directory listing, rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events. The fee is flat and never depends on contacts, loans, policies or closings. Cancel anytime.</p>
         ${keyHighlights("partner")}
         <h2>Your business</h2>${bizFields("su")}
         <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink("partner")}.</span></label>
@@ -4372,7 +4396,6 @@ async function partnerSignup(f,fd,email,pass,pass2,done,btn){
     [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[g("phone").replace(/\D/g,"").length<10,"Add a mobile phone number, with area code.","#su-phone"],
     [g("license").length<3,"Add your license number (NMLS, DRE, DFPI or Department of Insurance).","#su-license"],
     [!svcs.length,"Pick what you offer.","#su-svc-0"],[!areas.length,"Pick at least one area you work in.","#su-area-0"],[!g("years"),"Choose your years in business.","#su-years"],
-    [g("references").length<10,"Add 2 to 3 agent references, with names and phone numbers or emails.","#su-refs"],
     [pass.length<8,"Use a password with at least 8 characters.","#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
     [!g("legal"),"Add your legal business name.","#su-legal"],[!fd.get("btype"),"Choose your business type.","#su-btype"],[!g("title"),"Add your title.","#su-title"],
     [!fd.get("terms"),`Check the box to agree to the ${TERMS.partner.title}.`,"#su-terms"],[!fd.get("authority"),"Check the box to confirm you have authority to agree for the business.","#su-auth"]];
@@ -4385,67 +4408,59 @@ async function partnerSignup(f,fd,email,pass,pass2,done,btn){
   if(data.session){S.authErr="";await enter(data.user);return}
   S.pendingEmail=email;S.authMode="checkemail";S.authErr="";if(btn)btn.disabled=false;render()}
 
-/* the partner's dashboard: introductions, then their profile */
+/* the partner's dashboard: their listing */
 function partnerView(v){
-  const mine=(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.vendor_id===v.id).sort((a,b)=>String(b.introduced_at).localeCompare(String(a.introduced_at)));
-  const open=mine.filter(i=>!i.reached_out_at),past=mine.filter(i=>i.reached_out_at);
-  const card=i=>{const tel=String(i.agent_phone||"").replace(/[^\d+]/g,"");
-    return `<div class="introcard"><div class="eyebrow">${esc(i.category)} · ${esc(ago(i.introduced_at))}</div>
-      <div class="strong">${esc(i.agent_name||"Agent")}${i.brokerage?`<span class="small">, ${esc(i.brokerage)}</span>`:""}</div>
-      <div class="small">${esc(i.address||"")}${i.area?" · "+esc(i.area):""}</div>${i.note?`<p class="note">${esc(i.note)}</p>`:""}
-      <div class="actions">${tel?`<a class="btn ghost sm" href="tel:${esc(tel)}">Call ${esc(i.agent_phone)}</a>`:""}${i.agent_email?`<a class="btn ghost sm" href="mailto:${esc(i.agent_email)}">Email</a>`:""}
-        ${i.reached_out_at?`<span class="pill set">Reached out ${esc(fmtDate(String(i.reached_out_at).slice(0,10)))}</span>`:S.canWrite?`<button class="btn sm" data-act="reachedout" data-id="${esc(i.id)}">I've reached out</button>`:""}</div></div>`};
-  let h=`<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for joining. I'll check your license and references and reach out before your first introduction.</p>`:""}
-    <p>When an agent in the network needs what you do, I'll introduce you here and by email. Reach out to the agent, then mark it below. You're a founding partner, so there's no fee.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
+  const st=listingStatus(v),past=(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.vendor_id===v.id);
+  let h=`<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for joining. I'll check your license and let you know when your listing is live.</p>`:""}
+    <p>${v.approved===false?"Once it's live, agents in the network can find your listing in the Orbyt closing partner directory.":"Your listing is live in the Orbyt closing partner directory, where agents in the network can find you and your business overview."}</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${ratingHtml(v.id)}</div></section>`;
   if(typeof setupCard==="function"&&v.approved!==false)h+=setupCard();
-  if(!Array.isArray(D.intros))return h+`<div class="emptystate"><h2>Almost ready</h2><p>Introductions switch on with the next Orbyt update. Check back soon.</p></div>`;
-  h+=`<section class="section"><div class="sechead"><h2>New introductions</h2></div>${open.length?`<div class="introlist">${open.map(card).join("")}</div>`:`<p class="small">No new introductions right now. When an agent asks for ${esc(vsv(v).map(x=>x.toLowerCase()).join(" or "))} help, you'll get an email and it shows up here.</p>`}
-    ${past.length?`<details class="fold" style="margin-top:12px"><summary><span class="foldtitle">Past introductions</span><span class="pill">${past.length}</span></summary><div class="foldbody"><div class="introlist">${past.map(card).join("")}</div></div></details>`:""}</section>`;
+  if(v.approved!==false)h+=`<section class="section"><div class="sechead"><h2>Your listing</h2><span class="pill ${st.key==="due"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span></div>
+    <p class="small" style="margin:0 0 8px">Here's how agents see you. Your first ${LISTING_FREE_DAYS} days are free, then your marketing listing is $${LISTING_FEE} a month. Cancel anytime by emailing ashleigh@orbytconnect.com.</p>
+    ${partnerListing(v)}<p class="small" style="margin:8px 0 0">Your listing also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p></section>`;
+  if(past.length)h+=`<details class="fold" style="margin-top:12px"><summary><span class="foldtitle">Earlier introductions</span><span class="pill">${past.length}</span></summary><div class="foldbody"><div class="introlist">${past.map(i=>`<div class="introcard"><div class="eyebrow">${esc(i.category)} · ${esc(ago(i.introduced_at))}</div><div class="strong">${esc(i.agent_name||"Agent")}</div><div class="small">${esc(i.address||"")}</div></div>`).join("")}</div></div></details>`;
   if(v.approved===false)return h;
   const parts=[fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false),
-    fold("port","Business overview and portfolio","","What agents see when I introduce you",portfolioCard(v),false)];
+    fold("port","Business overview and portfolio","","Shown on your listing",portfolioCard(v),false)];
   if(typeof reviewInviteCard==="function"){const sent=typeof rrFor==="function"?rrFor(v.id):[];parts.push(fold("rr","Reviews from agents you've worked with",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Invite agents you've worked with",reviewInviteCard(v),!!S.rrMore))}
   parts.push(fold("refer","Refer someone to Orbyt",refCountPill(),"A ready-made message to send",referralCard("partner"),false));
   return h+`<section class="section folds"><div class="sechead" style="margin-bottom:8px"><div><h2>Your profile</h2><span class="small">Tap one to open it.</span></div></div>${parts.join("")}</section>`}
-document.addEventListener("click",e=>{const t=e.target.closest('[data-act="reachedout"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
-  guard(async()=>{fail((await sb.from("intros").update({reached_out_at:new Date().toISOString()}).eq("id",t.dataset.id)).error,"introduction");await S.db.reload()},"Marked. Thanks for reaching out.")},true);
 
-/* projects: the closing partner section, for agents and for Ashleigh */
+/* projects: local closing partner options, for agents and for Ashleigh (no picking, no intros) */
 function closingPanel(p,mode){
-  if(mode==="vendor"||!p)return"";const list=p.closing||[],isO=mode==="orbyt",ready=Array.isArray(D.intros);
-  const left=CLOSING.filter(c=>!list.includes(c));
-  if(!list.length&&!(mode==="agent"&&S.canWrite&&ready))return"";
-  const rowFor=c=>{const ins=introsFor(p.id,c);
-    const shown=ins.map(i=>{const v=vendorById(i.vendor_id);const tel=v?String(v.phone||"").replace(/[^\d+]/g,""):"";
-      return `<div class="introrow"><div style="min-width:0">${v?`<button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>`:`<span class="strong">Partner</span>`}${v&&v.contactName?`<span class="small"> · ${esc(v.contactName)}</span>`:""}
-        <div class="small">${[v&&v.phone?`<a href="tel:${esc(tel)}">${esc(v.phone)}</a>`:"",v&&v.email?`<a href="mailto:${esc(v.email)}">${esc(v.email)}</a>`:"",v?vendorDocs(v.id):""].filter(Boolean).join(" · ")}</div>
-        ${i.note?`<div class="intronote">${isO?"Your note: ":"From Ashleigh: "}“${esc(i.note)}”</div>`:""}</div>
-        <div class="small">Introduced ${esc(ago(i.introduced_at))}${i.reached_out_at?`<div><span class="pill set">They reached out</span></div>`:""}</div></div>`}).join("");
-    let pick="";
-    if(isO&&S.canWrite&&ready){const ps=partnersFor(c).filter(v=>!ins.some(i=>i.vendor_id===v.id)),ar=p.area;
-      const sorted=ps.sort((a,b)=>((b.areas||[]).includes(ar)-(a.areas||[]).includes(ar))||(b.available!==false)-(a.available!==false)||a.name.localeCompare(b.name));
-      const k=(p.id+c).replace(/[^a-z0-9]/gi,"");
-      pick=sorted.length?`<form class="form inner introform" data-form="intro" data-p="${esc(p.id)}" data-c="${esc(c)}"><div class="grid">
-          <label class="field"><span>${ins.length?"Introduce another":"Introduce"}</span><select id="in-v-${k}" name="vendorId">${sorted.map(v=>`<option value="${esc(v.id)}">${esc(v.name)}${(v.areas||[]).includes(ar)?" · works in "+esc(String(ar).split(" / ")[0]):""}${v.available===false?" (paused)":""}</option>`).join("")}</select></label>
-          <label class="field"><span>Note for both of them (optional)</span><input type="text" id="in-n-${k}" name="note" placeholder="First-time buyer, wants to close by March"></label></div>
-          <div class="actions"><button class="btn sm" type="submit">Introduce</button><span class="small">They each get an email with the other's contact details.</span></div></form>`
-        :`<p class="small" style="margin:0">${ins.length?"No other approved":"No approved"} ${esc(c.toLowerCase())} partners yet.</p>`}
-    return `<div class="closingrow"><div class="eyebrow">${esc(c)}</div>${shown||(isO?"":`<p class="small" style="margin:0">Ashleigh is lining up a ${esc(c.toLowerCase())} contact. You'll get an email when she makes the intro.</p>`)}${pick}</div>`};
-  const add=mode==="agent"&&S.canWrite&&ready&&left.length?`<div class="actions"><label class="field" style="margin:0"><span>Add a closing partner</span><select id="cl-add-${esc(p.id)}">${left.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></label><button class="btn ghost sm" data-act="addclosing" data-id="${esc(p.id)}">Ask for an intro</button></div>`:"";
+  if(mode==="vendor"||!p)return"";const list=p.closing||[],left=CLOSING.filter(c=>!list.includes(c));
+  if(!list.length&&!(mode==="agent"&&S.canWrite))return"";
+  const rowFor=c=>{const all=listedFor(c),here=all.filter(v=>(v.areas||[]).includes(p.area)),rest=all.filter(v=>!(v.areas||[]).includes(p.area)),old=introsFor(p.id,c);
+    return `<div class="closingrow"><div class="eyebrow">${esc(c)} options</div>
+      ${here.length?here.map(v=>partnerListing(v,p.area)).join(""):`<p class="small" style="margin:0">${all.length?"No listed "+esc(c.toLowerCase())+" partners cover this area yet.":"No "+esc(c.toLowerCase())+" partners are listed yet."}</p>`}
+      ${rest.length?`<details class="moreopts"><summary class="small">${rest.length} more who work elsewhere in San Diego</summary>${rest.map(v=>partnerListing(v,p.area)).join("")}</details>`:""}
+      ${old.length?`<div class="small" style="margin-top:6px">Introduced earlier: ${old.map(i=>esc((vendorById(i.vendor_id)||{}).name||"a partner")).join(", ")}</div>`:""}</div>`};
+  const add=mode==="agent"&&S.canWrite&&left.length?`<div class="actions"><label class="field" style="margin:0"><span>Show more closing options</span><select id="cl-add-${esc(p.id)}">${left.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></label><button class="btn ghost sm" data-act="addclosing" data-id="${esc(p.id)}">Add to this project</button></div>`:"";
   return `<section class="cat closingsec"><div class="cathead"><div><h3>Closing partners</h3><span class="small">${esc(closingNote)}</span></div></div>
-    ${list.map(rowFor).join("")}${!list.length&&mode==="agent"?`<p class="small" style="margin:0">Need a lender, title, escrow or insurance contact for this client? Ask and I'll introduce someone from the network.</p>`:""}${add}</section>`}
-document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="intro"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
-  const fd=new FormData(f),vid=String(fd.get("vendorId")||""),note=String(fd.get("note")||"").trim();if(!vid)return;
-  guard(async()=>{fail((await sb.from("intros").insert({project_id:f.dataset.p,category:f.dataset.c,vendor_id:vid,note:note||null})).error,"introduction");await S.db.reload()},"Introduced. They each got an email.")},true);
+    ${list.map(rowFor).join("")}${!list.length&&mode==="agent"?`<p class="small" style="margin:0">Need a lender, title, escrow or insurance contact for this client? Add it here to see local options listed with Orbyt.</p>`:""}${add}</section>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="addclosing"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   const p=projById(t.dataset.id),sel=document.getElementById("cl-add-"+t.dataset.id);if(!p||!sel)return;const c=sel.value;
-  guard(async()=>{fail((await sb.from("projects").update({closing:[...new Set([...(p.closing||[]),c])]}).eq("id",p.id)).error,"project");await S.db.reload()},`Asked. Ashleigh will introduce a ${c.toLowerCase()} contact.`)},true);
-// Ashleigh's dashboard: closing partner requests waiting on an intro
-function closingAlerts(){const A=[];if(!Array.isArray(D.intros))return A;
-  for(const p of S.projects)for(const c of p.closing||[])if(!introsFor(p.id,c).length)
-    A.push({id:"closing-"+p.id+"-"+c,cls:"k-warn",label:"Closing partner",title:`${firstName(p.agent)} needs ${c.toLowerCase()} for ${p.address}`,meta:(client(p)?client(p)+" · ":"")+ago(p.createdAt),when:p.createdAt,act:{a:"openmatch",id:p.id,label:"Introduce"}});
-  return A}
+  guard(async()=>{fail((await sb.from("projects").update({closing:[...new Set([...(p.closing||[]),c])]}).eq("id",p.id)).error,"project");await S.db.reload()},`Added. Local ${c.toLowerCase()} options are on the project.`)},true);
+// no hand-picked intros any more, so nothing for Ashleigh to act on
+function closingAlerts(){return[]}
+
+/* the agent's Closing partners tab: the whole directory */
+function closingDirectory(){const f=S.cdir||{c:"",area:""};
+  const all=listedFor(f.c).filter(v=>!f.area||(v.areas||[]).includes(f.area));
+  const groups=(f.c?[f.c]:CLOSING).map(c=>[c,all.filter(v=>vsv(v).includes(c))]).filter(g=>g[1].length);
+  return `<section class="section"><div class="sechead"><div><h2>Closing partner directory</h2><span class="small">${esc(closingNote)}</span></div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;max-width:560px"><label class="field"><span>Service</span><select id="cd-c" data-cdir="c"><option value="">All</option>${CLOSING.map(c=>`<option ${f.c===c?"selected":""}>${esc(c)}</option>`).join("")}</select></label>
+      <label class="field"><span>Area</span><select id="cd-a" data-cdir="area"><option value="">All of San Diego</option>${AREAS.map(a=>`<option ${f.area===a?"selected":""}>${esc(a)}</option>`).join("")}</select></label></div>
+    ${groups.length?groups.map(([c,vs])=>`<div class="closingrow"><div class="eyebrow">${esc(c)}</div>${vs.map(v=>partnerListing(v,f.area)).join("")}</div>`).join(""):`<p class="small">No closing partners are listed${f.area||f.c?" for that yet":" yet"}. Know a good one? Use Refer someone to Orbyt.</p>`}</section>`}
+document.addEventListener("change",e=>{const t=e.target.closest("[data-cdir]");if(!t)return;S.cdir={...(S.cdir||{c:"",area:""}),[t.dataset.cdir]:t.value};render()});
+
+/* Ashleigh: record a month paid */
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="listingpaid"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  const v=vendorById(t.dataset.id);if(!v)return;const st=listingStatus(v),today=dayKey();
+  const base=[today,st.free||"",v.listingPaidThrough||""].sort().pop(),d=new Date(base+"T12:00:00");d.setMonth(d.getMonth()+1);const until=d.toISOString().slice(0,10);
+  guard(()=>col("vendors").doc(v.id).update({listingPaidThrough:until}),`${v.name} is paid through ${fmtDate(until)}.`)},true);
+function listingCell(v){const st=listingStatus(v);
+  return `<div class="small ${st.key==="due"?"warntext":""}">${esc(st.label)}</div>${st.key!=="agree"&&S.canWrite?`<button class="linkbtn" style="white-space:nowrap" data-act="listingpaid" data-id="${esc(v.id)}">Mark a month paid</button>`:""}`}
 
 
 /* ---------- getting started: a checklist on each dashboard, and a Help page ---------- */
@@ -4479,7 +4494,7 @@ function appView(){const url="https://"+PORTAL_HOST;
 
 function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="btn ghost sm" type="button" data-act="${act}" ${extra||""}>${label}</button>`;
   const done=id=>a("Done","setupdone",`data-id="${id}"`);
-  const emails={vendor:"New bid requests, being picked for a job, and reminders",agent:"Introductions, new quotes, and updates on your projects",partner:"New introductions to agents"}[r];
+  const emails={vendor:"New bid requests, being picked for a job, and reminders",agent:"Introductions, new quotes, and updates on your projects",partner:"Your listing status and Orbyt event invitations"}[r];
   const common=[
     {id:"setup-bookmark",label:isPhone()?"Add Orbyt to your home screen":"Keep Orbyt one click away",hint:S.installEvt?"Install the Orbyt app in one tap. It gets its own icon and opens full screen, like any other app.":appSteps(),
       done:setupDone("setup-bookmark")||isStandalone(),act:(S.installEvt?a("Install the app","installapp"):a("Show me how","getapp"))+" "+done("setup-bookmark")},
@@ -4498,7 +4513,7 @@ function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="b
   const v=vendorById(roleVal());if(!v)return[];
   const rr=typeof rrFor==="function"?rrFor(v.id).length:0;
   if(r==="partner")return[
-    {id:"ov",label:"Add your business overview",hint:"One PDF about your company and what you offer. Agents see it when I introduce you.",done:!!v.overviewPdf,act:a("Add it","gofold",'data-fold="port"')},
+    {id:"ov",label:"Add your business overview",hint:"One PDF about your company and what you offer. Agents can open it from your listing.",done:!!v.overviewPdf,act:a("Add it","gofold",'data-fold="port"')},
     {id:"rr",label:"Invite agents you've worked with to review you",hint:"Reviews from agents who know your work go a long way.",done:rr>0,act:a("Invite agents","gofold",'data-fold="rr"')},
     ...common];
   const ins=typeof insState==="function"?insState(v):null;
@@ -4527,10 +4542,10 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
   const emails={
     agent:["When I introduce vendors for your project","When a vendor sends or updates a quote","When a vendor confirms a job, can't take it, or marks it done","Daily reminders about anything waiting on you"],
     vendor:["New bid requests, with the details and the agent's timing","When an agent asks for changes to your quote","When you're picked, and reminders to confirm","Reminders about your insurance certificate and open requests"],
-    partner:["New introductions, with the agent's contact details","Your approval, and anything I need from you"]}[r]||[];
+    partner:["When your listing goes live, and anything I need from you","Notices about your listing fee","Invitations to Orbyt networking and education events"]}[r]||[];
   const body={
     agent:[
-      sec("1. Start a project",p("Tap New project and add the address, what the home needs, and your timing. Buying side? Choose Buyer, and add closing partners like a lender or title if your client needs them.")),
+      sec("1. Start a project",p("Tap New project and add the address, what the home needs, and your timing. Buying side? Choose Buyer, and add closing needs like a lender or title to see local options from the closing partner directory.")),
       sec("2. Meet your vendors",p("I introduce vendors who fit the home, your timing and your area. You get an email and a task when they're introduced, and another when each quote comes in.")),
       sec("3. Review quotes",p("Open the project to see each quote, its timeline, and the vendor's PDF. Ask a vendor for changes, ask me for another option, or tap Send quotes to client to share a private page with your client.")),
       sec("4. Pick and book",p("Tap Add to team on the one you want. The vendor confirms and reaches out to schedule, and your client pays them directly. When the job's done, confirm the final amount and leave a quick review. If you like, tell the others why you went another way. It helps them improve.")),
@@ -4544,10 +4559,11 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
       sec("5. Reviews and feedback",p("Every job earns an agent review, and you can copy any review for your own marketing. When an agent goes another way, they can tell you why, so you can see what's winning work.")),
       sec("6. Your availability",p("Use the Taking new work switch at the top of your dashboard. While you're Paused, I won't send new requests."))],
     partner:[
-      sec("1. Introductions",p("When an agent in the network needs what you do, I introduce you by email and on your dashboard. Reach out to the agent, then tap I've reached out.")),
-      sec("2. Your profile",p("Add your business overview PDF and invite agents you've worked with to review you. Agents see both when I introduce you.")),
-      sec("3. Your availability",p("Use the Taking new work switch at the top of your dashboard. While you're Paused, I won't send new introductions.")),
-      sec("4. Free for founding partners",p("There's no fee to be a founding closing partner. Your terms explain how any future membership would work."))]}[r]||[];
+      sec("1. Your listing",p("Agents in the network can browse the closing partner directory and see your listing on their buyer projects. It's an open directory: partners show in a rotating order, and agents and their clients choose who to contact.")),
+      sec("2. Make it stand out",p("Add your business overview PDF and invite agents you've worked with to review you. Both show on your listing.")),
+      sec("3. Spotlights and events",p("Your listing includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.")),
+      sec("4. Showing or hidden",p("Use the Show my listing switch at the top of your dashboard to hide your listing for a while.")),
+      sec("5. Your fee",p(`Your first 90 days are free, then it's $20 a month for your marketing listing. Cancel anytime by emailing ${HELP_EMAIL}. Your agreement has the details.`))]}[r]||[];
   return `<div class="scrim" data-act="helpclose"></div><div class="vcard wide helpcard" role="dialog" aria-modal="true" aria-labelledby="hp-title">
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">How Orbyt works</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
     <div class="helpbody">${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}

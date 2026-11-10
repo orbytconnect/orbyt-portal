@@ -30,7 +30,7 @@ function appView(){const url="https://"+PORTAL_HOST;
 
 function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="btn ghost sm" type="button" data-act="${act}" ${extra||""}>${label}</button>`;
   const done=id=>a("Done","setupdone",`data-id="${id}"`);
-  const emails={vendor:"New bid requests, being picked for a job, and reminders",agent:"Introductions, new quotes, and updates on your projects",partner:"New introductions to agents"}[r];
+  const emails={vendor:"New bid requests, being picked for a job, and reminders",agent:"Introductions, new quotes, and updates on your projects",partner:"Your listing status and Orbyt event invitations"}[r];
   const common=[
     {id:"setup-bookmark",label:isPhone()?"Add Orbyt to your home screen":"Keep Orbyt one click away",hint:S.installEvt?"Install the Orbyt app in one tap. It gets its own icon and opens full screen, like any other app.":appSteps(),
       done:setupDone("setup-bookmark")||isStandalone(),act:(S.installEvt?a("Install the app","installapp"):a("Show me how","getapp"))+" "+done("setup-bookmark")},
@@ -49,7 +49,7 @@ function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="b
   const v=vendorById(roleVal());if(!v)return[];
   const rr=typeof rrFor==="function"?rrFor(v.id).length:0;
   if(r==="partner")return[
-    {id:"ov",label:"Add your business overview",hint:"One PDF about your company and what you offer. Agents see it when I introduce you.",done:!!v.overviewPdf,act:a("Add it","gofold",'data-fold="port"')},
+    {id:"ov",label:"Add your business overview",hint:"One PDF about your company and what you offer. Agents can open it from your listing.",done:!!v.overviewPdf,act:a("Add it","gofold",'data-fold="port"')},
     {id:"rr",label:"Invite agents you've worked with to review you",hint:"Reviews from agents who know your work go a long way.",done:rr>0,act:a("Invite agents","gofold",'data-fold="rr"')},
     ...common];
   const ins=typeof insState==="function"?insState(v):null;
@@ -78,10 +78,10 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
   const emails={
     agent:["When I introduce vendors for your project","When a vendor sends or updates a quote","When a vendor confirms a job, can't take it, or marks it done","Daily reminders about anything waiting on you"],
     vendor:["New bid requests, with the details and the agent's timing","When an agent asks for changes to your quote","When you're picked, and reminders to confirm","Reminders about your insurance certificate and open requests"],
-    partner:["New introductions, with the agent's contact details","Your approval, and anything I need from you"]}[r]||[];
+    partner:["When your listing goes live, and anything I need from you","Notices about your listing fee","Invitations to Orbyt networking and education events"]}[r]||[];
   const body={
     agent:[
-      sec("1. Start a project",p("Tap New project and add the address, what the home needs, and your timing. Buying side? Choose Buyer, and add closing partners like a lender or title if your client needs them.")),
+      sec("1. Start a project",p("Tap New project and add the address, what the home needs, and your timing. Buying side? Choose Buyer, and add closing needs like a lender or title to see local options from the closing partner directory.")),
       sec("2. Meet your vendors",p("I introduce vendors who fit the home, your timing and your area. You get an email and a task when they're introduced, and another when each quote comes in.")),
       sec("3. Review quotes",p("Open the project to see each quote, its timeline, and the vendor's PDF. Ask a vendor for changes, ask me for another option, or tap Send quotes to client to share a private page with your client.")),
       sec("4. Pick and book",p("Tap Add to team on the one you want. The vendor confirms and reaches out to schedule, and your client pays them directly. When the job's done, confirm the final amount and leave a quick review. If you like, tell the others why you went another way. It helps them improve.")),
@@ -95,10 +95,11 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
       sec("5. Reviews and feedback",p("Every job earns an agent review, and you can copy any review for your own marketing. When an agent goes another way, they can tell you why, so you can see what's winning work.")),
       sec("6. Your availability",p("Use the Taking new work switch at the top of your dashboard. While you're Paused, I won't send new requests."))],
     partner:[
-      sec("1. Introductions",p("When an agent in the network needs what you do, I introduce you by email and on your dashboard. Reach out to the agent, then tap I've reached out.")),
-      sec("2. Your profile",p("Add your business overview PDF and invite agents you've worked with to review you. Agents see both when I introduce you.")),
-      sec("3. Your availability",p("Use the Taking new work switch at the top of your dashboard. While you're Paused, I won't send new introductions.")),
-      sec("4. Free for founding partners",p("There's no fee to be a founding closing partner. Your terms explain how any future membership would work."))]}[r]||[];
+      sec("1. Your listing",p("Agents in the network can browse the closing partner directory and see your listing on their buyer projects. It's an open directory: partners show in a rotating order, and agents and their clients choose who to contact.")),
+      sec("2. Make it stand out",p("Add your business overview PDF and invite agents you've worked with to review you. Both show on your listing.")),
+      sec("3. Spotlights and events",p("Your listing includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.")),
+      sec("4. Showing or hidden",p("Use the Show my listing switch at the top of your dashboard to hide your listing for a while.")),
+      sec("5. Your fee",p(`Your first 90 days are free, then it's $20 a month for your marketing listing. Cancel anytime by emailing ${HELP_EMAIL}. Your agreement has the details.`))]}[r]||[];
   return `<div class="scrim" data-act="helpclose"></div><div class="vcard wide helpcard" role="dialog" aria-modal="true" aria-labelledby="hp-title">
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">How Orbyt works</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
     <div class="helpbody">${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}

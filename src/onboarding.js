@@ -14,7 +14,7 @@ const isPhone=()=>isIOS()||/android/i.test(navigator.userAgent);
 if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();S.installEvt=e;if(S.session)render()});
 window.addEventListener("appinstalled",()=>{S.installEvt=null;if(typeof setupMark==="function"&&S.session)setupMark("setup-bookmark").then(()=>render()).catch(()=>{})});
-const appSteps=()=>isIOS()?`In Safari, tap the Share button, then Add to Home Screen. Orbyt gets its own icon and opens full screen.`
+const appSteps=()=>isIOS()?(/CriOS/.test(navigator.userAgent)?`In Chrome, tap the Share icon at the right end of the address bar, then Add to Home Screen. Orbyt gets its own icon and opens full screen.`:/FxiOS|EdgiOS/.test(navigator.userAgent)?`Tap your browser's Share button, then Add to Home Screen. Orbyt gets its own icon and opens full screen.`:`In Safari, tap the Share button, then Add to Home Screen. Orbyt gets its own icon and opens full screen.`)
   :/android/i.test(navigator.userAgent)?`In Chrome, tap the menu (⋮), then Install app or Add to Home screen. Orbyt gets its own icon and opens full screen.`
   :isMacSafari()?`In Safari, choose File in the menu bar, then Add to Dock. Orbyt opens in its own window from your Dock.`
   :/Chrome|Edg\//.test(navigator.userAgent)?`In Chrome, click the install icon at the right end of the address bar. Or open the menu (⋮), then Cast, save, and share, then Install page as app.`

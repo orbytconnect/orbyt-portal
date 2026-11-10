@@ -16,8 +16,8 @@ const rot=id=>{let h=2166136261;for(const ch of dayKey()+id){h^=ch.charCodeAt(0)
 const listedFor=c=>S.vendors.filter(v=>isPartner(v)&&v.approved!==false&&v.available!==false&&(!c||vsv(v).includes(c))).sort((a,b)=>rot(a.id)-rot(b.id));
 // the listing, as agents see it
 function partnerListing(v,area){const tel=String(v.phone||"").replace(/[^\d+]/g,""),web=safeUrl(v.web);
-  return `<div class="listing" style="background:#fff;border:1px solid var(--line,#E4E0D2);border-radius:10px;padding:10px 12px;margin:6px 0"><div class="listinghead" style="display:flex;justify-content:space-between;gap:10px"><div style="min-width:0"><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${v.contactName?`<span class="small"> · ${esc(v.contactName)}</span>`:""}
-      <div class="small">${esc(vsv(v).join(", "))}${v.license?` · License ${esc(v.license)}`:""}</div></div><div class="small">${ratingHtml(v.id)}</div></div>
+  return `<div class="listing" style="background:#fff;border:1px solid var(--line,#E4E0D2);border-radius:10px;padding:10px 12px;margin:6px 0"><div class="listinghead" style="display:flex;justify-content:space-between;gap:10px"><div style="min-width:0"><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>
+      <div class="small">${[v.contactName,vsv(v).join(", "),v.license?"License "+v.license:""].filter(Boolean).map(esc).join(" · ")}</div></div><div class="small">${ratingHtml(v.id)}</div></div>
     <div class="small">${[v.phone?`<a href="tel:${esc(tel)}">${esc(v.phone)}</a>`:"",v.email?`<a href="mailto:${esc(v.email)}">${esc(v.email)}</a>`:"",web?`<a href="${esc(web)}" target="_blank" rel="noopener">Website</a>`:"",vendorDocs(v.id)].filter(Boolean).join(" · ")}</div>
     <div class="small">Works in ${esc(areasShort(v.areas))}${area&&(v.areas||[]).includes(area)?` · <span class="strong">covers ${esc(String(area).split(" / ")[0])}</span>`:""}</div></div>`}
 // listing status: free for 90 days from agreeing, then $20 a month

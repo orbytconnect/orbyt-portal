@@ -103,7 +103,7 @@ sub("</style>\n</head>", """.note{white-space:pre-line}
 .setuplist li:first-child{border-top:0}.setupdot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:12px;color:#fff}
 .setuplist li.done .setupdot{background:var(--teal,#3F7266);border-color:var(--teal,#3F7266)}.setuplist li.done .strong{color:var(--muted);font-weight:400}
 @media (max-width:640px){.setuplist li{grid-template-columns:22px minmax(0,1fr)}.setuplist li>div:last-child,.setuplist li>span.small:last-child{grid-column:2}}
-.helpcard{max-width:720px}.helpbody{display:grid;gap:4px;margin-top:8px}.helpsec h3{margin:12px 0 2px;font-size:16px}.helpsec p{margin:0;line-height:1.55}.helpsec ul{margin:4px 0 0;padding-left:20px;line-height:1.6}
+.setupback{margin:0 0 18px}.helpcard{max-width:720px}.helpbody{display:grid;gap:4px;margin-top:8px}.helpsec h3{margin:12px 0 2px;font-size:16px}.helpsec p{margin:0;line-height:1.55}.helpsec ul{margin:4px 0 0;padding-left:20px;line-height:1.6}
 .candlinks{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
 .myrevs{display:grid;gap:10px}.myrev{margin:0;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;background:var(--surface)}.myrev .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .hcpot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}

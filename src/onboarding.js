@@ -39,10 +39,14 @@ function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="b
     {id:"setup-avail",label:"Let me know you're taking new work",hint:"Use the Taking new work switch at the top of your dashboard. Switch to Paused anytime you're booked up.",done:setupDone("setup-avail")||v.available===false,act:a("I'm taking work","setupdone",'data-id="setup-avail"')},
     ...common]}
 
-function setupCard(){if(!S.canWrite||!S.session||setupDone("setup-hide"))return"";
-  const items=setupItems();if(!items.length)return"";const left=items.filter(x=>!x.done);if(!left.length)return"";
+function setupUnmark(id){const key=roleKey();if(!key||!S.canWrite)return Promise.resolve();const dm={...doneMap()};delete dm[id];
+  return S.db.doc("taskstate/"+key).set({done:dm,nudged:nudgedMap()})}
+function setupCard(){if(!S.canWrite||!S.session)return"";
+  const items=setupItems();if(!items.length)return"";const left=items.filter(x=>!x.done);
+  // hidden, or all done: a one-line way back in
+  if((setupDone("setup-hide")||!left.length)&&!S.setupOpen)return `<p class="small setupback">${left.length?`Setup checklist hidden, ${left.length} ${left.length===1?"step":"steps"} left.`:"You're all set up."} <button class="linkbtn" type="button" data-act="setupshow">Show the checklist</button> · <button class="linkbtn" type="button" data-act="help">How Orbyt works</button></p>`;
   const n=items.length-left.length;
-  return `<section class="setup" aria-label="Get set up"><div class="setuphead"><div><div class="eyebrow">Get set up</div><h2>${n?`${n} of ${items.length} done`:"A few quick steps to get the most out of Orbyt"}</h2></div>
+  return `<section class="setup" aria-label="Get set up"><div class="setuphead"><div><div class="eyebrow">Get set up</div><h2>${!left.length?"All done. Nice work.":n?`${n} of ${items.length} done`:"A few quick steps to get the most out of Orbyt"}</h2></div>
       <div class="actions"><button class="linkbtn" type="button" data-act="help">How Orbyt works</button><button class="linkbtn" type="button" data-act="setupdone" data-id="setup-hide">Hide this</button></div></div>
     <div class="setupbar" role="progressbar" aria-valuemin="0" aria-valuemax="${items.length}" aria-valuenow="${n}"><span style="width:${Math.round(n/items.length*100)}%"></span></div>
     <ol class="setuplist">${items.map(x=>`<li class="${x.done?"done":""}"><span class="setupdot" aria-hidden="true">${x.done?"✓":""}</span><div class="setuptext"><span class="strong">${esc(x.label)}</span>${x.done?"":`<div class="small">${esc(x.hint)}</div>`}</div>${x.done?`<span class="small">Done</span>`:`<div>${x.act}</div>`}</li>`).join("")}</ol>
@@ -76,16 +80,17 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
       sec("4. Free for founding partners",p("There's no fee to be a founding closing partner. Your terms explain how any future membership would work."))]}[r]||[];
   return `<div class="scrim" data-act="helpclose"></div><div class="vcard wide helpcard" role="dialog" aria-modal="true" aria-labelledby="hp-title">
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">How Orbyt works</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
-    <div class="helpbody">${body.join("")}
+    <div class="helpbody">${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}
       ${sec("Emails to expect",`<p>Orbyt emails come from <span class="strong">${HELP_EMAIL}</span>. Add it to your contacts so nothing lands in spam.</p><ul>${emails.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`)}
       ${sec("Keep the portal handy",p(esc(bookmarkHint)))}
       <div class="callout" style="margin-top:6px"><div class="strong">Need help or found a bug?</div><p class="small" style="margin:4px 0 0">${contactLine()}</p></div></div></div>`}
 
-document.addEventListener("click",e=>{const t=e.target.closest('[data-act="setupdone"],[data-act="help"],[data-act="helpclose"],[data-act="gofold"],[data-act="setupref"]');if(!t)return;
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="setupdone"],[data-act="setupshow"],[data-act="help"],[data-act="helpclose"],[data-act="gofold"],[data-act="setupref"]');if(!t)return;
   e.preventDefault();e.stopImmediatePropagation();const a=t.dataset.act;
   if(a==="help"){S.help=true;render();return}
   if(a==="helpclose"){S.help=false;render();return}
-  if(a==="setupdone"){guard(()=>setupMark(t.dataset.id),t.dataset.id==="setup-hide"?"Hidden. You can find How Orbyt works under Help anytime.":"Checked off");return}
+  if(a==="setupdone"){if(t.dataset.id==="setup-hide")S.setupOpen=false;guard(()=>setupMark(t.dataset.id),t.dataset.id==="setup-hide"?"Hidden. Bring it back anytime with Show the checklist, or from Help.":"Checked off");return}
+  if(a==="setupshow"){S.help=false;S.setupOpen=true;guard(()=>setupUnmark("setup-hide"));setTimeout(()=>document.querySelector(".setup,.setupback")?.scrollIntoView({behavior:"smooth",block:"center"}),300);return}
   const openFold=k=>{const d=document.querySelector(`details.fold[data-fold="${k}"]`);if(d){d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"});return true}return false};
   if(a==="gofold"){if(!openFold(t.dataset.fold))toast("You'll find it under Your profile once you're approved.");return}
   if(a==="setupref"){S.refWho=t.dataset.who;render();setTimeout(()=>openFold("refer"),30)}},true);

@@ -28,6 +28,7 @@ export default async (req) => {
         },
       } },
       metadata: { vendor_id: info.vendor_id, kind },
+      allow_promotion_codes: true,
       ...(info.customer ? { customer: info.customer } : { customer_email: info.email || undefined }),
     };
     if (listing) {

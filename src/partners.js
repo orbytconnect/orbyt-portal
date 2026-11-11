@@ -29,7 +29,7 @@ function listingStatus(v){const acc=listingAccept(v),today=dayKey(),b=billingOf(
   if(b.billing_status==="past_due")return{key:"due",label:"Card declined",free,paid,b};
   if(today<=free)return{key:"free",label:`Free until ${fmtDate(free)}${card?" · card on file":""}`,free,paid,b};
   if(paid&&paid>=today)return{key:"paid",label:`Paid through ${fmtDate(paid)}`,free,paid,b};
-  if(card&&b.billing_status==="active"&&!paid)return{key:"paid",label:"Paid by card",free,paid,b};
+  if(card&&b.billing_status==="active")return{key:"paid",label:paid?`Active · paid through ${fmtDate(paid)}`:"Active",free,paid,b};
   return{key:"due",label:`$${LISTING_FEE} due${paid?`, paid through ${fmtDate(paid)}`:` since ${fmtDate(free)}`}`,free,paid,b}}
 
 /* ---------- card payments (Stripe) ---------- */

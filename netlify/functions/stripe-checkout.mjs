@@ -8,7 +8,8 @@ export default async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
   const token = bearer(req);
   if (!token) return json({ error: "Sign in first." }, 401);
-  const { kind } = await req.json().catch(() => ({}));
+  const { kind, promo_end } = await req.json().catch(() => ({}));
+  const end = /^\d{4}-\d{2}-\d{2}$/.test(promo_end || "") ? promo_end : undefined; // the database keeps it within 30 days
   if (kind !== "listing" && kind !== "promo") return json({ error: "Unknown payment." }, 400);
   try {
     const info = await rpc("billing_checkout_info", { p_kind: kind }, token);
@@ -23,11 +24,11 @@ export default async (req) => {
         price_data: {
           currency: "usd",
           unit_amount: info.amount || 2000,
-          product_data: { name: listing ? "Orbyt closing partner marketing listing" : "Orbyt special offer, 30 days" },
+          product_data: { name: listing ? "Orbyt closing partner marketing listing" : "Orbyt special offer, up to 30 days" },
           ...(listing ? { recurring: { interval: "month" } } : {}),
         },
       } },
-      metadata: { vendor_id: info.vendor_id, kind },
+      metadata: { vendor_id: info.vendor_id, kind, ...(listing ? {} : { promo_end: end }) },
       allow_promotion_codes: true,
       ...(info.customer ? { customer: info.customer } : { customer_email: info.email || undefined }),
     };

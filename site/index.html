@@ -4116,13 +4116,17 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="myava
 function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
   const left=on&&v.featuredUntil?Math.round((new Date(v.featuredUntil+"T12:00:00")-new Date())/864e5):null;
   if(typeof billingOn==="function"&&billingOn()){
-    const status=on?`<p class="small" style="margin:0"><span class="strong">Your special offer is live until ${esc(fmtDate(v.featuredUntil))}.</span> Agents see it next to your quotes and on your profile, so they can pass the deal on to their clients.</p>`
-      :`<p class="small" style="margin:0">Run a special offer for Orbyt clients for 30 days, for $20 by card. It goes live as soon as you pay. Agents see your offer next to your quotes and on your profile, so they can pass the deal on. It doesn't change how I match. That's always the best fit for each home.</p>`;
+    const iso=d=>d.toISOString().slice(0,10),plus=(x,n)=>{const d=new Date(x+"T12:00:00");d.setDate(d.getDate()+n);return iso(d)},today=iso(new Date());
+    const start=on&&v.featuredUntil?plus(v.featuredUntil,1):today,maxEnd=plus(start,29),renew=on&&left!==null&&left<=7;
+    const status=on?`<p class="small" style="margin:0"><span class="strong">Your special offer is live until ${esc(fmtDate(v.featuredUntil))}.</span> Agents see it next to your quotes and on your profile, so they can pass the deal on to their clients.</p>
+      <div class="actions" style="margin:8px 0 0;align-items:flex-end"><label class="field" style="margin:0"><span>End it sooner</span><input type="date" id="pr-stop" min="${today}" max="${esc(v.featuredUntil)}" value="${esc(v.featuredUntil)}"></label><button class="btn ghost sm" type="button" data-act="promostop">Update end date</button></div>`
+      :`<p class="small" style="margin:0">Run a special offer for Orbyt clients for up to 30 days, for $20 by card. It goes live as soon as you pay. Agents see your offer next to your quotes and on your profile, so they can pass the deal on. It doesn't change how I match. That's always the best fit for each home.</p>`;
+    const endField=!on||renew?`<label class="field"><span>${renew?"Renewal runs until":"Run it until"}</span><input type="date" id="pr-end" name="end" min="${start}" max="${maxEnd}" value="${maxEnd}"></label><p class="small" style="margin:-6px 0 0">${renew?`Starts ${esc(fmtDate(start))} when your current offer ends. `:""}Up to 30 days for $20.</p>`:"";
     return `<form class="form inner" data-form="promo" novalidate>${status}
     <label class="field"><span>Your offer for Orbyt agents and their clients</span><input type="text" id="pr-offer" name="offer" maxlength="90" value="${esc(v.promoOffer||"")}" placeholder="10% off move-in cleans booked through Orbyt"></label>
     <label class="field"><span>Details (optional)</span><textarea id="pr-details" name="details" rows="2" maxlength="400" placeholder="Good through December. Homes up to 3,000 sq ft.">${esc(v.promoDetails||"")}</textarea></label>
     <p class="small" style="margin:0">A discount, a free add-on, faster scheduling, or whatever fits your service. Make it something you'll honor for anyone who books through Orbyt while it's live.</p>
-    <p class="small warntext prerr" role="alert" style="margin:0" hidden></p>
+    ${endField}<p class="small warntext prerr" role="alert" style="margin:0" hidden></p>
     <div class="actions">${on?(left!==null&&left<=7?`<button class="btn sm" type="submit" data-pay="1">Renew for 30 days, $20</button>`:"")+`<button class="btn ghost sm" type="submit">Save offer</button>`
       :`<button class="btn sm" type="submit" data-pay="1">Run my offer for $20</button><button class="btn ghost sm" type="submit">Save offer for later</button>`}</div></form>`}
   const status=on?`<p class="small" style="margin:0"><span class="strong">Your special offer is live until ${esc(fmtDate(v.featuredUntil))}.</span> Agents see it next to your quotes and on your profile, so they can pass the deal on to their clients.${req?" Your renewal request is in. I'll send a payment link.":""}</p>`
@@ -4140,7 +4144,9 @@ document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form=
   const wantPay=!!(e.submitter&&e.submitter.dataset.pay),el=f.querySelector(".prerr");
   if(wantPay){if(!offer){if(el){el.textContent="Add your offer first. It's what agents see next to your quotes.";el.hidden=false}f.querySelector("#pr-offer").focus();return}
     const btn=e.submitter;btn.disabled=true;btn.textContent="Opening Stripe...";
-    (async()=>{try{fail((await sb.from("vendors").update({promo_offer:offer,promo_details:details||null}).eq("id",v.id)).error,"offer");await startCheckout("promo")}
+    const endEl=f.querySelector("#pr-end"),endV=endEl&&endEl.value;
+    if(endEl&&endV&&(endV<endEl.min||endV>endEl.max)){btn.disabled=false;btn.textContent="Try again";if(el){el.textContent="Pick an end date within 30 days.";el.hidden=false}return}
+    (async()=>{try{fail((await sb.from("vendors").update({promo_offer:offer,promo_details:details||null}).eq("id",v.id)).error,"offer");await startCheckout("promo",endV?{promo_end:endV}:{})}
       catch(err){btn.disabled=false;btn.textContent="Try again";if(el){el.textContent=err.message||"That didn't work.";el.hidden=false}}})();return}
   const wantReq=!!(e.submitter&&e.submitter.dataset.req);
   if(wantReq&&!offer){if(el){el.textContent="Add your offer first. It's what agents see next to your quotes.";el.hidden=false}f.querySelector("#pr-offer").focus();return}
@@ -4187,6 +4193,11 @@ document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form=
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="lostskip"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   S.lostSkip=[...(S.lostSkip||[]),t.dataset.key];render()},true);
 document.addEventListener("input",e=>{const f=e.target.closest('form[data-form="lost"]');if(!f)return;const er=f.querySelector(".losterr");if(er&&!er.hidden){er.hidden=true;er.textContent=""}});
+
+// a vendor ends their live special offer sooner
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="promostop"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  const d=(document.getElementById("pr-stop")||{}).value;if(!d)return;
+  guard(async()=>{fail((await sb.rpc("promo_set_end",{p_end:d})).error,"offer");await S.db.reload()},`Your offer now ends ${fmtDate(d)}.`)},true);
 
 
 /* ---------- home team cards: a printable card agents give buyer clients, and the request page behind its QR code ---------- */
@@ -4433,7 +4444,7 @@ const hasCard=b=>!!(b&&b.stripe_subscription_id&&b.billing_status!=="canceled");
 async function payCall(fn,body){const{data:{session}}=await sb.auth.getSession();if(!session)throw{message:"Sign in again, then try once more."};
   const r=await fetch("/.netlify/functions/"+fn,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify(body||{})});
   const j=await r.json().catch(()=>({}));if(!r.ok||!j.url)throw{message:j.error||"That didn't work. Try again in a minute."};location.href=j.url}
-const startCheckout=kind=>payCall("stripe-checkout",{kind});
+const startCheckout=(kind,extra)=>payCall("stripe-checkout",{kind,...(extra||{})});
 const openBilling=()=>payCall("stripe-portal");
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="paycard"],[data-act="billingportal"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   t.disabled=true;const old=t.textContent;t.textContent="Opening Stripe...";

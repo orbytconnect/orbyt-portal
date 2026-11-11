@@ -39,7 +39,7 @@ const hasCard=b=>!!(b&&b.stripe_subscription_id&&b.billing_status!=="canceled");
 async function payCall(fn,body){const{data:{session}}=await sb.auth.getSession();if(!session)throw{message:"Sign in again, then try once more."};
   const r=await fetch("/.netlify/functions/"+fn,{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify(body||{})});
   const j=await r.json().catch(()=>({}));if(!r.ok||!j.url)throw{message:j.error||"That didn't work. Try again in a minute."};location.href=j.url}
-const startCheckout=kind=>payCall("stripe-checkout",{kind});
+const startCheckout=(kind,extra)=>payCall("stripe-checkout",{kind,...(extra||{})});
 const openBilling=()=>payCall("stripe-portal");
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="paycard"],[data-act="billingportal"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   t.disabled=true;const old=t.textContent;t.textContent="Opening Stripe...";

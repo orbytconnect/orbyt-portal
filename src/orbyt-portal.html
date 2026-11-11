@@ -173,6 +173,8 @@ textarea{resize:vertical;min-height:64px}
 .mform{display:flex;gap:8px;align-items:flex-end;padding:12px 18px 4px;border-top:1px solid var(--line)}.mform textarea{flex:1;min-height:44px;resize:vertical}
 .mnote{margin:4px 18px 12px}.mempty{display:flex;align-items:center;justify-content:center;flex:1;padding:24px}
 @media (max-width:760px){.msgwrap{grid-template-columns:1fr}.msgwrap.open .mside{display:none}.msgwrap:not(.open) .mpane{display:none}.mside{border-right:0;max-height:none}.mback{display:inline-block;margin-bottom:6px}}
+.mgroup{padding:12px 14px 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}.mgroup .small{text-transform:none;letter-spacing:0}
+.mnew{padding:10px 14px;border-bottom:1px solid var(--line)}.mnew select{width:100%}.morbyt .maddr::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#A8871F;margin-right:7px;vertical-align:middle}
 .dangerbtn{color:var(--warn)!important;border-color:currentColor!important}rect.fclist{fill:#3F7266}rect.fcpromo{fill:#C4A85A}.sw.fclist{background:#3F7266}.sw.fcpromo{background:#C4A85A}rect.fcpaid{fill:var(--fc-paid)}rect.fcexp{fill:var(--fc-exp)}rect.fcpos{fill:var(--fc-pos);stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2}
 .rp5{grid-template-columns:repeat(5,minmax(0,1fr))}
 @media (max-width:900px){.rp5{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -1191,7 +1193,7 @@ function orbytView(){
   const tm=S.config.timer;if(tm&&tm.startedAt){const mins=Math.max(0,Math.floor((Date.now()-Date.parse(tm.startedAt))/6e4)),tp=projById(tm.projectId);
     h+=`<div class="timerbar" role="status"><span><span class="dotlive" aria-hidden="true"></span>Timer running${tp?" on "+esc(tp.address):""} · ${esc((LOGTYPES.find(x=>x[0]===tm.type)||[,"Matching"])[1])} · <span class="num">${Math.floor(mins/60)}:${String(mins%60).padStart(2,"0")}</span></span>
       <span class="actions"><button class="btn sm" data-act="stoptimer">Stop and log</button><button class="linkbtn" data-act="canceltimer">Discard</button></span></div>`}
-  h+=tabs([["dash","Dashboard",splitTasks(orbytAlerts()).open.length],["pipeline","Pipeline",0],["projects","Matching",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",0]]:[]),["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false&&!(typeof isPartner==="function"&&isPartner(v))).length+pending],...(typeof partnersAdminView==="function"?[["partners","Closing partners",partnersAll().filter(v=>v.approved===false).length+listingDue().length]]:[]),["invoicing","Invoicing",invRows().filter(r=>r.status==="ready").length],["reports","Reports",0]]);
+  h+=tabs([["dash","Dashboard",splitTasks(orbytAlerts()).open.length],["pipeline","Pipeline",0],["projects","Matching",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[]),["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false&&!(typeof isPartner==="function"&&isPartner(v))).length+pending],...(typeof partnersAdminView==="function"?[["partners","Closing partners",partnersAll().filter(v=>v.approved===false).length+listingDue().length]]:[]),["invoicing","Invoicing",invRows().filter(r=>r.status==="ready").length],["reports","Reports",0]]);
   if(S.tab==="vendors")return h+rosterView();
   if(S.tab==="partners"&&typeof partnersAdminView==="function")return h+partnersAdminView();
   if(S.tab==="messages"&&typeof messagesView==="function")return h+messagesView();
@@ -1744,6 +1746,7 @@ function orbytAlerts(){
   for(const v of S.vendors.filter(v=>v.approved===false)){const cp=typeof isPartner==="function"&&isPartner(v);A.push({id:"vrev-"+v.id,cls:"k-ink",label:cp?"Closing partner sign-up":"Vendor sign-up",title:`${v.name} wants to join (${vsv(v).join(", ")})`,
     meta:[v.areaNote||v.areas?.join(", "),v.source,v.createdAt?ago(v.createdAt):""].filter(Boolean).join(" · "),when:v.createdAt||"",act:{a:"vcard",id:v.id,label:"Review"},auto:false})}
   if(typeof listingAlerts==="function")A.push(...listingAlerts());
+  if(typeof msgAlerts==="function")A.push(...msgAlerts());
   if(typeof insuranceAlerts==="function")A.push(...insuranceAlerts());
   if(typeof closingAlerts==="function")A.push(...closingAlerts());
   return A;

@@ -108,9 +108,11 @@ async function partnerSignup(f,fd,email,pass,pass2,done,btn){
 
 /* the partner's dashboard: their listing */
 function partnerView(v){
+  if(typeof msgPending==="function")msgPending();
+  if(S.tab==="messages"&&typeof messagesView==="function"&&msgOn())return `<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Messages</h1></div><div><button class="btn ghost sm" type="button" data-act="partnerhome">Back to your listing</button></div></section>`+messagesView();
   const st=listingStatus(v),past=(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.vendor_id===v.id);
   let h=`<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for joining. I'll check your license and let you know when your listing is live.</p>`:""}
-    <p>${v.approved===false?"Once it's live, agents in the network can find your listing in the Orbyt closing partner directory.":"Your listing is live in the Orbyt closing partner directory, where agents in the network can find you and your business overview."}</p>${typeof availToggle==="function"?availToggle(v):""}</div>
+    <p>${v.approved===false?"Once it's live, agents in the network can find your listing in the Orbyt closing partner directory.":"Your listing is live in the Orbyt closing partner directory, where agents in the network can find you and your business overview."}</p>${typeof availToggle==="function"?availToggle(v):""}${typeof msgAshBtn==="function"&&msgOn()?`<div class="actions" style="margin-top:10px">${msgAshBtn(unreadTotal()?`Messages from Ashleigh (${unreadTotal()})`:"Message Ashleigh","btn ghost sm")}</div>`:""}</div>
     <div>${ratingHtml(v.id)}</div></section>`;
   if(typeof setupCard==="function"&&v.approved!==false)h+=setupCard();
   if(v.approved!==false)h+=`<section class="section"><div class="sechead"><h2>Your listing</h2><span class="pill ${st.key==="due"||st.key==="canceled"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span></div>
@@ -268,3 +270,5 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="bills
     guard(async()=>{fail((await sb.rpc("billing_setup",{p_secret:sec})).error,"payments setup");S.billSecret=sec;await S.db.reload()},"Shared secret created. Copy it into Netlify.");return}
   const on=t.dataset.v==="1";
   guard(async()=>{const cur=settingVal("billing")||{};fail((await sb.from("settings").update({value:{...cur,enabled:on}}).eq("key","billing")).error,"payments");await S.db.reload()},on?"Card payments are on.":"Card payments are off.")},true);
+
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="partnerhome"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();S.tab="tasks";S.openMsg=null;render()},true);

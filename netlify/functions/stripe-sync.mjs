@@ -1,12 +1,12 @@
 // Backup to the webhook: when someone comes back from Stripe Checkout, the portal asks this function to
 // confirm the checkout with Stripe directly and record it, so a delayed or failed webhook can't leave them stuck.
 // It only acts on a checkout that belongs to the signed-in business.
-import { rpc, json, bearer } from "../lib/stripe.mjs";
+import { rpc, json, bearer, env } from "../lib/stripe.mjs";
 
 const STRIPE = process.env.STRIPE_API || "https://api.stripe.com";
 
 async function get(path) {
-  const key = process.env.STRIPE_SECRET_KEY;
+  const key = env("STRIPE_SECRET_KEY");
   if (!key) { const e = new Error("Card payments aren't set up yet."); e.status = 503; throw e; }
   const res = await fetch(`${STRIPE}/v1/${path}`, { headers: { Authorization: `Bearer ${key}` } });
   const data = await res.json().catch(() => ({}));
@@ -25,7 +25,7 @@ export default async (req) => {
     const s = await get(`checkout/sessions/${encodeURIComponent(session_id)}`);
     if (!mine || s.client_reference_id !== mine) return json({ error: "That checkout isn't yours." }, 403);
     if (s.status !== "complete") return json({ result: "not finished", status: s.status });
-    const secret = process.env.ORBYT_BILLING_SECRET || "";
+    const secret = env("ORBYT_BILLING_SECRET");
     const out = [await rpc("billing_apply", { p_secret: secret, p_event: { type: "checkout.session.completed", data: { object: s } } })];
     if (s.mode === "subscription" && s.subscription) {
       const sub = await get(`subscriptions/${encodeURIComponent(typeof s.subscription === "string" ? s.subscription : s.subscription.id)}`);

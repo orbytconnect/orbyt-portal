@@ -11,6 +11,8 @@ export const PORTAL = process.env.ORBYT_PORTAL_URL || "https://portal.orbytconne
 const STRIPE = process.env.STRIPE_API || "https://api.stripe.com";
 
 export const json = (body, status = 200) => Response.json(body, { status });
+// settings pasted into Netlify sometimes pick up spaces or line breaks
+export const env = (k) => String(process.env[k] || "").trim();
 
 // call a database function, as the signed-in person (their token) or as the public key
 export async function rpc(fn, args, token) {
@@ -41,7 +43,7 @@ export function form(obj, prefix = "", out = new URLSearchParams()) {
 }
 
 export async function stripe(path, params) {
-  const key = process.env.STRIPE_SECRET_KEY;
+  const key = env("STRIPE_SECRET_KEY");
   if (!key) { const e = new Error("Card payments aren't set up yet."); e.status = 503; throw e; }
   const res = await fetch(`${STRIPE}/v1/${path}`, {
     method: "POST",
@@ -65,11 +67,19 @@ export const bearer = (req) => {
 
 // Stripe-Signature: t=timestamp,v1=hmac. Reject anything not signed with our webhook secret, or older than 5 minutes.
 export function verifyStripe(raw, header, secret, now = Date.now()) {
-  if (!header || !secret) return false;
+  return checkStripe(raw, header, secret, now) === "ok";
+}
+// the same check, saying why it failed (for the log; never includes the secret)
+export function checkStripe(raw, header, secret, now = Date.now()) {
+  if (!secret) return "STRIPE_WEBHOOK_SECRET is not set in Netlify";
+  if (!secret.startsWith("whsec_")) return `STRIPE_WEBHOOK_SECRET should start with whsec_ but starts with ${secret.slice(0, 3)}...`;
+  if (!header) return "no Stripe-Signature header";
   const parts = Object.fromEntries(header.split(",").map((p) => p.split("=")).filter((p) => p.length === 2).map(([k, v]) => [k.trim(), v.trim()]));
   const sigs = header.split(",").filter((p) => p.trim().startsWith("v1=")).map((p) => p.trim().slice(3));
   const t = Number(parts.t);
-  if (!t || !sigs.length || Math.abs(now / 1000 - t) > 300) return false;
+  if (!t || !sigs.length) return "signature header is malformed";
+  if (Math.abs(now / 1000 - t) > 300) return "signature is more than 5 minutes old";
   const expected = crypto.createHmac("sha256", secret).update(`${t}.${raw}`, "utf8").digest("hex");
-  return sigs.some((s) => s.length === expected.length && crypto.timingSafeEqual(Buffer.from(s), Buffer.from(expected)));
+  return sigs.some((s) => s.length === expected.length && crypto.timingSafeEqual(Buffer.from(s), Buffer.from(expected)))
+    ? "ok" : `signature doesn't match (secret is ${secret.length} characters; check it's this webhook's live signing secret)`;
 }

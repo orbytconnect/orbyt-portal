@@ -16,7 +16,7 @@ export default async (req) => {
     const params = {
       mode: listing ? "subscription" : "payment",
       client_reference_id: info.vendor_id,
-      success_url: `${PORTAL}/?billing=done&kind=${kind}`,
+      success_url: `${PORTAL}/?billing=done&kind=${kind}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${PORTAL}/?billing=cancel&kind=${kind}`,
       line_items: { 0: {
         quantity: 1,

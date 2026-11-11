@@ -509,6 +509,10 @@ async function liveBoot(){
   const bill=q.get("billing");if(bill==="done"||bill==="cancel"){S.billFlash=bill==="done"?(q.get("kind")==="promo"?"Payment received. Your special offer goes live in a moment.":"Card saved. Thank you!"):"No charge was made. You can try again anytime.";
     try{history.replaceState(null,"",location.pathname)}catch(_){}
     setTimeout(()=>{if(S.billFlash){toast(S.billFlash);S.billFlash=""}},900);
+    const sid=q.get("session_id");
+    if(bill==="done"&&/^cs_/.test(sid||""))setTimeout(async function sync(n){try{const{data:{session}}=await sb.auth.getSession();if(!session){if((n||0)<5)setTimeout(()=>sync((n||0)+1),1500);return}
+      await fetch("/.netlify/functions/stripe-sync",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token},body:JSON.stringify({session_id:sid})});
+      if(S.db&&S.db.reload)await S.db.reload();else if(S.authMode==="pending"){const{data}=await sb.rpc("billing_mine");S.billMine=data||S.billMine;render()}}catch(_){}},1200);
     if(bill==="done")[4000,10000].forEach(ms=>setTimeout(async()=>{try{if(S.db&&S.db.reload)await S.db.reload();else if(S.authMode==="pending"){const{data}=await sb.rpc("billing_mine");S.billMine=data||S.billMine;render()}}catch(_){}},ms))}
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.recovering=true;S.authReady=true;S.session=null;render()}});
   const{data:{session}}=await sb.auth.getSession();

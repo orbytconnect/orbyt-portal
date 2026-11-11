@@ -11,7 +11,7 @@ const portalHome=()=>location.origin+"/";
 const D={};                       // raw rows, by table
 const TABLES=["profiles","vendors","vendor_admin","vendor_private","vendor_notes","projects","project_private","project_admin",
   "project_members","default_shares","bids","invoices","reviews","favorites","task_checks","client_links","my_tasks","time_logs",
-  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards","intros","listing_payments","vendor_billing"];
+  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards","intros","listing_payments","vendor_billing","message_threads","messages","message_reads"];
 const nz=v=>v===""||v===undefined?null:v;
 const camel=s=>s.replace(/_([a-z])/g,(m,c)=>c.toUpperCase());
 const snake=s=>s.replace(/[A-Z]/g,c=>"_"+c.toLowerCase());
@@ -30,7 +30,7 @@ async function fetchAll(t){
   if(t==="review_requests"){if(!S.uid)return undefined;const{data,error}=await sb.rpc("review_requests_list");return error?undefined:(data||[])}
   let out=[],from=0;
   for(;;){const{data,error}=await sb.from(t).select("*").range(from,from+999);
-    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"||t==="intros"||t==="listing_payments"||t==="vendor_billing"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
+    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"||t==="intros"||t==="listing_payments"||t==="vendor_billing"||t==="message_threads"||t==="messages"||t==="message_reads"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
     out=out.concat(data||[]);if(!data||data.length<1000)return out;from+=1000}
 }
 
@@ -506,6 +506,7 @@ async function liveBoot(){
   const path=location.pathname.replace(/\/+$/,"").toLowerCase(),pm=path.match(/^\/join(?:\/(agent|vendor|partner))?$/);
   const join=q.get("join")||(pm&&pm[1]);if(join==="agent"||join==="vendor"||join==="partner")S.authMode=join;else if(q.has("join")||pm)S.authMode="join";
   if(recovering){S.authMode="newpass";S.recovering=true}
+  if(/^[0-9a-f-]{36}$/.test(q.get("thread")||"")){S.pendingThread=q.get("thread");try{history.replaceState(null,"",location.pathname)}catch(_){}}
   const bill=q.get("billing");if(bill==="done"||bill==="cancel"){S.billFlash=bill==="done"?(q.get("kind")==="promo"?"Payment received. Your special offer goes live in a moment.":"Card saved. Thank you!"):"No charge was made. You can try again anytime.";
     try{history.replaceState(null,"",location.pathname)}catch(_){}
     setTimeout(()=>{if(S.billFlash){toast(S.billFlash);S.billFlash=""}},900);

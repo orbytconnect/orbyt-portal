@@ -160,6 +160,19 @@ textarea{resize:vertical;min-height:64px}
 .fcbase{stroke:var(--ink-2);stroke-width:1}
 .fcax{fill:var(--muted);font-size:11px;font-family:var(--font-body)}
 .fcnow{fill:var(--ink);font-weight:500}
+.msgwrap{display:grid;grid-template-columns:minmax(240px,320px) 1fr;border:1px solid var(--line);border-radius:14px;background:var(--surface);min-height:440px;overflow:hidden}
+.mside{border-right:1px solid var(--line);overflow:auto;max-height:70vh}.mside.inline{border:0;max-height:none}
+.mthread{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);font:inherit;cursor:pointer}
+.mthread:hover,.mthread.on{background:var(--surface-2)}.mthread.unread .maddr{font-weight:600}
+.mtop{display:flex;justify-content:space-between;gap:8px}.maddr{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.msnip,.mwho{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mpane{display:flex;flex-direction:column;min-width:0}.mhead{padding:14px 18px;border-bottom:1px solid var(--line)}.mback{display:none}
+.mlist{flex:1;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px;max-height:52vh;min-height:220px}
+.mmsg{max-width:78%;align-self:flex-start}.mmsg.mine{align-self:flex-end;text-align:right}
+.mbody{display:inline-block;text-align:left;padding:9px 13px;border-radius:14px;background:var(--surface-2);color:var(--ink);white-space:normal;overflow-wrap:anywhere}
+.mmsg.mine .mbody{background:var(--primary);color:var(--on-primary)}.mmeta{font-size:12px;color:var(--muted);margin-top:3px}
+.mform{display:flex;gap:8px;align-items:flex-end;padding:12px 18px 4px;border-top:1px solid var(--line)}.mform textarea{flex:1;min-height:44px;resize:vertical}
+.mnote{margin:4px 18px 12px}.mempty{display:flex;align-items:center;justify-content:center;flex:1;padding:24px}
+@media (max-width:760px){.msgwrap{grid-template-columns:1fr}.msgwrap.open .mside{display:none}.msgwrap:not(.open) .mpane{display:none}.mside{border-right:0;max-height:none}.mback{display:inline-block;margin-bottom:6px}}
 .dangerbtn{color:var(--warn)!important;border-color:currentColor!important}rect.fclist{fill:#3F7266}rect.fcpromo{fill:#C4A85A}.sw.fclist{background:#3F7266}.sw.fcpromo{background:#C4A85A}rect.fcpaid{fill:var(--fc-paid)}rect.fcexp{fill:var(--fc-exp)}rect.fcpos{fill:var(--fc-pos);stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2}
 .rp5{grid-template-columns:repeat(5,minmax(0,1fr))}
 @media (max-width:900px){.rp5{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -855,7 +868,7 @@ function vendorCard(v){
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.approved===false?'<span class="pill late">Needs review</span>':""}</div><h2 id="vc-title" style="font-weight:500;margin-top:4px">${esc(v.name)}</h2></div>
       <button class="xbtn" id="vc-close" data-act="vclose" aria-label="Close">×</button></div>
     ${agent&&S.canWrite?`<div><button class="btn ${fav?"":"ghost"} sm" data-act="fav" data-id="${esc(v.id)}" aria-pressed="${!!fav}">${fav?"♥ In your favorites":"♡ Save to favorites"}</button></div>`:""}
-    <div class="clines">${line("Phone",phone)}${line("Email",email)}${!phone&&!email?`<p class="small" style="margin:0">No contact info on file yet. Reach out to Ashleigh and she'll connect you.</p>`:""}</div>
+    <div class="clines">${typeof vendorContactGate==="function"&&msgOn()&&vendorContactGate(v)!==null?vendorContactGate(v):`${line("Phone",phone)}${line("Email",email)}${!phone&&!email?`<p class="small" style="margin:0">No contact info on file yet. Reach out to Ashleigh and she'll connect you.</p>`:""}`}</div>
     <div class="vrating"><div><span class="eyebrow">Rating from all reviews</span>${rt?`<div class="big num">★ ${rt.avg.toFixed(1)}</div><div class="small">${rt.n} ${rt.n===1?"review":"reviews"} from agents</div>`:`<div class="small" style="margin-top:4px">No reviews yet</div>`}</div>
       ${rt?`<div class="dist">${dist.map(([n,c])=>`<div class="drow"><span class="num">${n}★</span><span class="dbar"><i style="width:${Math.round(c/rt.n*100)}%"></i></span><span class="num small">${c}</span></div>`).join("")}</div>`:""}</div>
     <div class="vfacts"><div class="wide"><span class="eyebrow">Works in</span><div>${esc((v.areas||[]).join(", ")||"Not set")}</div></div>
@@ -924,7 +937,8 @@ function tabs(list){return `<div class="tabs" role="tablist">${list.map(([id,lab
 function agentView(){
   const agent=roleVal();const T=agentTasks(agent);const openN=splitTasks(T).open.length;
   const ps=S.projects.filter(p=>isOnProject(p,agent));
-  if(!["tasks","projects","favorites","team","card","closingdir"].includes(S.tab))S.tab="tasks";
+  if(typeof msgPending==="function")msgPending();
+  if(!["tasks","projects","messages","favorites","team","card","closingdir"].includes(S.tab))S.tab="tasks";
   let h=`<section class="hello"><div><h1>Hi ${esc(agent.split(" ")[0])}</h1>
     <p>See new quotes as they come in, review them in one place, open a PDF of each vendor's quote, and see who's booked for every project. Check off tasks as you go, or save them for later.</p>
     ${S.canWrite?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
@@ -939,10 +953,11 @@ function agentView(){
     {key:"active",label:"Active projects",list:ps.filter(p=>!p.listed).sort(byDate),render:l=>projTable(l,"open"),empty:"No active projects."},
     {key:"requested",label:"Bids requested",list:ab.filter(b=>b.status==="requested"),render:l=>bidTable(l,"agent"),empty:"No bids are waiting on vendors."},
     {key:"received",label:"Bids received",list:ab.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"agent"),empty:"No new bids to look at."},
-    {key:"accepted",label:"Bids accepted",list:ab.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"agent"),empty:"No vendors booked yet."}]);
+    {key:"accepted",label:"Bids accepted",list:ab.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"agent"),empty:"No vendors booked yet."},...(typeof msgStat==="function"?msgStat():[])]);
   const favs=favIds(agent).map(vendorById).filter(Boolean);
-  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],["favorites",`Favorites <span class="small num">(${favs.length})</span>`,0],["team",`Always share with <span class="small num">(${defaultTeamOf(agent).length})</span>`,0],...(typeof closingDirectory==="function"?[["closingdir","Closing partners",0]]:[]),...(typeof hcView==="function"&&S.canWrite?[["card","Home team card",0]]:[])]);
+  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[]),["favorites",`Favorites <span class="small num">(${favs.length})</span>`,0],["team",`Always share with <span class="small num">(${defaultTeamOf(agent).length})</span>`,0],...(typeof closingDirectory==="function"?[["closingdir","Closing partners",0]]:[]),...(typeof hcView==="function"&&S.canWrite?[["card","Home team card",0]]:[])]);
   if(S.tab==="closingdir"&&typeof closingDirectory==="function")return h+closingDirectory();
+  if(S.tab==="messages"&&typeof messagesView==="function")return h+messagesView();
   if(S.tab==="team")return h+myTeamView(agent);
   if(S.tab==="card"&&typeof hcView==="function")return h+hcView(agent);
   if(S.openForm==="newproject")h+=newProjectForm(agent);
@@ -953,7 +968,7 @@ function agentView(){
     if(typeof hcView==="function"&&S.canWrite)h+=`<div class="callout hccallout" style="margin-bottom:16px"><div><span class="strong">Share your favorites with buyers</span><div class="small">Print a home team card with these pros' names and ratings, and a code that sends requests back to you. No vendor contact details on it.</div></div><button class="btn ghost sm" data-act="hcmake">Make a home team card</button></div>`;
     return h+groups.map(c=>`<div class="section"><h2>${esc(c)}</h2><div class="favgrid">${favs.filter(v=>vsv(v).includes(c)).map(v=>{const jobs=S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected"&&projById(b.projectId)?.agent===agent).length;
       return `<div class="favcard"><div class="row"><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${S.canWrite?`<button class="linkbtn" data-act="fav" data-id="${esc(v.id)}">Remove</button>`:""}</div>
-        <div>${ratingHtml(v.id)}</div><div class="small">${[vPhone(v),vEmail(v)].filter(Boolean).map(esc).join(" · ")||"No contact info yet"}</div>
+        <div>${ratingHtml(v.id)}</div><div class="small">${typeof bookedWithMe==="function"&&msgOn()&&!bookedWithMe(v.id)?"Contact details show once you book them":[vPhone(v),vEmail(v)].filter(Boolean).map(esc).join(" · ")||"No contact info yet"}</div>
         <div class="small num">${jobs} ${jobs===1?"job":"jobs"} with you</div></div>`}).join("")}</div></div>`).join("");
   }
   if(S.openProject&&ps.some(p=>p.id===S.openProject))return h+`<div class="back"><button class="linkbtn" data-act="closeproject">All projects</button></div>`+projectDetail(projById(S.openProject),"agent");
@@ -1033,7 +1048,8 @@ function vendorView(){
   const v=vendorById(roleVal());
   if(v&&typeof isPartner==="function"&&isPartner(v))return partnerView(v);
   if(!v)return `<div class="emptystate" style="margin-top:28px"><h2>Pick a vendor</h2><p>Choose a vendor in "Viewing as" to see their requests.</p></div>`;
-  if(!["tasks","projects"].includes(S.tab))S.tab="tasks";
+  if(typeof msgPending==="function")msgPending();
+  if(!["tasks","projects","messages"].includes(S.tab))S.tab="tasks";
   const T=vendorTasks(v.id);const openN=splitTasks(T).open.length;
   const mine=S.bids.filter(b=>b.vendorId===v.id&&projById(b.projectId));
   let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for signing up. I'll reach out to say hi and check your references before your first introduction.</p>`:""}
@@ -1047,8 +1063,9 @@ function vendorView(){
     {key:"requested",label:"Bids requested",list:req,render:l=>bidTable(l,"vendor"),empty:"No open requests right now."},
     {key:"overdue",label:"Overdue",list:req.filter(b=>b.status==="requested"&&ageDays(b.requestedAt)>=REMIND_DAYS),render:l=>bidTable(l,"vendor"),empty:"Nothing overdue. Nice work."},
     {key:"sent",label:"Bids sent",list:mine.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"vendor"),empty:"No bids waiting on a decision."},
-    {key:"accepted",label:"Bids accepted",list:mine.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"vendor"),empty:"No accepted bids yet."}]);
-  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0]]);
+    {key:"accepted",label:"Bids accepted",list:mine.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"vendor"),empty:"No accepted bids yet."},...(typeof msgStat==="function"?msgStat():[])]);
+  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[])]);
+  if(S.tab==="messages"&&typeof messagesView==="function")return h+messagesView();
   const ob=S.openRequest&&mine.find(b=>b.id===S.openRequest);
   if(ob)return h+`<div class="back"><button class="linkbtn" data-act="closereq">${S.tab==="tasks"?"Back to tasks":"All projects"}</button></div>`+requestDetail(ob);
   if(S.tab==="tasks")return h+tasksView(T,"New bid requests show up here as soon as a listing needs you.")+
@@ -1125,9 +1142,10 @@ function requestDetail(b){
     ${p.notes||(p.addedServices||{})[b.category]?.note?`<div class="reqsec"><h3>Notes from the agent</h3>${p.notes?`<p class="note" style="margin-top:8px">${esc(p.notes)}</p>`:""}${(p.addedServices||{})[b.category]?.note?`<p class="note" style="margin-top:8px"><span class="strong">About ${esc(b.category.toLowerCase())}:</span> ${esc(p.addedServices[b.category].note)}</p>`:""}</div>`:""}
     <div class="rgrid"><div class="reqsec"><h3>Timing on this home</h3>
         <p class="small" style="margin:4px 0 8px">Here's everything ${esc(firstName(p.agent))} needs done, ${hasCustomOrder(p)?"in the order "+esc(firstName(p.agent))+" set":"in the usual order"}. You'll only see your own bid, not the other vendors' names or prices.</p>${timingBlock(p,b.category)}</div>
-      <div class="reqsec"><h3>Agent</h3><div class="strong" style="margin:8px 0">${esc(p.agent)}</div><div class="clines">${cl("Phone",p.agentPhone)}${cl("Email",p.agentEmail)}</div>
-        ${!p.agentPhone&&!p.agentEmail?`<p class="small" style="margin:0">This agent's contact info isn't on file yet. Ashleigh can connect you.</p>`:""}
-        ${(p.members||[]).length?`<div class="small" style="margin-top:8px"><span class="strong">Shared with:</span> ${(p.members||[]).map(m=>esc(m.name)+" ("+esc(m.role)+(m.email?", "+esc(m.email):"")+")").join("; ")}</div>`:""}</div></div>
+      <div class="reqsec"><h3>Agent</h3><div class="strong" style="margin:8px 0">${esc(p.agent)}</div>${b.status==="selected"||typeof msgBtn!=="function"||!msgOn()?`<div class="clines">${cl("Phone",p.agentPhone)}${cl("Email",p.agentEmail)}</div>
+        ${!p.agentPhone&&!p.agentEmail?`<p class="small" style="margin:0">This agent's contact info isn't on file yet. Ashleigh can connect you.</p>`:""}`
+        :`<p class="small" style="margin:0 0 8px">Questions about the job? Message ${esc(firstName(p.agent))} here. Contact details show once you're booked.</p>${msgBtn(p.id,b.vendorId,"Message "+firstName(p.agent),"btn sm")}`}
+        ${(p.members||[]).length?`<div class="small" style="margin-top:8px"><span class="strong">Shared with:</span> ${(p.members||[]).map(m=>esc(m.name)+" ("+esc(m.role)+(m.email&&(b.status==="selected"||!msgOn())?", "+esc(m.email):"")+")").join("; ")}</div>`:""}</div></div>
     <div class="reqsec"><h3>Your bid</h3>`;
   const sum=`<div class="bidsum"><div><span class="eyebrow">Amount</span><b class="num">${money(b.amount)}</b>${b.prevAmount&&b.prevAmount!==b.amount?`<div class="small num">Was ${money(b.prevAmount)}</div>`:""}</div><div><span class="eyebrow">Timeline</span><b>${esc(workDays(b)||"Not given")}</b>${b.availableFrom?`<div class="small">Can start ${esc(fmtDate(b.availableFrom))}</div>`:""}</div>
       <div><span class="eyebrow">Sent</span><b>${b.submittedAt?ago(b.submittedAt):""}</b></div><div><span class="eyebrow">PDF</span>${pdfLink(b)}</div></div>${b.note?`<p class="note">${esc(b.note)}</p>`:""}`;
@@ -1163,7 +1181,8 @@ function emptyStart(){
 }
 function orbytView(){
   if(S.tab==="reviews")S.tab="vendors";
-  if(S.tab==="tasks"||!["dash","pipeline","projects","vendors","partners","invoicing","reports"].includes(S.tab))S.tab="dash";
+  if(typeof msgPending==="function")msgPending();
+  if(S.tab==="tasks"||!["dash","pipeline","projects","messages","vendors","partners","invoicing","reports"].includes(S.tab))S.tab="dash";
   const pending=S.reviews.filter(r=>!r.approved).length;
   let h=`<section class="hello"><div><h1>Hi Ashleigh</h1>
     <p>See every project at a glance, including what needs matching, who's bid and who's booked. Hand-pick the vendors you introduce for each home, add your own tasks, and book your client's pick.</p></div>
@@ -1172,9 +1191,10 @@ function orbytView(){
   const tm=S.config.timer;if(tm&&tm.startedAt){const mins=Math.max(0,Math.floor((Date.now()-Date.parse(tm.startedAt))/6e4)),tp=projById(tm.projectId);
     h+=`<div class="timerbar" role="status"><span><span class="dotlive" aria-hidden="true"></span>Timer running${tp?" on "+esc(tp.address):""} · ${esc((LOGTYPES.find(x=>x[0]===tm.type)||[,"Matching"])[1])} · <span class="num">${Math.floor(mins/60)}:${String(mins%60).padStart(2,"0")}</span></span>
       <span class="actions"><button class="btn sm" data-act="stoptimer">Stop and log</button><button class="linkbtn" data-act="canceltimer">Discard</button></span></div>`}
-  h+=tabs([["dash","Dashboard",splitTasks(orbytAlerts()).open.length],["pipeline","Pipeline",0],["projects","Matching",0],["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false&&!(typeof isPartner==="function"&&isPartner(v))).length+pending],...(typeof partnersAdminView==="function"?[["partners","Closing partners",partnersAll().filter(v=>v.approved===false).length+listingDue().length]]:[]),["invoicing","Invoicing",invRows().filter(r=>r.status==="ready").length],["reports","Reports",0]]);
+  h+=tabs([["dash","Dashboard",splitTasks(orbytAlerts()).open.length],["pipeline","Pipeline",0],["projects","Matching",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",0]]:[]),["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false&&!(typeof isPartner==="function"&&isPartner(v))).length+pending],...(typeof partnersAdminView==="function"?[["partners","Closing partners",partnersAll().filter(v=>v.approved===false).length+listingDue().length]]:[]),["invoicing","Invoicing",invRows().filter(r=>r.status==="ready").length],["reports","Reports",0]]);
   if(S.tab==="vendors")return h+rosterView();
   if(S.tab==="partners"&&typeof partnersAdminView==="function")return h+partnersAdminView();
+  if(S.tab==="messages"&&typeof messagesView==="function")return h+messagesView();
   if(S.tab==="invoicing")return h+invoicingView();
   if(S.tab==="reports")return h+reportsView();
   if(S.tab==="pipeline")return h+pipelineView();
@@ -2131,7 +2151,7 @@ function projectDetail(p,mode){
     const shown=bids;
     if(shown.length){
       h+=`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Bid</th><th>Timeline</th><th>Notes</th><th>PDF</th><th></th></tr></thead><tbody>${shown.map(b=>{const v=vendorById(b.vendorId);
-        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}${typeof lostTag==="function"?lostTag(b):""}
+        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}${typeof lostTag==="function"?lostTag(b):""}${!isOrbyt&&typeof msgBtn==="function"&&b.vendorId?`<div>${msgBtn(p.id,b.vendorId)}</div>`:""}
           ${b.introNote?`<div class="intronote">${b.introducedBy==="auto"?"":isOrbyt?"Your note: ":"From Ashleigh: "}“${esc(b.introNote)}”</div>`:""}
           ${b.availChecked&&b.status==="requested"?`<div class="small">${isOrbyt?"Availability checked":"Ashleigh confirmed they're available"}</div>`:""}</td>
         <td class="money">${b.status==="requested"?'<span class="small">Waiting</span>':money(b.amount)}</td>
@@ -2851,7 +2871,7 @@ function quoteViewer(){
   const p=projById(b.projectId)||{},v=vendorById(b.vendorId)||{},isSample=String(b.pdfId||"").startsWith("sample:"),f=BLOBS[b.pdfId];
   let body;
   if(isSample){const dt=b.submittedAt?new Date(b.submittedAt).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}):"";
-    body=`<div class="quotedoc"><div class="qhead"><div><div class="qco">${esc(v.name||bidName(b))}</div><div class="small">${esc([vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div></div><div class="qmeta"><div class="eyebrow">Quote</div><div class="small">${esc(dt)}</div></div></div>
+    body=`<div class="quotedoc"><div class="qhead"><div><div class="qco">${esc(v.name||bidName(b))}</div><div class="small">${esc((kind()==="agent"&&typeof bookedWithMe==="function"&&msgOn()&&!bookedWithMe(v.id)?[]:[vPhone(v),vEmail(v)]).filter(Boolean).join(" · "))}</div></div><div class="qmeta"><div class="eyebrow">Quote</div><div class="small">${esc(dt)}</div></div></div>
       <div class="qto"><span class="eyebrow">Prepared for</span><div>${esc(p.agent||"")} · ${esc(p.address||"")}</div></div>
       <table class="qtable"><thead><tr><th>Work</th><th class="num">Amount</th></tr></thead><tbody>
         <tr><td>${esc(b.category)}${b.note?`<div class="small">${esc(b.note)}</div>`:""}</td><td class="num">${money(b.amount)}</td></tr>

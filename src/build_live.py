@@ -1,7 +1,7 @@
 import re, pathlib, sys
 HERE = pathlib.Path(__file__).resolve().parent
 src = (HERE / "orbyt-portal.html").read_text()
-live = (HERE / "live.js").read_text() + "\n" + (HERE / "homecard.js").read_text() + "\n" + (HERE / "partners.js").read_text() + "\n" + (HERE / "onboarding.js").read_text()
+live = (HERE / "live.js").read_text() + "\n" + (HERE / "homecard.js").read_text() + "\n" + (HERE / "partners.js").read_text() + "\n" + (HERE / "onboarding.js").read_text() + "\n" + (HERE / "messages.js").read_text()
 qrlib = (HERE / "vendor" / "qrcode-generator.min.js").read_text()
 L = src.split("\n")
 
@@ -127,7 +127,7 @@ sub("Your client sees vendor names, prices, timelines, ratings and the quote PDF
 # Agents tab for Ashleigh
 sub('''["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false&&!(typeof isPartner==="function"&&isPartner(v))).length+pending],''',
     '''["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false&&!(typeof isPartner==="function"&&isPartner(v))).length+pending],["agents","Agents",(D.profiles||[]).filter(p=>p.role==="agent"&&p.status==="pending").length],''')
-sub('''["dash","pipeline","projects","vendors","partners","invoicing","reports"].includes(S.tab)''', '''["dash","pipeline","projects","vendors","partners","agents","invoicing","reports"].includes(S.tab)''')
+sub('''["dash","pipeline","projects","messages","vendors","partners","invoicing","reports"].includes(S.tab)''', '''["dash","pipeline","projects","messages","vendors","partners","agents","invoicing","reports"].includes(S.tab)''')
 sub('''  if(S.tab==="vendors")return h+rosterView();''', '''  if(S.tab==="vendors")return h+rosterView();
   if(S.tab==="agents")return h+agentsView();''')
 # Vendor Network Agreement

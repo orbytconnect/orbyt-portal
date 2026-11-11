@@ -84,14 +84,14 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
   const body={
     agent:[
       sec("1. Start a project",p("Tap New project and add the address, what the home needs, and your timing. Buying side? Choose Buyer, and add closing needs like a lender or title to see local options from the closing partner directory.")),
-      sec("2. Meet your vendors",p("I introduce vendors who fit the home, your timing and your area. You get an email and a task when they're introduced, and another when each quote comes in.")),
+      sec("2. Meet your vendors",p("I introduce vendors who fit the home, your timing and your area. You get an email and a task when they're introduced, and another when each quote comes in. Questions for a vendor? Tap Message next to their name. Each conversation is labeled with the property, and their phone and email show once you book them.")),
       sec("3. Review quotes",p("Open the project to see each quote, its timeline, and the vendor's PDF. Ask a vendor for changes, ask me for another option, or tap Send quotes to client to share a private page with your client.")),
       sec("4. Pick and book",p("Tap Add to team on the one you want. The vendor confirms and reaches out to schedule, and your client pays them directly. When the job's done, confirm the final amount and leave a quick review. If you like, tell the others why you went another way. It helps them improve.")),
       sec("5. Build your bench",p("Save vendors you like to Favorites, add your assistant or team to Always share with, and make a home team card for your buyers so they come back to you when they need someone.")),
       sec("6. Grow the network",p("Know an agent or a vendor who'd be a good fit? Use Refer someone to Orbyt on your dashboard. It sends a ready-made message with your link."))],
     vendor:[
       sec("1. Set up your profile",p("Add your business overview PDF, your portfolio, and your insurance certificate under Your profile. Invite agents you've worked with to review you.")),
-      sec("2. Answer bid requests",p("New requests come by email and show at the top of your dashboard. Open one, add your price and timeline, and upload your quote as a PDF or a photo. Can't take it? Let me know with one tap, so I can line up someone else.")),
+      sec("2. Answer bid requests",p("New requests come by email and show at the top of your dashboard. Open one, add your price and timeline, and upload your quote as a PDF or a photo. Can't take it? Let me know with one tap, so I can line up someone else. Questions for the agent? Tap Message on the request. Conversations are in the Messages tab, labeled with the property, and the agent's phone and email show once you're booked.")),
       sec("3. When you're picked",p("Confirm the job and propose a start date, then reach out to the agent to schedule. Share your agreement and payment details with the client directly. You run the job your way.")),
       sec("4. When the job's done",p("Mark it complete with your final invoice amount. The agent confirms it, and Orbyt's fee is based on that amount, as set out in your terms.")),
       sec("5. Reviews and feedback",p("Every job earns an agent review, and you can copy any review for your own marketing. When an agent goes another way, they can tell you why, so you can see what's winning work.")),

@@ -174,6 +174,19 @@ textarea{resize:vertical;min-height:64px}
 .fcbase{stroke:var(--ink-2);stroke-width:1}
 .fcax{fill:var(--muted);font-size:11px;font-family:var(--font-body)}
 .fcnow{fill:var(--ink);font-weight:500}
+.msgwrap{display:grid;grid-template-columns:minmax(240px,320px) 1fr;border:1px solid var(--line);border-radius:14px;background:var(--surface);min-height:440px;overflow:hidden}
+.mside{border-right:1px solid var(--line);overflow:auto;max-height:70vh}.mside.inline{border:0;max-height:none}
+.mthread{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);font:inherit;cursor:pointer}
+.mthread:hover,.mthread.on{background:var(--surface-2)}.mthread.unread .maddr{font-weight:600}
+.mtop{display:flex;justify-content:space-between;gap:8px}.maddr{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.msnip,.mwho{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mpane{display:flex;flex-direction:column;min-width:0}.mhead{padding:14px 18px;border-bottom:1px solid var(--line)}.mback{display:none}
+.mlist{flex:1;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px;max-height:52vh;min-height:220px}
+.mmsg{max-width:78%;align-self:flex-start}.mmsg.mine{align-self:flex-end;text-align:right}
+.mbody{display:inline-block;text-align:left;padding:9px 13px;border-radius:14px;background:var(--surface-2);color:var(--ink);white-space:normal;overflow-wrap:anywhere}
+.mmsg.mine .mbody{background:var(--primary);color:var(--on-primary)}.mmeta{font-size:12px;color:var(--muted);margin-top:3px}
+.mform{display:flex;gap:8px;align-items:flex-end;padding:12px 18px 4px;border-top:1px solid var(--line)}.mform textarea{flex:1;min-height:44px;resize:vertical}
+.mnote{margin:4px 18px 12px}.mempty{display:flex;align-items:center;justify-content:center;flex:1;padding:24px}
+@media (max-width:760px){.msgwrap{grid-template-columns:1fr}.msgwrap.open .mside{display:none}.msgwrap:not(.open) .mpane{display:none}.mside{border-right:0;max-height:none}.mback{display:inline-block;margin-bottom:6px}}
 .dangerbtn{color:var(--warn)!important;border-color:currentColor!important}rect.fclist{fill:#3F7266}rect.fcpromo{fill:#C4A85A}.sw.fclist{background:#3F7266}.sw.fcpromo{background:#C4A85A}rect.fcpaid{fill:var(--fc-paid)}rect.fcexp{fill:var(--fc-exp)}rect.fcpos{fill:var(--fc-pos);stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2}
 .rp5{grid-template-columns:repeat(5,minmax(0,1fr))}
 @media (max-width:900px){.rp5{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -960,7 +973,7 @@ function vendorCard(v){
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.approved===false?'<span class="pill late">Needs review</span>':""}</div><h2 id="vc-title" style="font-weight:500;margin-top:4px">${esc(v.name)}</h2></div>
       <button class="xbtn" id="vc-close" data-act="vclose" aria-label="Close">×</button></div>
     ${agent&&S.canWrite?`<div><button class="btn ${fav?"":"ghost"} sm" data-act="fav" data-id="${esc(v.id)}" aria-pressed="${!!fav}">${fav?"♥ In your favorites":"♡ Save to favorites"}</button></div>`:""}
-    <div class="clines">${line("Phone",phone)}${line("Email",email)}${!phone&&!email?`<p class="small" style="margin:0">No contact info on file yet. Reach out to Ashleigh and she'll connect you.</p>`:""}</div>
+    <div class="clines">${typeof vendorContactGate==="function"&&msgOn()&&vendorContactGate(v)!==null?vendorContactGate(v):`${line("Phone",phone)}${line("Email",email)}${!phone&&!email?`<p class="small" style="margin:0">No contact info on file yet. Reach out to Ashleigh and she'll connect you.</p>`:""}`}</div>
     <div class="vrating"><div><span class="eyebrow">Rating from all reviews</span>${rt?`<div class="big num">★ ${rt.avg.toFixed(1)}</div><div class="small">${rt.n} ${rt.n===1?"review":"reviews"} from agents</div>`:`<div class="small" style="margin-top:4px">No reviews yet</div>`}</div>
       ${rt?`<div class="dist">${dist.map(([n,c])=>`<div class="drow"><span class="num">${n}★</span><span class="dbar"><i style="width:${Math.round(c/rt.n*100)}%"></i></span><span class="num small">${c}</span></div>`).join("")}</div>`:""}</div>
     <div class="vfacts"><div class="wide"><span class="eyebrow">Works in</span><div>${esc((v.areas||[]).join(", ")||"Not set")}</div></div>
@@ -1029,7 +1042,8 @@ function tabs(list){return `<div class="tabs" role="tablist">${list.map(([id,lab
 function agentView(){
   const agent=roleVal();const T=agentTasks(agent);const openN=splitTasks(T).open.length;
   const ps=S.projects.filter(p=>isOnProject(p,agent));
-  if(!["tasks","projects","favorites","team","card","closingdir"].includes(S.tab))S.tab="tasks";
+  if(typeof msgPending==="function")msgPending();
+  if(!["tasks","projects","messages","favorites","team","card","closingdir"].includes(S.tab))S.tab="tasks";
   let h=`<section class="hello"><div><h1>Hi ${esc(agent.split(" ")[0])}</h1>
     <p>See new quotes as they come in, review them in one place, open a PDF of each vendor's quote, and see who's booked for every project. Check off tasks as you go, or save them for later.</p>
     ${S.canWrite?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
@@ -1044,10 +1058,11 @@ function agentView(){
     {key:"active",label:"Active projects",list:ps.filter(p=>!p.listed).sort(byDate),render:l=>projTable(l,"open"),empty:"No active projects."},
     {key:"requested",label:"Bids requested",list:ab.filter(b=>b.status==="requested"),render:l=>bidTable(l,"agent"),empty:"No bids are waiting on vendors."},
     {key:"received",label:"Bids received",list:ab.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"agent"),empty:"No new bids to look at."},
-    {key:"accepted",label:"Bids accepted",list:ab.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"agent"),empty:"No vendors booked yet."}]);
+    {key:"accepted",label:"Bids accepted",list:ab.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"agent"),empty:"No vendors booked yet."},...(typeof msgStat==="function"?msgStat():[])]);
   const favs=favIds(agent).map(vendorById).filter(Boolean);
-  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],["favorites",`Favorites <span class="small num">(${favs.length})</span>`,0],["team",`Always share with <span class="small num">(${defaultTeamOf(agent).length})</span>`,0],...(typeof closingDirectory==="function"?[["closingdir","Closing partners",0]]:[]),...(typeof hcView==="function"&&S.canWrite?[["card","Home team card",0]]:[])]);
+  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[]),["favorites",`Favorites <span class="small num">(${favs.length})</span>`,0],["team",`Always share with <span class="small num">(${defaultTeamOf(agent).length})</span>`,0],...(typeof closingDirectory==="function"?[["closingdir","Closing partners",0]]:[]),...(typeof hcView==="function"&&S.canWrite?[["card","Home team card",0]]:[])]);
   if(S.tab==="closingdir"&&typeof closingDirectory==="function")return h+closingDirectory();
+  if(S.tab==="messages"&&typeof messagesView==="function")return h+messagesView();
   if(S.tab==="team")return h+myTeamView(agent);
   if(S.tab==="card"&&typeof hcView==="function")return h+hcView(agent);
   if(S.openForm==="newproject")h+=newProjectForm(agent);
@@ -1058,7 +1073,7 @@ function agentView(){
     if(typeof hcView==="function"&&S.canWrite)h+=`<div class="callout hccallout" style="margin-bottom:16px"><div><span class="strong">Share your favorites with buyers</span><div class="small">Print a home team card with these pros' names and ratings, and a code that sends requests back to you. No vendor contact details on it.</div></div><button class="btn ghost sm" data-act="hcmake">Make a home team card</button></div>`;
     return h+groups.map(c=>`<div class="section"><h2>${esc(c)}</h2><div class="favgrid">${favs.filter(v=>vsv(v).includes(c)).map(v=>{const jobs=S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected"&&projById(b.projectId)?.agent===agent).length;
       return `<div class="favcard"><div class="row"><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${S.canWrite?`<button class="linkbtn" data-act="fav" data-id="${esc(v.id)}">Remove</button>`:""}</div>
-        <div>${ratingHtml(v.id)}</div><div class="small">${[vPhone(v),vEmail(v)].filter(Boolean).map(esc).join(" · ")||"No contact info yet"}</div>
+        <div>${ratingHtml(v.id)}</div><div class="small">${typeof bookedWithMe==="function"&&msgOn()&&!bookedWithMe(v.id)?"Contact details show once you book them":[vPhone(v),vEmail(v)].filter(Boolean).map(esc).join(" · ")||"No contact info yet"}</div>
         <div class="small num">${jobs} ${jobs===1?"job":"jobs"} with you</div></div>`}).join("")}</div></div>`).join("");
   }
   if(S.openProject&&ps.some(p=>p.id===S.openProject))return h+`<div class="back"><button class="linkbtn" data-act="closeproject">All projects</button></div>`+projectDetail(projById(S.openProject),"agent");
@@ -1138,7 +1153,8 @@ function vendorView(){
   const v=vendorById(roleVal());
   if(v&&typeof isPartner==="function"&&isPartner(v))return partnerView(v);
   if(!v)return `<div class="emptystate" style="margin-top:28px"><h2>Your profile is almost ready</h2><p>Ashleigh is finishing your vendor profile. Email ashleigh@orbytconnect.com if this doesn't clear up within a day.</p></div>`;
-  if(!["tasks","projects"].includes(S.tab))S.tab="tasks";
+  if(typeof msgPending==="function")msgPending();
+  if(!["tasks","projects","messages"].includes(S.tab))S.tab="tasks";
   const T=vendorTasks(v.id);const openN=splitTasks(T).open.length;
   const mine=S.bids.filter(b=>b.vendorId===v.id&&projById(b.projectId));
   let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for signing up. I'll reach out to say hi and check your references before your first introduction.</p>`:""}
@@ -1152,8 +1168,9 @@ function vendorView(){
     {key:"requested",label:"Bids requested",list:req,render:l=>bidTable(l,"vendor"),empty:"No open requests right now."},
     {key:"overdue",label:"Overdue",list:req.filter(b=>b.status==="requested"&&ageDays(b.requestedAt)>=REMIND_DAYS),render:l=>bidTable(l,"vendor"),empty:"Nothing overdue. Nice work."},
     {key:"sent",label:"Bids sent",list:mine.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"vendor"),empty:"No bids waiting on a decision."},
-    {key:"accepted",label:"Bids accepted",list:mine.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"vendor"),empty:"No accepted bids yet."}]);
-  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0]]);
+    {key:"accepted",label:"Bids accepted",list:mine.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"vendor"),empty:"No accepted bids yet."},...(typeof msgStat==="function"?msgStat():[])]);
+  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[])]);
+  if(S.tab==="messages"&&typeof messagesView==="function")return h+messagesView();
   const ob=S.openRequest&&mine.find(b=>b.id===S.openRequest);
   if(ob)return h+`<div class="back"><button class="linkbtn" data-act="closereq">${S.tab==="tasks"?"Back to tasks":"All projects"}</button></div>`+requestDetail(ob);
   if(S.tab==="tasks")return h+tasksView(T,"New bid requests show up here as soon as a listing needs you.")+
@@ -1230,9 +1247,10 @@ function requestDetail(b){
     ${p.notes||(p.addedServices||{})[b.category]?.note?`<div class="reqsec"><h3>Notes from the agent</h3>${p.notes?`<p class="note" style="margin-top:8px">${esc(p.notes)}</p>`:""}${(p.addedServices||{})[b.category]?.note?`<p class="note" style="margin-top:8px"><span class="strong">About ${esc(b.category.toLowerCase())}:</span> ${esc(p.addedServices[b.category].note)}</p>`:""}</div>`:""}
     <div class="rgrid"><div class="reqsec"><h3>Timing on this home</h3>
         <p class="small" style="margin:4px 0 8px">Here's everything ${esc(firstName(p.agent))} needs done, ${hasCustomOrder(p)?"in the order "+esc(firstName(p.agent))+" set":"in the usual order"}. You'll only see your own bid, not the other vendors' names or prices.</p>${timingBlock(p,b.category)}</div>
-      <div class="reqsec"><h3>Agent</h3><div class="strong" style="margin:8px 0">${esc(p.agent)}</div><div class="clines">${cl("Phone",p.agentPhone)}${cl("Email",p.agentEmail)}</div>
-        ${!p.agentPhone&&!p.agentEmail?`<p class="small" style="margin:0">This agent's contact info isn't on file yet. Ashleigh can connect you.</p>`:""}
-        ${(p.members||[]).length?`<div class="small" style="margin-top:8px"><span class="strong">Shared with:</span> ${(p.members||[]).map(m=>esc(m.name)+" ("+esc(m.role)+(m.email?", "+esc(m.email):"")+")").join("; ")}</div>`:""}</div></div>
+      <div class="reqsec"><h3>Agent</h3><div class="strong" style="margin:8px 0">${esc(p.agent)}</div>${b.status==="selected"||typeof msgBtn!=="function"||!msgOn()?`<div class="clines">${cl("Phone",p.agentPhone)}${cl("Email",p.agentEmail)}</div>
+        ${!p.agentPhone&&!p.agentEmail?`<p class="small" style="margin:0">This agent's contact info isn't on file yet. Ashleigh can connect you.</p>`:""}`
+        :`<p class="small" style="margin:0 0 8px">Questions about the job? Message ${esc(firstName(p.agent))} here. Contact details show once you're booked.</p>${msgBtn(p.id,b.vendorId,"Message "+firstName(p.agent),"btn sm")}`}
+        ${(p.members||[]).length?`<div class="small" style="margin-top:8px"><span class="strong">Shared with:</span> ${(p.members||[]).map(m=>esc(m.name)+" ("+esc(m.role)+(m.email&&(b.status==="selected"||!msgOn())?", "+esc(m.email):"")+")").join("; ")}</div>`:""}</div></div>
     <div class="reqsec"><h3>Your bid</h3>`;
   const sum=`<div class="bidsum"><div><span class="eyebrow">Amount</span><b class="num">${money(b.amount)}</b>${b.prevAmount&&b.prevAmount!==b.amount?`<div class="small num">Was ${money(b.prevAmount)}</div>`:""}</div><div><span class="eyebrow">Timeline</span><b>${esc(workDays(b)||"Not given")}</b>${b.availableFrom?`<div class="small">Can start ${esc(fmtDate(b.availableFrom))}</div>`:""}</div>
       <div><span class="eyebrow">Sent</span><b>${b.submittedAt?ago(b.submittedAt):""}</b></div><div><span class="eyebrow">PDF</span>${pdfLink(b)}</div></div>${b.note?`<p class="note">${esc(b.note)}</p>`:""}`;
@@ -1268,7 +1286,8 @@ function emptyStart(){
 }
 function orbytView(){
   if(S.tab==="reviews")S.tab="vendors";
-  if(S.tab==="tasks"||!["dash","pipeline","projects","vendors","partners","agents","invoicing","reports"].includes(S.tab))S.tab="dash";
+  if(typeof msgPending==="function")msgPending();
+  if(S.tab==="tasks"||!["dash","pipeline","projects","messages","vendors","partners","agents","invoicing","reports"].includes(S.tab))S.tab="dash";
   const pending=S.reviews.filter(r=>!r.approved).length;
   let h=`<section class="hello"><div><h1>Hi Ashleigh</h1>
     <p>See every project at a glance, including what needs matching, who's bid and who's booked. Hand-pick the vendors you introduce for each home, add your own tasks, and book your client's pick.</p></div>
@@ -1277,10 +1296,11 @@ function orbytView(){
   const tm=S.config.timer;if(tm&&tm.startedAt){const mins=Math.max(0,Math.floor((Date.now()-Date.parse(tm.startedAt))/6e4)),tp=projById(tm.projectId);
     h+=`<div class="timerbar" role="status"><span><span class="dotlive" aria-hidden="true"></span>Timer running${tp?" on "+esc(tp.address):""} · ${esc((LOGTYPES.find(x=>x[0]===tm.type)||[,"Matching"])[1])} · <span class="num">${Math.floor(mins/60)}:${String(mins%60).padStart(2,"0")}</span></span>
       <span class="actions"><button class="btn sm" data-act="stoptimer">Stop and log</button><button class="linkbtn" data-act="canceltimer">Discard</button></span></div>`}
-  h+=tabs([["dash","Dashboard",splitTasks(orbytAlerts()).open.length],["pipeline","Pipeline",0],["projects","Matching",0],["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false&&!(typeof isPartner==="function"&&isPartner(v))).length+pending],["agents","Agents",(D.profiles||[]).filter(p=>p.role==="agent"&&p.status==="pending").length],...(typeof partnersAdminView==="function"?[["partners","Closing partners",partnersAll().filter(v=>v.approved===false).length+listingDue().length]]:[]),["invoicing","Invoicing",invRows().filter(r=>r.status==="ready").length],["reports","Reports",0]]);
+  h+=tabs([["dash","Dashboard",splitTasks(orbytAlerts()).open.length],["pipeline","Pipeline",0],["projects","Matching",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",0]]:[]),["vendors","Vendors and reviews",S.vendors.filter(v=>v.approved===false&&!(typeof isPartner==="function"&&isPartner(v))).length+pending],["agents","Agents",(D.profiles||[]).filter(p=>p.role==="agent"&&p.status==="pending").length],...(typeof partnersAdminView==="function"?[["partners","Closing partners",partnersAll().filter(v=>v.approved===false).length+listingDue().length]]:[]),["invoicing","Invoicing",invRows().filter(r=>r.status==="ready").length],["reports","Reports",0]]);
   if(S.tab==="vendors")return h+rosterView();
   if(S.tab==="agents")return h+agentsView();
   if(S.tab==="partners"&&typeof partnersAdminView==="function")return h+partnersAdminView();
+  if(S.tab==="messages"&&typeof messagesView==="function")return h+messagesView();
   if(S.tab==="invoicing")return h+invoicingView();
   if(S.tab==="reports")return h+reportsView();
   if(S.tab==="pipeline")return h+pipelineView();
@@ -2237,7 +2257,7 @@ function projectDetail(p,mode){
     const shown=bids;
     if(shown.length){
       h+=`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Bid</th><th>Timeline</th><th>Notes</th><th>PDF</th><th></th></tr></thead><tbody>${shown.map(b=>{const v=vendorById(b.vendorId);
-        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}${typeof lostTag==="function"?lostTag(b):""}
+        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}${typeof lostTag==="function"?lostTag(b):""}${!isOrbyt&&typeof msgBtn==="function"&&b.vendorId?`<div>${msgBtn(p.id,b.vendorId)}</div>`:""}
           ${b.introNote?`<div class="intronote">${b.introducedBy==="auto"?"":isOrbyt?"Your note: ":"From Ashleigh: "}“${esc(b.introNote)}”</div>`:""}
           ${b.availChecked&&b.status==="requested"?`<div class="small">${isOrbyt?"Availability checked":"Ashleigh confirmed they're available"}</div>`:""}</td>
         <td class="money">${b.status==="requested"?'<span class="small">Waiting</span>':money(b.amount)}</td>
@@ -2943,7 +2963,7 @@ const portalHome=()=>location.origin+"/";
 const D={};                       // raw rows, by table
 const TABLES=["profiles","vendors","vendor_admin","vendor_private","vendor_notes","projects","project_private","project_admin",
   "project_members","default_shares","bids","invoices","reviews","favorites","task_checks","client_links","my_tasks","time_logs",
-  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards","intros","listing_payments","vendor_billing"];
+  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards","intros","listing_payments","vendor_billing","message_threads","messages","message_reads"];
 const nz=v=>v===""||v===undefined?null:v;
 const camel=s=>s.replace(/_([a-z])/g,(m,c)=>c.toUpperCase());
 const snake=s=>s.replace(/[A-Z]/g,c=>"_"+c.toLowerCase());
@@ -2962,7 +2982,7 @@ async function fetchAll(t){
   if(t==="review_requests"){if(!S.uid)return undefined;const{data,error}=await sb.rpc("review_requests_list");return error?undefined:(data||[])}
   let out=[],from=0;
   for(;;){const{data,error}=await sb.from(t).select("*").range(from,from+999);
-    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"||t==="intros"||t==="listing_payments"||t==="vendor_billing"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
+    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"||t==="intros"||t==="listing_payments"||t==="vendor_billing"||t==="message_threads"||t==="messages"||t==="message_reads"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
     out=out.concat(data||[]);if(!data||data.length<1000)return out;from+=1000}
 }
 
@@ -3438,6 +3458,7 @@ async function liveBoot(){
   const path=location.pathname.replace(/\/+$/,"").toLowerCase(),pm=path.match(/^\/join(?:\/(agent|vendor|partner))?$/);
   const join=q.get("join")||(pm&&pm[1]);if(join==="agent"||join==="vendor"||join==="partner")S.authMode=join;else if(q.has("join")||pm)S.authMode="join";
   if(recovering){S.authMode="newpass";S.recovering=true}
+  if(/^[0-9a-f-]{36}$/.test(q.get("thread")||"")){S.pendingThread=q.get("thread");try{history.replaceState(null,"",location.pathname)}catch(_){}}
   const bill=q.get("billing");if(bill==="done"||bill==="cancel"){S.billFlash=bill==="done"?(q.get("kind")==="promo"?"Payment received. Your special offer goes live in a moment.":"Card saved. Thank you!"):"No charge was made. You can try again anytime.";
     try{history.replaceState(null,"",location.pathname)}catch(_){}
     setTimeout(()=>{if(S.billFlash){toast(S.billFlash);S.billFlash=""}},900);
@@ -4728,14 +4749,14 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
   const body={
     agent:[
       sec("1. Start a project",p("Tap New project and add the address, what the home needs, and your timing. Buying side? Choose Buyer, and add closing needs like a lender or title to see local options from the closing partner directory.")),
-      sec("2. Meet your vendors",p("I introduce vendors who fit the home, your timing and your area. You get an email and a task when they're introduced, and another when each quote comes in.")),
+      sec("2. Meet your vendors",p("I introduce vendors who fit the home, your timing and your area. You get an email and a task when they're introduced, and another when each quote comes in. Questions for a vendor? Tap Message next to their name. Each conversation is labeled with the property, and their phone and email show once you book them.")),
       sec("3. Review quotes",p("Open the project to see each quote, its timeline, and the vendor's PDF. Ask a vendor for changes, ask me for another option, or tap Send quotes to client to share a private page with your client.")),
       sec("4. Pick and book",p("Tap Add to team on the one you want. The vendor confirms and reaches out to schedule, and your client pays them directly. When the job's done, confirm the final amount and leave a quick review. If you like, tell the others why you went another way. It helps them improve.")),
       sec("5. Build your bench",p("Save vendors you like to Favorites, add your assistant or team to Always share with, and make a home team card for your buyers so they come back to you when they need someone.")),
       sec("6. Grow the network",p("Know an agent or a vendor who'd be a good fit? Use Refer someone to Orbyt on your dashboard. It sends a ready-made message with your link."))],
     vendor:[
       sec("1. Set up your profile",p("Add your business overview PDF, your portfolio, and your insurance certificate under Your profile. Invite agents you've worked with to review you.")),
-      sec("2. Answer bid requests",p("New requests come by email and show at the top of your dashboard. Open one, add your price and timeline, and upload your quote as a PDF or a photo. Can't take it? Let me know with one tap, so I can line up someone else.")),
+      sec("2. Answer bid requests",p("New requests come by email and show at the top of your dashboard. Open one, add your price and timeline, and upload your quote as a PDF or a photo. Can't take it? Let me know with one tap, so I can line up someone else. Questions for the agent? Tap Message on the request. Conversations are in the Messages tab, labeled with the property, and the agent's phone and email show once you're booked.")),
       sec("3. When you're picked",p("Confirm the job and propose a start date, then reach out to the agent to schedule. Share your agreement and payment details with the client directly. You run the job your way.")),
       sec("4. When the job's done",p("Mark it complete with your final invoice amount. The agent confirms it, and Orbyt's fee is based on that amount, as set out in your terms.")),
       sec("5. Reviews and feedback",p("Every job earns an agent review, and you can copy any review for your own marketing. When an agent goes another way, they can tell you why, so you can see what's winning work.")),
@@ -4826,6 +4847,105 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="pusho
   else if(a==="pushoff")guard(pushOff,"Notifications are off for this device.");
   else guard(async()=>{await pushSetup();await pushCheck()},"Push notifications are set up. Turn them on for this device next.")},true);
 if(typeof window!=="undefined"){setTimeout(()=>{pushCheck()},800);document.addEventListener("visibilitychange",()=>{if(!document.hidden)pushCheck()})}
+
+/* ---------- messages between agents and vendors ----------
+   One thread per vendor on a project, labeled with the property address. The agent's side is the agent and
+   anyone the project is shared with. Closing partners aren't part of messaging. Ashleigh can read every thread
+   but doesn't post. Every message sends a push notification right away; email follows only if it's still unread
+   after 15 minutes (the database does that). */
+const myEmail=()=>String((S.me&&S.me.email)||"").toLowerCase();
+const msgOn=()=>Array.isArray(D.message_threads);
+const msgSort=(a,b)=>String(a.created_at).localeCompare(String(b.created_at));
+function msgThreads(){if(!msgOn())return[];const k=kind(),me=roleVal();
+  return D.message_threads.map(t=>({...t,p:projById(t.project_id),v:vendorById(t.vendor_id),msgs:(D.messages||[]).filter(m=>m.thread_id===t.id).sort(msgSort)}))
+    .filter(t=>t.p&&t.v&&t.msgs.length&&(k==="orbyt"||(k==="agent"&&isOnProject(t.p,me))||(k==="vendor"&&t.vendor_id===me)))
+    .sort((a,b)=>String(b.last_message_at||"").localeCompare(String(a.last_message_at||"")))}
+const readAt=t=>((D.message_reads||[]).find(r=>r.thread_id===t.id&&r.email===myEmail())||{}).last_read_at||"";
+const unreadOf=t=>kind()==="orbyt"?0:t.msgs.filter(m=>String(m.sender_email||"").toLowerCase()!==myEmail()&&(!readAt(t)||m.created_at>readAt(t))).length;
+const unreadThreads=()=>msgThreads().filter(t=>unreadOf(t)>0);
+const unreadTotal=()=>unreadThreads().reduce((s,t)=>s+unreadOf(t),0);
+// the other side of a thread, as this person sees it
+const otherSide=t=>kind()==="vendor"?t.p.agent:kind()==="orbyt"?`${t.v.name} and ${t.p.agent}`:t.v.name;
+const threadServices=t=>[...new Set(S.bids.filter(b=>b.projectId===t.project_id&&b.vendorId===t.vendor_id).map(b=>b.category))].join(", ");
+// contact details between agents and vendors show once the vendor is booked
+function bookedWithMe(vid){if(kind()==="orbyt")return true;const me=roleVal();
+  return S.bids.some(b=>b.vendorId===vid&&b.status==="selected"&&projById(b.projectId)&&isOnProject(projById(b.projectId),me))}
+const sharedProjects=vid=>{const me=roleVal();return[...new Set(S.bids.filter(b=>b.vendorId===vid&&projById(b.projectId)&&isOnProject(projById(b.projectId),me)).map(b=>b.projectId))].map(projById)};
+function msgBtn(pid,vid,label,cls){if(!msgOn()||!pid||!vid)return"";const v=vendorById(vid);if(v&&typeof isPartner==="function"&&isPartner(v))return"";
+  const t=msgThreads().find(x=>x.project_id===pid&&x.vendor_id===vid),n=t?unreadOf(t):0;
+  return `<button class="${cls||"linkbtn"}" type="button" data-act="msgopen" data-p="${esc(pid)}" data-v="${esc(vid)}">${esc(label||"Message")}${n?` <span class="count">${n}</span>`:""}</button>`}
+// for the agent: the vendor's contact details once booked, otherwise a way to message them
+function vendorContactGate(v){if(kind()!=="agent"||bookedWithMe(v.id)||(typeof isPartner==="function"&&isPartner(v)))return null;
+  const ps=sharedProjects(v.id);
+  return `<p class="small" style="margin:0">Contact details show once you book ${esc(v.name)}. Until then, message them here so everything about the job stays in one place.</p>${ps.length?`<div class="actions" style="margin-top:8px">${ps.map(p=>msgBtn(p.id,v.id,ps.length>1?"Message about "+p.address:"Message "+v.name,"btn sm")).join("")}</div>`:""}`}
+
+/* the Messages tab */
+function threadRow(t,open){const last=t.msgs[t.msgs.length-1]||{},n=unreadOf(t);
+  return `<button class="mthread ${open?"on":""} ${n?"unread":""}" type="button" data-act="msgopen" data-p="${esc(t.project_id)}" data-v="${esc(t.vendor_id)}">
+    <span class="mtop"><span class="maddr">${esc(t.p.address)}</span><span class="small num">${last.created_at?ago(last.created_at):""}</span></span>
+    <span class="small mwho">${esc(otherSide(t))}${threadServices(t)?" · "+esc(threadServices(t)):""}</span>
+    <span class="small msnip">${n?`<span class="count">${n}</span> `:""}${esc((last.sender_name?last.sender_name+": ":"")+String(last.body||"").slice(0,110))}</span></button>`}
+function messagesView(){
+  if(!msgOn())return `<div class="emptystate"><h2>Messages are almost ready</h2><p>Messaging turns on once Orbyt finishes setting it up.</p></div>`;
+  msgLive();
+  const ts=msgThreads(),key=S.openMsg,cur=key?ts.find(t=>t.project_id===key.p&&t.vendor_id===key.v):null;
+  const draftP=key&&!cur?projById(key.p):null,draftV=key&&!cur?vendorById(key.v):null;
+  const admin=kind()==="orbyt";
+  const list=ts.length?ts.map(t=>threadRow(t,cur&&cur.id===t.id)).join(""):`<p class="small" style="padding:12px">${admin?"No messages yet.":kind()==="agent"?"No messages yet. Use Message next to any vendor on your projects.":"No messages yet. Use Message the agent on any request."}</p>`;
+  let pane="";
+  if(cur||(draftP&&draftV)){const p=cur?cur.p:draftP,v=cur?cur.v:draftV,msgs=cur?cur.msgs:[];
+    const t=cur||{project_id:p.id,vendor_id:v.id,p,v,msgs:[]};
+    if(cur&&unreadOf(cur)&&S.canWrite)msgMarkRead(cur);
+    const mine=m=>String(m.sender_email||"").toLowerCase()===myEmail();
+    pane=`<div class="mhead"><button class="linkbtn mback" type="button" data-act="msgback">All messages</button>
+        <div class="eyebrow">${esc(threadServices(t)||"Messages")}</div><h2 style="margin:2px 0 0">${esc(p.address)}</h2>
+        <div class="small">${esc(otherSide(t))}${!admin?` · <button class="linkbtn" type="button" data-act="${kind()==="vendor"?"msgproject":"open"}" data-id="${esc(p.id)}" data-v="${esc(v.id)}">Open ${kind()==="vendor"?"request":"project"}</button>`:""}</div></div>
+      <div class="mlist" id="mlist">${msgs.length?msgs.map(m=>`<div class="mmsg ${admin?(m.sender_side==="vendor"?"":"mine"):mine(m)?"mine":""}"><div class="mbody">${esc(m.body).replace(/\n/g,"<br>")}</div><div class="mmeta">${esc(m.sender_name||"")} · ${esc(msgTime(m.created_at))}</div></div>`).join("")
+        :`<p class="small" style="margin:auto;text-align:center">Start the conversation about ${esc(p.address)}.</p>`}</div>
+      ${admin?`<p class="small mnote">You can read every thread. Agents and vendors don't get a notice when you do, and you don't get notified about their messages.</p>`
+        :S.canWrite?`<form class="mform" data-form="msg" data-p="${esc(p.id)}" data-v="${esc(v.id)}"><textarea id="msg-body" name="body" aria-label="Message" rows="2" maxlength="4000" placeholder="Write a message">${esc(S.msgText[p.id+"|"+v.id]||"")}</textarea><button class="btn" type="submit">Send</button></form>
+          <p class="small mnote">${kind()==="vendor"?esc(firstName(p.agent)):esc(v.name)} gets a notification right away. Ashleigh at Orbyt can read messages to help if anything comes up.</p>`:""}`}
+  else pane=`<div class="mempty"><p class="small">${ts.length?"Pick a conversation.":admin?"Messages between agents and vendors show up here.":"Your conversations show up here, labeled by property."}</p></div>`;
+  return `<section class="msgwrap ${cur||draftP?"open":""}"><div class="mside">${list}</div><div class="mpane">${pane}</div></section>`}
+function msgTime(iso){const d=new Date(iso),today=new Date();
+  return d.toDateString()===today.toDateString()?d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}):d.toLocaleDateString("en-US",{month:"short",day:"numeric"})+", "+d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}
+// a tile in the stats bar
+const msgStat=()=>msgOn()&&kind()!=="orbyt"?[{key:"msgs",label:"Unread messages",list:unreadThreads(),render:l=>`<div class="mside inline">${l.map(t=>threadRow(t,false)).join("")}</div>`,empty:"You're all caught up."}]:[];
+
+/* loading, reading and sending */
+async function msgRefresh(){if(!S.uid)return;try{
+  const[t,m,r]=await Promise.all([sb.from("message_threads").select("*"),sb.from("messages").select("*").order("created_at"),sb.from("message_reads").select("*")]);
+  if(t.error||m.error)return;const before=(D.messages||[]).length;
+  D.message_threads=t.data||[];D.messages=m.data||[];D.message_reads=r.data||[];
+  const typing=document.activeElement&&document.activeElement.id==="msg-body";
+  if(D.messages.length!==before||!typing){render();if(typing){const el=document.getElementById("msg-body");if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}}}
+  if(D.messages.length!==before)setTimeout(msgScroll,0)}catch(_){}}
+let msgT=null;const msgRefreshSoon=()=>{clearTimeout(msgT);msgT=setTimeout(msgRefresh,400)};
+function msgLive(){if(S.msgLive||!S.uid||!msgOn())return;S.msgLive=true;
+  try{if(sb.channel)S.msgChan=sb.channel("orbyt-messages").on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},msgRefreshSoon).subscribe()}catch(_){}
+  setInterval(()=>{if(document.visibilityState==="visible"&&S.uid)msgRefresh()},30000)}
+// a push notification links straight to its thread
+function msgPending(){if(!S.pendingThread||!msgOn())return;const t=D.message_threads.find(x=>x.id===S.pendingThread);S.pendingThread=null;
+  if(t){S.openMsg={p:t.project_id,v:t.vendor_id};S.tab="messages";setTimeout(msgScroll,0)}}
+function msgScroll(){const el=document.getElementById("mlist");if(el)el.scrollTop=el.scrollHeight}
+const msgReadSent={};
+function msgMarkRead(t){if(msgReadSent[t.id]===t.last_message_at)return;msgReadSent[t.id]=t.last_message_at;
+  sb.rpc("message_read",{p_thread:t.id}).then(()=>{const rs=D.message_reads||(D.message_reads=[]),now=new Date().toISOString(),r=rs.find(x=>x.thread_id===t.id&&x.email===myEmail());
+    if(r)r.last_read_at=now;else rs.push({thread_id:t.id,email:myEmail(),last_read_at:now});render()},()=>{})}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="msgopen"],[data-act="msgback"],[data-act="msgproject"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  if(t.dataset.act==="msgback"){S.openMsg=null;render();return}
+  if(t.dataset.act==="msgproject"){const b=S.bids.find(x=>x.projectId===t.dataset.id&&x.vendorId===t.dataset.v);if(b){S.tab="projects";S.openRequest=b.id;S.openMsg=null;render();window.scrollTo({top:0})}return}
+  S.openMsg={p:t.dataset.p,v:t.dataset.v};S.tab="messages";S.vendorCard=null;S.statFilter="";render();setTimeout(msgScroll,0);
+  const box=document.querySelector(".msgwrap");if(box)box.scrollIntoView({block:"start"})},true);
+document.addEventListener("input",e=>{if(e.target.id!=="msg-body")return;const f=e.target.closest("form");if(f)S.msgText[f.dataset.p+"|"+f.dataset.v]=e.target.value});
+document.addEventListener("keydown",e=>{if(e.target.id==="msg-body"&&e.key==="Enter"&&(e.metaKey||e.ctrlKey)){e.preventDefault();e.target.closest("form").requestSubmit()}});
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="msg"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const ta=f.querySelector("textarea"),body=ta.value.trim(),btn=f.querySelector('button[type="submit"]');if(!body)return;
+  btn.disabled=true;btn.textContent="Sending...";
+  sb.rpc("message_send",{p_project:f.dataset.p,p_vendor:f.dataset.v,p_body:body}).then(({error})=>{
+    if(error){btn.disabled=false;btn.textContent="Send";toast(error.message||"That didn't send. Try again.");return}
+    S.msgText[f.dataset.p+"|"+f.dataset.v]="";msgRefresh().then(()=>{setTimeout(()=>{msgScroll();const el=document.getElementById("msg-body");if(el)el.focus()},0)})})},true);
+S.msgText=S.msgText||{};
 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.quoteView){S.quoteView=null;render()}});
 liveBoot();

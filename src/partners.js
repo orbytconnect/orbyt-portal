@@ -16,8 +16,10 @@ const rot=id=>{let h=2166136261;for(const ch of dayKey()+id){h^=ch.charCodeAt(0)
 const listedFor=c=>S.vendors.filter(v=>isPartner(v)&&v.approved!==false&&v.available!==false&&(!c||vsv(v).includes(c))).sort((a,b)=>rot(a.id)-rot(b.id));
 // the listing, as agents see it
 function partnerListing(v,area){const tel=String(v.phone||"").replace(/[^\d+]/g,""),web=safeUrl(v.web);
-  return `<div class="listing" style="background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:6px 0"><div class="listinghead" style="display:flex;justify-content:space-between;gap:10px"><div style="min-width:0"><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>
-      <div class="small">${[v.contactName,vsv(v).join(", "),v.license?"License "+v.license:""].filter(Boolean).map(esc).join(" · ")}</div></div><div class="small">${ratingHtml(v.id)}</div></div>
+  const img=v.adImage&&typeof ovUrl==="function"?ovUrl(v.adImage):"";
+  return `<div class="listing" style="background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:6px 0"><div class="listinghead" style="display:flex;justify-content:space-between;gap:10px"><div style="display:flex;gap:12px;min-width:0">${img?`<img class="adimg" src="${esc(img)}" alt="" loading="lazy">`:""}<div style="min-width:0"><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>
+      <div class="small">${[v.contactName,vsv(v).join(", "),v.license?"License "+v.license:""].filter(Boolean).map(esc).join(" · ")}</div></div></div><div class="small">${ratingHtml(v.id)}</div></div>
+    ${v.adHeadline||v.adBody?`<div class="adcopy">${v.adHeadline?`<div class="adhead">${esc(v.adHeadline)}</div>`:""}${v.adBody?`<div class="small">${esc(v.adBody)}</div>`:""}</div>`:""}
     <div class="small">${[v.phone?`<a href="tel:${esc(tel)}">${esc(v.phone)}</a>`:"",v.email?`<a href="mailto:${esc(v.email)}">${esc(v.email)}</a>`:"",web?`<a href="${esc(web)}" target="_blank" rel="noopener">Website</a>`:"",vendorDocs(v.id)].filter(Boolean).join(" · ")}</div>
     <div class="small">Works in ${esc(areasShort(v.areas))}${area&&(v.areas||[]).includes(area)?` · <span class="strong">covers ${esc(String(area).split(" / ")[0])}</span>`:""}</div></div>`}
 // listing status: free for 90 days from agreeing, then $20 a month
@@ -110,21 +112,50 @@ async function partnerSignup(f,fd,email,pass,pass2,done,btn){
 function partnerView(v){
   if(typeof msgPending==="function")msgPending();
   if(S.tab==="messages"&&typeof messagesView==="function"&&msgOn())return `<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Messages</h1></div><div><button class="btn ghost sm" type="button" data-act="partnerhome">Back to your listing</button></div></section>`+messagesView();
-  const st=listingStatus(v),past=(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.vendor_id===v.id);
-  let h=`<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for joining. I'll check your license and let you know when your listing is live.</p>`:""}
-    <p>${v.approved===false?"Once it's live, agents in the network can find your listing in the Orbyt closing partner directory.":"Your listing is live in the Orbyt closing partner directory, where agents in the network can find you and your business overview."}</p>${typeof availToggle==="function"?availToggle(v):""}${typeof msgAshBtn==="function"&&msgOn()?`<div class="actions" style="margin-top:10px">${msgAshBtn(unreadTotal()?`Messages from Ashleigh (${unreadTotal()})`:"Message Ashleigh","btn ghost sm")}</div>`:""}</div>
-    <div>${ratingHtml(v.id)}</div></section>`;
-  if(typeof setupCard==="function"&&v.approved!==false)h+=setupCard();
-  if(v.approved!==false)h+=`<section class="section"><div class="sechead"><h2>Your listing</h2><span class="pill ${st.key==="due"||st.key==="canceled"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span></div>
-    <p class="small" style="margin:0 0 8px">Here's how agents see you. Your first ${LISTING_FREE_DAYS} days are free with our launch offer, then your marketing listing is $${LISTING_FEE} a month. ${billingOn()?"Cancel anytime from Manage billing.":"Cancel anytime by emailing ashleigh@orbytconnect.com."}</p>${billingBlock(v)}
-    ${partnerListing(v)}<p class="small" style="margin:8px 0 0">Your listing also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p></section>`;
+  const st=listingStatus(v),past=(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.vendor_id===v.id),live=v.approved!==false;
+  const sec=(id,n,title,sub,right,body)=>`<section class="psec" data-fold="${id}"><div class="psechead"><div><div class="eyebrow">${n}</div><h2>${title}</h2>${sub?`<p class="small">${sub}</p>`:""}</div>${right?`<div>${right}</div>`:""}</div><div class="psecbody">${body}</div></section>`;
+  let h=`<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>
+    ${live?"":`<p class="banner" style="margin-top:10px">Thanks for joining. I'll check your license and let you know when your listing is live.</p>`}</div>
+    <div class="hellore">${ratingHtml(v.id)}${typeof msgAshBtn==="function"&&msgOn()?msgAshBtn(unreadTotal()?`Messages from Ashleigh (${unreadTotal()})`:"Message Ashleigh","btn ghost sm"):""}</div></section>`;
+  if(typeof setupCard==="function"&&live)h+=setupCard();
+  h+=sec("listing","1 · Your listing","How agents see you",live?"Agents in the network find you in the Orbyt closing partner directory and on their buyers' projects.":"Once it's live, agents in the network can find your listing in the Orbyt closing partner directory.",
+    live?`<span class="pill ${st.key==="due"||st.key==="canceled"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span>`:"",
+    `${live&&typeof availToggle==="function"?availToggle(v):""}${partnerListing(v)}
+     <p class="small" style="margin:10px 0 0">Your first ${LISTING_FREE_DAYS} days are free with our launch offer, then your marketing listing is $${LISTING_FEE} a month. ${billingOn()?"Cancel anytime from Manage billing.":"Cancel anytime by emailing ashleigh@orbytconnect.com."} It also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p>${billingBlock(v)}`);
+  h+=sec("port","2 · Your ad","Tell agents why to call you","This is your advertisement on your listing. Write it the way you'd pitch an agent over coffee.","",adCard(v));
+  if(live){const sent=typeof rrFor==="function"?rrFor(v.id):[];
+    h+=sec("myrev","3 · Reviews","What agents say about you","",myReviewsPill(v),
+      myReviewsCard(v)+(typeof reviewInviteCard==="function"?`<details class="fold" data-fold="rr" style="margin-top:12px" ${S.rrMore?"open":""}><summary><span class="foldtitle">Invite agents to review you</span>${sent.length?`<span class="pill">${sent.length} invited</span>`:""}</summary><div class="foldbody">${reviewInviteCard(v)}</div></details>`:""));
+    h+=sec("refer","4 · Spread the word","Refer someone to Orbyt","",refCountPill(),referralCard("partner"))}
   if(past.length)h+=`<details class="fold" style="margin-top:12px"><summary><span class="foldtitle">Earlier introductions</span><span class="pill">${past.length}</span></summary><div class="foldbody"><div class="introlist">${past.map(i=>`<div class="introcard"><div class="eyebrow">${esc(i.category)} · ${esc(ago(i.introduced_at))}</div><div class="strong">${esc(i.agent_name||"Agent")}</div><div class="small">${esc(i.address||"")}</div></div>`).join("")}</div></div></details>`;
-  if(v.approved===false)return h+(billingOn()?`<section class="section"><h2>Your listing</h2>${billingBlock(v)}</section>`:"");
-  const parts=[fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false),
-    fold("port","Business overview and portfolio","","Shown on your listing",portfolioCard(v),false)];
-  if(typeof reviewInviteCard==="function"){const sent=typeof rrFor==="function"?rrFor(v.id):[];parts.push(fold("rr","Reviews from agents you've worked with",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Invite agents you've worked with",reviewInviteCard(v),!!S.rrMore))}
-  parts.push(fold("refer","Refer someone to Orbyt",refCountPill(),"A ready-made message to send",referralCard("partner"),false));
-  return h+`<section class="section folds"><div class="sechead" style="margin-bottom:8px"><div><h2>Your profile</h2><span class="small">Tap one to open it.</span></div></div>${parts.join("")}</section>`}
+  return h}
+
+/* the partner's own ad on their listing */
+function adCard(v){const img=v.adImage&&typeof ovUrl==="function"?ovUrl(v.adImage):"",ov=v.overviewPdf&&typeof ovUrl==="function"?ovUrl(v.overviewPdf):"";
+  return `<form class="form inner" data-form="partnerad" novalidate>
+    <label class="field"><span>Headline</span><input type="text" id="ad-head" name="headline" maxlength="80" value="${esc(v.adHeadline||"")}" placeholder="Fast, local pre-approvals your buyers can count on"></label>
+    <label class="field"><span>Your pitch</span><textarea id="ad-body" name="body" rows="3" maxlength="400" placeholder="What's it like to work with you? Turnaround times, the loan types or coverage you offer, how you keep agents and buyers in the loop.">${esc(v.adBody||"")}</textarea></label>
+    <div class="grid"><div><label class="field"><span>${img?"Replace your logo or photo":"Logo or photo (optional)"}</span><input type="file" id="ad-img" name="image" accept="image/png,image/jpeg,image/webp"></label>
+        ${img?`<div class="small" style="margin-top:6px;display:flex;gap:8px;align-items:center"><img class="adimg" src="${esc(img)}" alt="Your logo or photo"><button class="linkbtn" type="button" data-act="adimgdel">Remove</button></div>`:""}</div>
+      <div><label class="field"><span>${v.overviewPdf?"Replace your flyer or rate sheet":"Flyer or rate sheet PDF (optional)"}</span><input type="file" id="pt-ov" name="overview" accept="application/pdf"></label>
+        ${v.overviewPdf?`<div class="small" style="margin-top:6px">On file: <a href="${esc(ov)}" target="_blank" rel="noopener">${esc(v.overviewPdfName||"Flyer")}</a> · <button class="linkbtn" type="button" data-act="ovpdfdel">Remove</button></div>`:""}</div></div>
+    <div class="grid"><label class="field"><span>Website</span><input type="text" id="pt-web" name="web" value="${esc(v.web||"")}" placeholder="yourbusiness.com"></label>
+      <label class="field"><span>Instagram</span><input type="text" id="pt-ig" name="instagram" value="${esc(v.instagram?"@"+v.instagram:"")}" placeholder="@yourbusiness"></label></div>
+    <p class="small" style="margin:0">Keep it accurate, and include any license number or disclosure your industry requires. Agents see your ad, logo, flyer and links on your listing.</p>
+    <p class="small warntext aderr" role="alert" style="margin:0" hidden></p>
+    <div class="actions"><button class="btn sm" type="submit">Save your ad</button></div></form>`}
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="partnerad"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),img=fd.get("image"),ovf=fd.get("overview"),el=f.querySelector(".aderr");
+  const bad=m=>{if(el){el.textContent=m;el.hidden=false}};
+  if(img&&img.size&&(!/^image\/(png|jpeg|webp)$/.test(img.type)||img.size>5e6))return bad(img.size>5e6?"That image is over 5 MB. Try a smaller one.":"Choose a PNG, JPG or WebP image.");
+  if(ovf&&ovf.size&&(ovf.type!=="application/pdf"||ovf.size>25e6))return bad(ovf.type!=="application/pdf"?"Choose a PDF for your flyer.":"That PDF is over 25 MB. Try a smaller version.");
+  guard(async()=>{const row={ad_headline:String(fd.get("headline")||"").trim().slice(0,80)||null,ad_body:String(fd.get("body")||"").trim().slice(0,400)||null,
+      website:String(fd.get("web")||"").trim()||null,instagram:igHandle(fd.get("instagram"))||null};
+    if(img&&img.size){const old=v.adImage;row.ad_image=await putFile("vendor-public",v.id,img);if(old)try{await sb.storage.from("vendor-public").remove([old])}catch(_){}}
+    if(ovf&&ovf.size){const old=v.overviewPdf;Object.assign(row,{overview_pdf:await putFile("vendor-public",v.id,ovf),overview_pdf_name:ovf.name.slice(0,120)});if(old)try{await sb.storage.from("vendor-public").remove([old])}catch(_){}}
+    fail((await sb.from("vendors").update(row).eq("id",v.id)).error,"ad");await S.db.reload()},"Your ad is saved. Agents see it on your listing.")},true);
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="adimgdel"]');if(!t)return;e.preventDefault();const v=vendorById(myVendorId());if(!v||!v.adImage)return;
+  guard(async()=>{try{await sb.storage.from("vendor-public").remove([v.adImage])}catch(_){}fail((await sb.from("vendors").update({ad_image:null}).eq("id",v.id)).error,"ad");await S.db.reload()},"Removed.")},true);
 
 /* projects: local closing partner options, for agents and for Ashleigh (no picking, no intros) */
 function closingPanel(p,mode){

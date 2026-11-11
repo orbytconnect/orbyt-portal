@@ -175,6 +175,12 @@ textarea{resize:vertical;min-height:64px}
 @media (max-width:760px){.msgwrap{grid-template-columns:1fr}.msgwrap.open .mside{display:none}.msgwrap:not(.open) .mpane{display:none}.mside{border-right:0;max-height:none}.mback{display:inline-block;margin-bottom:6px}}
 .mgroup{padding:12px 14px 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}.mgroup .small{text-transform:none;letter-spacing:0}
 .mnew{padding:10px 14px;border-bottom:1px solid var(--line)}.mnew select{width:100%}.morbyt .maddr::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#A8871F;margin-right:7px;vertical-align:middle}
+.psec{background:var(--surface);border:1px solid var(--line);border-radius:16px;margin:18px 0;overflow:hidden}
+.psechead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;padding:18px 22px 14px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.psechead h2{margin:2px 0 0}.psechead p{margin:4px 0 0;max-width:640px}.psecbody{padding:16px 22px 20px}.psecbody>.listing{margin:12px 0 0}
+.hellore{display:flex;flex-direction:column;align-items:flex-end;gap:10px}.adimg{width:56px;height:56px;object-fit:cover;border-radius:10px;border:1px solid var(--line);flex:none;background:#fff}
+.adcopy{margin:10px 0 6px;padding:10px 12px;border-left:3px solid #A8871F;background:var(--surface-2);border-radius:0 8px 8px 0}.adhead{font-weight:600;margin-bottom:2px}
+@media (max-width:640px){.psechead{flex-direction:column;padding:16px}.psecbody{padding:14px 16px 16px}.hellore{align-items:flex-start}}
 .dangerbtn{color:var(--warn)!important;border-color:currentColor!important}rect.fclist{fill:#3F7266}rect.fcpromo{fill:#C4A85A}.sw.fclist{background:#3F7266}.sw.fcpromo{background:#C4A85A}rect.fcpaid{fill:var(--fc-paid)}rect.fcexp{fill:var(--fc-exp)}rect.fcpos{fill:var(--fc-pos);stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 2}
 .rp5{grid-template-columns:repeat(5,minmax(0,1fr))}
 @media (max-width:900px){.rp5{grid-template-columns:repeat(2,minmax(0,1fr))}}

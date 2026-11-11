@@ -50,7 +50,7 @@ function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="b
   const v=vendorById(roleVal());if(!v)return[];
   const rr=typeof rrFor==="function"?rrFor(v.id).length:0;
   if(r==="partner")return[
-    {id:"ov",label:"Add your business overview",hint:"One PDF about your company and what you offer. Agents can open it from your listing.",done:!!v.overviewPdf,act:a("Add it","gofold",'data-fold="port"')},
+    {id:"ov",label:"Write your ad",hint:"A headline and a short pitch agents see on your listing, plus your logo and a flyer if you have them.",done:!!(v.adHeadline||v.adBody),act:a("Write it","gofold",'data-fold="port"')},
     {id:"rr",label:"Invite agents you've worked with to review you",hint:"Reviews from agents who know your work go a long way.",done:rr>0,act:a("Invite agents","gofold",'data-fold="rr"')},
     ...common];
   const ins=typeof insState==="function"?insState(v):null;
@@ -98,7 +98,7 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
       sec("6. Your availability",p("Use the Taking new work switch at the top of your dashboard. While you're Paused, I won't send new requests."))],
     partner:[
       sec("1. Your listing",p("Agents in the network can browse the closing partner directory and see your listing on their buyer projects. It's an open directory: partners show in a rotating order, and agents and their clients choose who to contact.")),
-      sec("2. Make it stand out",p("Add your business overview PDF and invite agents you've worked with to review you. Both show on your listing.")),
+      sec("2. Make it stand out",p("Write your ad under Your ad: a headline, a short pitch, and your logo or a flyer. Then invite agents you've worked with to review you. All of it shows on your listing.")),
       sec("3. Spotlights and events",p("Your listing includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.")),
       sec("4. Showing or hidden",p("Use the Show my listing switch at the top of your dashboard to hide your listing for a while.")),
       sec("5. Your fee",p(`Your first 90 days are free with our launch offer, then it's $20 a month for your marketing listing. ${typeof billingOn==="function"&&billingOn()?"Your card is charged automatically. Use Manage billing on your dashboard to update your card, see receipts, or cancel.":`Cancel anytime by emailing ${HELP_EMAIL}.`} Your agreement has the details.`))],
@@ -128,7 +128,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="getap
   if(a==="helpclose"){S.help=false;render();return}
   if(a==="setupdone"){if(t.dataset.id==="setup-hide")S.setupOpen=false;guard(()=>setupMark(t.dataset.id),t.dataset.id==="setup-hide"?"Hidden. Bring it back anytime with Show the checklist, or from Help.":"Checked off");return}
   if(a==="setupshow"){S.help=false;S.setupOpen=true;guard(()=>setupUnmark("setup-hide"));setTimeout(()=>document.querySelector(".setup,.setupback")?.scrollIntoView({behavior:"smooth",block:"center"}),300);return}
-  const openFold=k=>{const d=document.querySelector(`details.fold[data-fold="${k}"]`);if(d){d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"});return true}return false};
+  const openFold=k=>{const d=document.querySelector(`[data-fold="${k}"]`);if(d){if(d.tagName==="DETAILS")d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"});return true}return false};
   if(a==="gofold"){if(!openFold(t.dataset.fold))toast("You'll find it under Your profile once you're approved.");return}
   if(a==="setupref"){S.refWho=t.dataset.who;render();setTimeout(()=>openFold("refer"),30)}},true);
 // sending a referral (copy, email or text) checks off the matching step

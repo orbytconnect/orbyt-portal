@@ -391,6 +391,9 @@ table.mini{min-width:0}
 .vstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 18px}
 .vst{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px}.vst b{font-size:20px;font-weight:500}
 .vtip{grid-column:1 / -1;margin:0}
+.newscard{border:1px solid var(--line);border-left:4px solid var(--gold,#A8871F);border-radius:var(--r);background:var(--surface);padding:16px 18px;margin:0 0 22px}
+.newshead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.newshead h2{margin:4px 0 0;font-size:20px}
+.newslist,.helpsec .newslist{list-style:none;margin:12px 0 14px;padding:0!important;display:grid;gap:10px}.newslist li{border-top:1px solid var(--line);padding-top:10px}.newslist p{margin:3px 0 0}.newslist .pill{margin-left:6px}
 .vsecs{margin-top:28px}.psecbody .vst{background:var(--surface-2)}.psecbody>.folds{margin:0}.psecbody .vstats{margin-bottom:14px}.updfold{margin:10px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 @media (max-width:720px){.vstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .feebox{border-left:3px solid var(--gold)}
@@ -1059,7 +1062,7 @@ function agentView(){
     <p>See new quotes as they come in, review them in one place, open a PDF of each vendor's quote, and see who's booked for every project. Check off tasks as you go, or save them for later.</p>
     ${S.canWrite?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
     ${S.canWrite?`<div class="actions"><button class="btn" data-act="newproject">New project</button></div>`:""}</section>`;
-  if(typeof setupCard==="function")h+=setupCard();
+  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function")h+=setupCard();
   if(S.openForm==="newarea")h+=`<form class="form" data-form="market" data-agent="1" style="margin-bottom:20px"><h3>Where should Orbyt go next?</h3><p class="small" style="margin:0">Tell me where you have listings or buyers outside ${esc(AREAS.slice(0,3).join(", "))} and the rest of my current areas. Enough requests and I'll start recruiting vendors there.</p>
     <div class="grid"><label class="field"><span>Area</span><input type="text" id="na-area" name="area" required placeholder="Temecula, Orange County"></label><label class="field"><span>Note (optional)</span><input type="text" id="na-note" name="note" placeholder="I list 6 to 8 homes a year there"></label></div>
     <div class="actions"><button class="btn sm" type="submit">Send request</button><button class="btn ghost sm" type="button" data-act="cancel">Cancel</button></div></form>`;
@@ -1172,7 +1175,7 @@ function vendorView(){
     <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
-  if(typeof setupCard==="function")h+=setupCard();
+  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function")h+=setupCard();
   const foot=typeof vendorFolds==="function"?vendorFolds(v,mine):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
   h+=statStrip([
     {key:"requested",label:"Bids requested",list:req,render:l=>bidTable(l,"vendor"),empty:"No open requests right now."},
@@ -1303,6 +1306,7 @@ function orbytView(){
     <p>See every project at a glance, including what needs matching, who's bid and who's booked. Hand-pick the vendors you introduce for each home, add your own tasks, and book your client's pick.</p></div>
     ${S.canWrite&&!S.dbMissing?`<div class="actions"><button class="btn" data-act="newproject">New project</button></div>`:""}</section>`;
   if(typeof adminPushCard==="function")h+=adminPushCard();
+  if(typeof newsCard==="function"&&S.tab==="dash")h+=newsCard();
   const tm=S.config.timer;if(tm&&tm.startedAt){const mins=Math.max(0,Math.floor((Date.now()-Date.parse(tm.startedAt))/6e4)),tp=projById(tm.projectId);
     h+=`<div class="timerbar" role="status"><span><span class="dotlive" aria-hidden="true"></span>Timer running${tp?" on "+esc(tp.address):""} · ${esc((LOGTYPES.find(x=>x[0]===tm.type)||[,"Matching"])[1])} · <span class="num">${Math.floor(mins/60)}:${String(mins%60).padStart(2,"0")}</span></span>
       <span class="actions"><button class="btn sm" data-act="stoptimer">Stop and log</button><button class="linkbtn" data-act="canceltimer">Discard</button></span></div>`}
@@ -4549,7 +4553,7 @@ function partnerView(v){
   let h=`<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>
     ${live?"":`<p class="banner" style="margin-top:10px">Thanks for joining. I'll check your license and let you know when your listing is live.</p>`}</div>
     <div class="hellore">${ratingHtml(v.id)}${typeof msgAshBtn==="function"&&msgOn()?msgAshBtn(unreadTotal()?`Messages from Ashleigh (${unreadTotal()})`:"Message Ashleigh","btn ghost sm"):""}</div></section>`;
-  if(typeof setupCard==="function"&&live)h+=setupCard();
+  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function"&&live)h+=setupCard();
   h+=sec("listing","1 · Your listing","How agents see you",live?"Agents in the network find you in the Orbyt closing partner directory and on their buyers' projects.":"Once it's live, agents in the network can find your listing in the Orbyt closing partner directory.",
     live?`<span class="pill ${st.key==="due"||st.key==="canceled"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span>`:"",
     `${live&&typeof availToggle==="function"?availToggle(v):""}${partnerListing(v)}
@@ -4813,6 +4817,31 @@ function setupCard(){if(!S.canWrite||!S.session)return"";
     <p class="small" style="margin:10px 0 0">${contactLine()}</p></section>`}
 
 /* the Help page, written for each role */
+/* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
+const NEWS=[
+  {id:"2026-11-11a",date:"2026-11-11",roles:["vendor"],title:"A cleaner dashboard",body:"Everything below your tasks is now in four numbered sections: Your profile, Reviews and results, Special offer, and Spread the word. Your numbers, like win rate and time to send a bid, live under Reviews and results."},
+  {id:"2026-11-11b",date:"2026-11-11",roles:["agent"],title:"A shorter task list",body:"Your list now leads with what needs a decision: quotes to pick, services not booked yet, and next steps. Introductions and review reminders sit in Updates, just below."},
+  {id:"2026-11-10a",date:"2026-11-10",roles:["partner"],title:"Write your own ad",body:"Add a headline, a short pitch, your logo or photo, and a flyer under Your ad. It shows on your listing in the closing partner directory."},
+  {id:"2026-11-10b",date:"2026-11-10",roles:["agent","vendor","partner"],title:"Message Ashleigh in the portal",body:"Questions, ideas or something not working? Open Messages and start a conversation with Ashleigh at Orbyt. No phone number needed."},
+  {id:"2026-11-09a",date:"2026-11-09",roles:["vendor"],title:"Pick your special offer dates",body:"Special offers run up to 30 days for $20, and you choose the end date. You can end one sooner anytime from the Special offer section."},
+  {id:"2026-11-08a",date:"2026-11-08",roles:["agent","vendor"],title:"Messages, by property",body:"Agents and vendors can now message each other in the portal. Each conversation is labeled with the property address, and you get a notification on every message. Contact details show once a vendor is booked."},
+  {id:"2026-11-07a",date:"2026-11-07",roles:["agent"],title:"Delete a project",body:"Started a project you no longer need? Open it and tap Delete project. It works until a vendor is booked."},
+  {id:"2026-11-07b",date:"2026-11-07",roles:["agent","vendor","partner"],title:"A how-to guide under Help",body:"Tap Help at the top right anytime for a quick walkthrough of how Orbyt works for you."},
+];
+const newsFor=r=>NEWS.filter(n=>r==="orbyt"||n.roles.includes(r));
+const NEWS_ROLE={agent:"Agents",vendor:"Vendors",partner:"Closing partners"};
+function newsSeen(){try{return localStorage.getItem("orbyt-news-"+S.uid)||""}catch(_){return S.newsSeen||""}}
+function newsCard(){if(!S.session)return"";const r=setupRole(),seen=S.newsSeen??newsSeen();
+  const cutoff=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
+  const items=newsFor(r).filter(n=>seen?n.id>seen:n.date>=cutoff).slice(0,3);if(!items.length)return"";
+  return `<section class="newscard" aria-label="What's new"><div class="newshead"><div><div class="eyebrow">What's new</div><h2>${items.length===1?"One update":items.length+" updates"} since you were last here</h2></div>
+    <div class="actions" style="margin:0"><button class="linkbtn" type="button" data-act="newsall">See all updates</button><button class="btn ghost sm" type="button" data-act="newsok">Got it</button></div></div>
+    <ul class="newslist">${items.map(n=>`<li><span class="strong">${esc(n.title)}</span>${r==="orbyt"?` <span class="pill">${n.roles.map(x=>NEWS_ROLE[x]).join(", ")}</span>`:""}<p class="small">${esc(n.body)}</p></li>`).join("")}</ul></section>`}
+function newsHelp(r){const l=newsFor(r);if(!l.length)return"";
+  return `<div class="helpsec" id="help-news"><h3>What's new</h3><ul class="newslist">${l.map(n=>`<li><span class="small num">${esc(fmtDate(n.date))}</span> <span class="strong">${esc(n.title)}</span>${r==="orbyt"?` <span class="pill">${n.roles.map(x=>NEWS_ROLE[x]).join(", ")}</span>`:""}<p class="small">${esc(n.body)}</p></li>`).join("")}</ul></div>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="newsok"],[data-act="newsall"]');if(!t)return;
+  const top=(newsFor(setupRole())[0]||{}).id||"";S.newsSeen=top;try{localStorage.setItem("orbyt-news-"+S.uid,top)}catch(_){}
+  if(t.dataset.act==="newsall"){S.help=true;S.helpNews=true}render()});
 function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t}</h3>${b}</div>`,p=x=>`<p>${x}</p>`;
   const emails={
     agent:["When I introduce vendors for your project","When a vendor sends or updates a quote","When a vendor confirms a job, can't take it, or marks it done","Daily reminders about anything waiting on you"],
@@ -4826,7 +4855,7 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
       sec("3. Review quotes",p("Open the project to see each quote, its timeline, and the vendor's PDF. Ask a vendor for changes, ask me for another option, or tap Send quotes to client to share a private page with your client.")),
       sec("4. Pick and book",p("Tap Add to team on the one you want. The vendor confirms and reaches out to schedule, and your client pays them directly. When the job's done, confirm the final amount and leave a quick review. If you like, tell the others why you went another way. It helps them improve.")),
       sec("5. Build your bench",p("Save vendors you like to Favorites, add your assistant or team to Always share with, and make a home team card for your buyers so they come back to you when they need someone.")),
-      sec("6. Grow the network",p("Know an agent or a vendor who'd be a good fit? Use Refer someone to Orbyt on your dashboard. It sends a ready-made message with your link."))],
+      sec("6. Grow the network",p("Know an agent or a vendor who'd be a good fit? Use Spread the word at the bottom of your dashboard. It has a ready-made message with your link."))],
     vendor:[
       sec("1. Set up your profile",p("Add your business overview PDF, your portfolio, and your insurance certificate under Your profile. Invite agents you've worked with to review you.")),
       sec("2. Answer bid requests",p("New requests come by email and show at the top of your dashboard. Open one, add your price and timeline, and upload your quote as a PDF or a photo. Can't take it? Let me know with one tap, so I can line up someone else. Questions for the agent? Tap Message on the request. Conversations are in the Messages tab, labeled with the property, and the agent's phone and email show once you're booked.")),
@@ -4850,7 +4879,7 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
       sec("7. Updates and setup",p("Setup steps, SQL updates and what each email means are in your Orbyt runbook in Google Drive. Never paste a secret key into a chat; keys go only into Supabase or Netlify."))]}[r]||[];
   return `<div class="scrim" data-act="helpclose"></div><div class="vcard wide helpcard" role="dialog" aria-modal="true" aria-labelledby="hp-title">
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">${r==="orbyt"?"Running Orbyt":"How Orbyt works"}</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
-    <div class="helpbody">${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}
+    <div class="helpbody">${S.helpNews?newsHelp(r):""}${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}${S.helpNews?"":newsHelp(r)}
       ${pushKey()&&S.pushState&&S.pushState!=="unsupported"?sec("Notifications",`<p>${esc(pushHint())}</p>${pushButton()?`<p style="margin-top:8px">${pushButton()}</p>`:""}<p class="small" style="margin-top:6px">You get a notification for the same things Orbyt emails you about. Turn them on separately on each phone or computer you use.</p>`):""}
       ${sec(r==="orbyt"?"Emails you'll get":"Emails to expect",`<p>Orbyt emails come from <span class="strong">${HELP_EMAIL}</span>. Add it to your contacts so nothing lands in spam.</p><ul>${emails.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`)}
       ${sec("Get the Orbyt app",`<p>Orbyt works like an app on your phone, with no app store needed. ${esc(appSteps())}</p><p style="margin-top:8px"><button class="btn sm" type="button" data-act="getapp">Get the app</button></p><p class="small" style="margin-top:6px">The first time you open it from your home screen, sign in once. Links in Orbyt emails open in your browser.</p>`)}
@@ -4862,7 +4891,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="getap
   if(a==="appclose"){S.appInfo=false;render();return}
   if(a==="installapp"){const ev=S.installEvt;if(!ev){toast("Use your browser's menu to install Orbyt.");return}
     ev.prompt();ev.userChoice.then(c=>{S.installEvt=null;if(c&&c.outcome==="accepted")setupMark("setup-bookmark").then(()=>render()).catch(()=>{});else render()}).catch(()=>{});return}
-  if(a==="help"){S.help=true;render();if(kind()!=="orbyt"&&S.canWrite&&!setupDone("setup-help"))setupMark("setup-help").catch(()=>{});return}
+  if(a==="help"){S.help=true;S.helpNews=false;render();if(kind()!=="orbyt"&&S.canWrite&&!setupDone("setup-help"))setupMark("setup-help").catch(()=>{});return}
   if(a==="helpclose"){S.help=false;render();return}
   if(a==="setupdone"){if(t.dataset.id==="setup-hide")S.setupOpen=false;guard(()=>setupMark(t.dataset.id),t.dataset.id==="setup-hide"?"Hidden. Bring it back anytime with Show the checklist, or from Help.":"Checked off");return}
   if(a==="setupshow"){S.help=false;S.setupOpen=true;guard(()=>setupUnmark("setup-hide"));setTimeout(()=>document.querySelector(".setup,.setupback")?.scrollIntoView({behavior:"smooth",block:"center"}),300);return}

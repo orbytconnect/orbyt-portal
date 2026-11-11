@@ -356,6 +356,9 @@ table.mini{min-width:0}
 .vstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 18px}
 .vst{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px}.vst b{font-size:20px;font-weight:500}
 .vtip{grid-column:1 / -1;margin:0}
+.newscard{border:1px solid var(--line);border-left:4px solid var(--gold,#A8871F);border-radius:var(--r);background:var(--surface);padding:16px 18px;margin:0 0 22px}
+.newshead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.newshead h2{margin:4px 0 0;font-size:20px}
+.newslist,.helpsec .newslist{list-style:none;margin:12px 0 14px;padding:0!important;display:grid;gap:10px}.newslist li{border-top:1px solid var(--line);padding-top:10px}.newslist p{margin:3px 0 0}.newslist .pill{margin-left:6px}
 .vsecs{margin-top:28px}.psecbody .vst{background:var(--surface-2)}.psecbody>.folds{margin:0}.psecbody .vstats{margin-bottom:14px}.updfold{margin:10px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 @media (max-width:720px){.vstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .feebox{border-left:3px solid var(--gold)}
@@ -954,7 +957,7 @@ function agentView(){
     <p>See new quotes as they come in, review them in one place, open a PDF of each vendor's quote, and see who's booked for every project. Check off tasks as you go, or save them for later.</p>
     ${S.canWrite?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
     ${S.canWrite?`<div class="actions"><button class="btn" data-act="newproject">New project</button></div>`:""}</section>`;
-  if(typeof setupCard==="function")h+=setupCard();
+  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function")h+=setupCard();
   if(S.openForm==="newarea")h+=`<form class="form" data-form="market" data-agent="1" style="margin-bottom:20px"><h3>Where should Orbyt go next?</h3><p class="small" style="margin:0">Tell me where you have listings or buyers outside ${esc(AREAS.slice(0,3).join(", "))} and the rest of my current areas. Enough requests and I'll start recruiting vendors there.</p>
     <div class="grid"><label class="field"><span>Area</span><input type="text" id="na-area" name="area" required placeholder="Temecula, Orange County"></label><label class="field"><span>Note (optional)</span><input type="text" id="na-note" name="note" placeholder="I list 6 to 8 homes a year there"></label></div>
     <div class="actions"><button class="btn sm" type="submit">Send request</button><button class="btn ghost sm" type="button" data-act="cancel">Cancel</button></div></form>`;
@@ -1067,7 +1070,7 @@ function vendorView(){
     <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
-  if(typeof setupCard==="function")h+=setupCard();
+  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function")h+=setupCard();
   const foot=typeof vendorFolds==="function"?vendorFolds(v,mine):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
   h+=statStrip([
     {key:"requested",label:"Bids requested",list:req,render:l=>bidTable(l,"vendor"),empty:"No open requests right now."},
@@ -1198,6 +1201,7 @@ function orbytView(){
     <p>See every project at a glance, including what needs matching, who's bid and who's booked. Hand-pick the vendors you introduce for each home, add your own tasks, and book your client's pick.</p></div>
     ${S.canWrite&&!S.dbMissing?`<div class="actions"><button class="btn" data-act="newproject">New project</button></div>`:""}</section>`;
   if(typeof adminPushCard==="function")h+=adminPushCard();
+  if(typeof newsCard==="function"&&S.tab==="dash")h+=newsCard();
   const tm=S.config.timer;if(tm&&tm.startedAt){const mins=Math.max(0,Math.floor((Date.now()-Date.parse(tm.startedAt))/6e4)),tp=projById(tm.projectId);
     h+=`<div class="timerbar" role="status"><span><span class="dotlive" aria-hidden="true"></span>Timer running${tp?" on "+esc(tp.address):""} · ${esc((LOGTYPES.find(x=>x[0]===tm.type)||[,"Matching"])[1])} · <span class="num">${Math.floor(mins/60)}:${String(mins%60).padStart(2,"0")}</span></span>
       <span class="actions"><button class="btn sm" data-act="stoptimer">Stop and log</button><button class="linkbtn" data-act="canceltimer">Discard</button></span></div>`}

@@ -54,7 +54,7 @@ function messagesView(){
         :`<p class="small" style="margin:auto;text-align:center">Start the conversation about ${esc(p.address)}.</p>`}</div>
       ${admin?`<p class="small mnote">You can read every thread. Agents and vendors don't get a notice when you do, and you don't get notified about their messages.</p>`
         :S.canWrite?`<form class="mform" data-form="msg" data-p="${esc(p.id)}" data-v="${esc(v.id)}"><textarea id="msg-body" name="body" aria-label="Message" rows="2" maxlength="4000" placeholder="Write a message">${esc(S.msgText[p.id+"|"+v.id]||"")}</textarea><button class="btn" type="submit">Send</button></form>
-          <p class="small mnote">${kind()==="vendor"?esc(firstName(p.agent)):esc(v.name)} gets a notification right away. Ashleigh at Orbyt can read messages to help if anything comes up.</p>`:""}`}
+          <p class="small mnote">${kind()==="vendor"?esc(firstName(p.agent)):esc(v.name)} gets a notification right away.</p>`:""}`}
   else pane=`<div class="mempty"><p class="small">${ts.length?"Pick a conversation.":admin?"Messages between agents and vendors show up here.":"Your conversations show up here, labeled by property."}</p></div>`;
   return `<section class="msgwrap ${cur||draftP?"open":""}"><div class="mside">${list}</div><div class="mpane">${pane}</div></section>`}
 function msgTime(iso){const d=new Date(iso),today=new Date();

@@ -32,6 +32,7 @@ function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="b
   const done=id=>a("Done","setupdone",`data-id="${id}"`);
   const emails={vendor:"New bid requests, being picked for a job, and reminders",agent:"Introductions, new quotes, and updates on your projects",partner:"Your listing status and Orbyt event invitations"}[r];
   const common=[
+    {id:"setup-help",label:"Read the how-to guide",hint:"Tap Help in the top right corner anytime for a step-by-step guide to using Orbyt, and how to reach me.",done:setupDone("setup-help"),act:a("Open Help","help")},
     {id:"setup-bookmark",label:isPhone()?"Add Orbyt to your home screen":"Keep Orbyt one click away",hint:S.installEvt?"Install the Orbyt app in one tap. It gets its own icon and opens full screen, like any other app.":appSteps(),
       done:setupDone("setup-bookmark")||isStandalone(),act:(S.installEvt?a("Install the app","installapp"):a("Show me how","getapp"))+" "+done("setup-bookmark")},
     ...(pushKey()&&S.pushState&&S.pushState!=="unsupported"?[{id:"setup-push",label:"Turn on notifications",hint:pushHint(),done:S.pushState==="on"||setupDone("setup-push"),act:pushButton()}]:[]),
@@ -78,7 +79,8 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
   const emails={
     agent:["When I introduce vendors for your project","When a vendor sends or updates a quote","When a vendor confirms a job, can't take it, or marks it done","Daily reminders about anything waiting on you"],
     vendor:["New bid requests, with the details and the agent's timing","When an agent asks for changes to your quote","When you're picked, and reminders to confirm","Reminders about your insurance certificate and open requests"],
-    partner:["When your listing goes live, and anything I need from you","Notices about your listing fee","Invitations to Orbyt networking and education events"]}[r]||[];
+    partner:["When your listing goes live, and anything I need from you","Notices about your listing fee","Invitations to Orbyt networking and education events"],
+    orbyt:["New agent, vendor and closing partner sign-ups","New projects and home team card requests","Quotes, picks, finished jobs and reviews to approve","Special offers paid, card payments declined, and listings canceled","Projects agents delete, and the daily summary of anything waiting"]}[r]||[];
   const body={
     agent:[
       sec("1. Start a project",p("Tap New project and add the address, what the home needs, and your timing. Buying side? Choose Buyer, and add closing needs like a lender or title to see local options from the closing partner directory.")),
@@ -99,14 +101,22 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
       sec("2. Make it stand out",p("Add your business overview PDF and invite agents you've worked with to review you. Both show on your listing.")),
       sec("3. Spotlights and events",p("Your listing includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.")),
       sec("4. Showing or hidden",p("Use the Show my listing switch at the top of your dashboard to hide your listing for a while.")),
-      sec("5. Your fee",p(`Your first 90 days are free, then it's $20 a month for your marketing listing. Cancel anytime by emailing ${HELP_EMAIL}. Your agreement has the details.`))]}[r]||[];
+      sec("5. Your fee",p(`Your first 90 days are free with our launch offer, then it's $20 a month for your marketing listing. ${typeof billingOn==="function"&&billingOn()?"Your card is charged automatically. Use Manage billing on your dashboard to update your card, see receipts, or cancel.":`Cancel anytime by emailing ${HELP_EMAIL}.`} Your agreement has the details.`))],
+    orbyt:[
+      sec("1. Your dashboard",p("Everything waiting on you lands here: sign-ups to review, projects to match, quotes and picks to follow up on, and fees due. Use Nudge to send a ready-made reminder, or check an item off when it's handled.")),
+      sec("2. Match projects",p("Open a project in Projects or Pipeline. For each service, pick the vendors to introduce. They get the bid request, and the agent sees each quote as it comes in. Open a vendor's name to see their PDF, portfolio and reviews while you match.")),
+      sec("3. Vendors and reviews",p("Review new vendor sign-ups in Vendors and reviews: check their insurance and references, then approve. Approve agent reviews before they show, and manage special offers from a vendor's card.")),
+      sec("4. Closing partners",p("Lenders, title, escrow and insurance providers have their own tab. Check each license, then approve every licensed provider, since the directory is open to all. Agents browse listed partners themselves, and Orbyt doesn't pick or introduce them. The Card payments panel at the top shows your Stripe setup.")),
+      sec("5. Invoicing",p("Orbyt's fees on finished jobs show here once the agent confirms the final amount. Mark each one invoiced, paid or waived. Closing partner marketing fees and special offer fees have their own sections. Card payments record themselves.")),
+      sec("6. Reports",p("Revenue by period, split into job fees, closing partner marketing fees and special offer fees, plus projects, agents and vendors over time. The Investor view has the same numbers in a shareable format.")),
+      sec("7. Updates and setup",p("Setup steps, SQL updates and what each email means are in your Orbyt runbook in Google Drive. Never paste a secret key into a chat; keys go only into Supabase or Netlify."))]}[r]||[];
   return `<div class="scrim" data-act="helpclose"></div><div class="vcard wide helpcard" role="dialog" aria-modal="true" aria-labelledby="hp-title">
-    <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">How Orbyt works</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
+    <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">${r==="orbyt"?"Running Orbyt":"How Orbyt works"}</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
     <div class="helpbody">${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}
       ${pushKey()&&S.pushState&&S.pushState!=="unsupported"?sec("Notifications",`<p>${esc(pushHint())}</p>${pushButton()?`<p style="margin-top:8px">${pushButton()}</p>`:""}<p class="small" style="margin-top:6px">You get a notification for the same things Orbyt emails you about. Turn them on separately on each phone or computer you use.</p>`):""}
-      ${sec("Emails to expect",`<p>Orbyt emails come from <span class="strong">${HELP_EMAIL}</span>. Add it to your contacts so nothing lands in spam.</p><ul>${emails.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`)}
+      ${sec(r==="orbyt"?"Emails you'll get":"Emails to expect",`<p>Orbyt emails come from <span class="strong">${HELP_EMAIL}</span>. Add it to your contacts so nothing lands in spam.</p><ul>${emails.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`)}
       ${sec("Get the Orbyt app",`<p>Orbyt works like an app on your phone, with no app store needed. ${esc(appSteps())}</p><p style="margin-top:8px"><button class="btn sm" type="button" data-act="getapp">Get the app</button></p><p class="small" style="margin-top:6px">The first time you open it from your home screen, sign in once. Links in Orbyt emails open in your browser.</p>`)}
-      <div class="callout" style="margin-top:6px"><div class="strong">Need help or found a bug?</div><p class="small" style="margin:4px 0 0">${contactLine()}</p></div></div></div>`}
+      ${r==="orbyt"?"":`<div class="callout" style="margin-top:6px"><div class="strong">Need help or found a bug?</div><p class="small" style="margin:4px 0 0">${contactLine()}</p></div>`}</div></div>`}
 
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="getapp"],[data-act="appclose"],[data-act="installapp"],[data-act="setupdone"],[data-act="setupshow"],[data-act="help"],[data-act="helpclose"],[data-act="gofold"],[data-act="setupref"]');if(!t)return;
   e.preventDefault();e.stopImmediatePropagation();const a=t.dataset.act;
@@ -114,7 +124,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="getap
   if(a==="appclose"){S.appInfo=false;render();return}
   if(a==="installapp"){const ev=S.installEvt;if(!ev){toast("Use your browser's menu to install Orbyt.");return}
     ev.prompt();ev.userChoice.then(c=>{S.installEvt=null;if(c&&c.outcome==="accepted")setupMark("setup-bookmark").then(()=>render()).catch(()=>{});else render()}).catch(()=>{});return}
-  if(a==="help"){S.help=true;render();return}
+  if(a==="help"){S.help=true;render();if(kind()!=="orbyt"&&S.canWrite&&!setupDone("setup-help"))setupMark("setup-help").catch(()=>{});return}
   if(a==="helpclose"){S.help=false;render();return}
   if(a==="setupdone"){if(t.dataset.id==="setup-hide")S.setupOpen=false;guard(()=>setupMark(t.dataset.id),t.dataset.id==="setup-hide"?"Hidden. Bring it back anytime with Show the checklist, or from Help.":"Checked off");return}
   if(a==="setupshow"){S.help=false;S.setupOpen=true;guard(()=>setupUnmark("setup-hide"));setTimeout(()=>document.querySelector(".setup,.setupback")?.scrollIntoView({behavior:"smooth",block:"center"}),300);return}

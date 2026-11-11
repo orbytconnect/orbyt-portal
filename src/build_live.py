@@ -137,7 +137,7 @@ sub("""  if(S.quoteView&&S.session)h+=quoteViewer();""", """  if(S.quoteView&&S.
   else if(S.myDetails&&S.session&&typeof myDetailsView==="function")h+=myDetailsView();
   else if(S.help&&S.session&&typeof helpView==="function")h+=helpView();
   else if(S.appInfo&&S.session&&typeof appView==="function")h+=appView();""")
-sub("""<button class="btn ghost sm" data-act="signout">Sign out</button>`;""", """${myAgreementBtn()}<button class="btn ghost sm" data-act="signout">Sign out</button>`;""")
+# header links (My details, Terms of Use) now sit by the name in the source
 sub("""v.insured?"Insurance checked":"Insurance not checked"}</p>""", """v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}${kind()==="orbyt"?insuranceAdminLine(v)+businessLine(v)+reviewReqLine(v):""}""")
 sub("""${v.approved===false?'<span class="pill late">Needs review</span>':""} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.sample?""", """${v.approved===false?'<span class="pill late">Needs review</span>':""}${agreementPill(v)} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.sample?""")
 sub("Approved. They can be matched now.", "Approved. Next time they sign in, they'll see the fees, then they're ready for introductions.")

@@ -290,6 +290,7 @@ form.inline input{width:110px;padding:6px 8px}
 .alerts{background:var(--surface);border:1px solid var(--warn);border-radius:var(--r);padding:16px;margin-bottom:24px;display:grid;gap:12px}
 .alerts .sechead{margin:0}
 .alerts .tasks{border-color:var(--line)}
+.alerts .folds .fold:last-child{margin-bottom:0}.alerts .foldbody{padding:0 12px 12px}
 .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;margin-top:8px}
 .thumbs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;display:block;max-width:100%}
 .modebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-bottom:18px}
@@ -390,6 +391,7 @@ table.mini{min-width:0}
 .vstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 18px}
 .vst{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px}.vst b{font-size:20px;font-weight:500}
 .vtip{grid-column:1 / -1;margin:0}
+.vsecs{margin-top:28px}.psecbody .vst{background:var(--surface-2)}.psecbody>.folds{margin:0}.psecbody .vstats{margin-bottom:14px}.updfold{margin:10px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 @media (max-width:720px){.vstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .feebox{border-left:3px solid var(--gold)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--surface);cursor:pointer}
@@ -915,9 +917,10 @@ function splitTasks(T){
   const done=T.filter(off).sort((a,b)=>String(dm[b.id]||b.when).localeCompare(String(dm[a.id]||a.when)));
   return{open,done};
 }
-function tasksView(T,emptyMsg){
-  const{open,done}=splitTasks(T);
-  let h=open.length?`<div class="tasks">${open.map(t=>taskRow(t,false)).join("")}</div>`
+function tasksView(T,emptyMsg,isUpd){
+  const sp=splitTasks(T),done=sp.done,upd=isUpd?sp.open.filter(isUpd):[],open=isUpd?sp.open.filter(t=>!isUpd(t)):sp.open;
+  let h=open.length||upd.length?(open.length?`<div class="tasks">${open.map(t=>taskRow(t,false)).join("")}</div>`:`<p class="small" style="margin:4px 0 12px">Nothing needs a decision from you right now.</p>`)+
+    (upd.length?`<details class="fold updfold" data-fold="updates" ${foldOpen("updates",false)?"open":""}><summary><span class="foldtitle">Updates</span><span class="pill">${upd.length}</span><span class="small foldhint">Introductions and finished jobs. Nothing urgent.</span></summary><div class="foldbody"><div class="tasks">${upd.map(t=>taskRow(t,false)).join("")}</div></div></details>`:""):open.length?`<div class="tasks">${open.map(t=>taskRow(t,false)).join("")}</div>`
     :`<div class="emptystate"><div class="eyebrow">All caught up</div><h2 style="margin-top:6px">Nothing on your list</h2><p>${emptyMsg}</p></div>`;
   if(done.length){
     h+=`<div class="donehead"><h2>Done <span class="small num">(${done.length})</span></h2><button class="linkbtn" data-act="toggledone">${S.showDone?"Hide":"Show"}</button></div>`;
@@ -1048,7 +1051,7 @@ function tabs(list){return `<div class="tabs" role="tablist">${list.map(([id,lab
 
 /* agent */
 function agentView(){
-  const agent=roleVal();const T=agentTasks(agent);const openN=splitTasks(T).open.length;
+  const agent=roleVal();const T=agentTasks(agent);const isUpd=t=>/^intro-/.test(t.id)||(S.canWrite&&/^review-/.test(t.id));const openN=splitTasks(T).open.filter(t=>!isUpd(t)).length;
   const ps=S.projects.filter(p=>isOnProject(p,agent));
   if(typeof msgPending==="function")msgPending();
   if(!["tasks","projects","messages","favorites","team","card","closingdir"].includes(S.tab))S.tab="tasks";
@@ -1074,7 +1077,7 @@ function agentView(){
   if(S.tab==="team")return h+myTeamView(agent);
   if(S.tab==="card"&&typeof hcView==="function")return h+hcView(agent);
   if(S.openForm==="newproject")h+=newProjectForm(agent);
-  if(S.tab==="tasks")return h+tasksView(T,"When a vendor sends a bid or a list date gets close, it shows up here.")+(typeof agentFolds==="function"?agentFolds():"");
+  if(S.tab==="tasks")return h+tasksView(T,"When a vendor sends a bid or a list date gets close, it shows up here.",isUpd)+(typeof agentFolds==="function"?agentFolds():"");
   if(S.tab==="favorites"){
     if(!favs.length)return h+`<div class="emptystate"><h2>No favorites yet</h2><p>Click any vendor's name to open their card, then choose "Save to favorites." Ashleigh sees your favorites and puts them first when she matches your listings.</p></div>`;
     const groups=[...CATS,...(typeof CLOSING!=="undefined"?CLOSING:[])].filter(c=>favs.some(v=>vsv(v).includes(c)));
@@ -1170,8 +1173,7 @@ function vendorView(){
     <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
   if(typeof setupCard==="function")h+=setupCard();
-  h+=vendorStats(v,mine);
-  const foot=typeof vendorFolds==="function"?vendorFolds(v):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
+  const foot=typeof vendorFolds==="function"?vendorFolds(v,mine):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
   h+=statStrip([
     {key:"requested",label:"Bids requested",list:req,render:l=>bidTable(l,"vendor"),empty:"No open requests right now."},
     {key:"overdue",label:"Overdue",list:req.filter(b=>b.status==="requested"&&ageDays(b.requestedAt)>=REMIND_DAYS),render:l=>bidTable(l,"vendor"),empty:"Nothing overdue. Nice work."},
@@ -1851,7 +1853,7 @@ function orbytAlerts(){
       when:dAt,act:{a:"openmatch",id:p.id,label:"Open project"},auto:false,resurface:7,
       nudge:{to:aTo(p),subject:`How did ${vn} do?`,text:`Hi ${fn(p.agent)}, how did ${vn} do on ${p.address}? A quick star rating in Orbyt helps other agents pick great vendors and helps me keep the network strong. It takes about 30 seconds!`}})}
   const SL={Vendor:["Vendor stalled","k-warn"],Agent:["Waiting on agent","k-bid"],Project:["List date passed","k-warn"],Customer:["Check in","k-ink"]};
-  for(const x of stalledItems())A.push({id:x.id,cls:SL[x.who][1],urgent:x.who==="Project"||(x.who==="Vendor"&&x.days>=4),label:SL[x.who][0],title:x.title,meta:`${x.meta} · ${x.days} ${x.days===1?"day":"days"}`,
+  for(const x of stalledItems())A.push({grp:x.who==="Vendor"?"stall":x.who==="Project"?"match":"agent",id:x.id,cls:SL[x.who][1],urgent:x.who==="Project"||(x.who==="Vendor"&&x.days>=4),label:SL[x.who][0],title:x.title,meta:`${x.meta} · ${x.days} ${x.days===1?"day":"days"}`,
     when:new Date(Date.now()-x.days*864e5).toISOString(),act:x.pid?{a:"openmatch",id:x.pid,label:"Open project"}:null,auto:false,resurface:3,nudge:x.nudge});
   for(const su of (S.signups||[]).filter(x=>x.kind==="agent"))A.push({id:"agentsu-"+su.id,cls:"k-ink",label:"Agent sign-up",title:`${su.name} wants to join${su.brokerage?" ("+su.brokerage+")":""}`,
     meta:[(su.areas||[]).join(", "),su.email,ago(su.createdAt)].filter(Boolean).join(" · "),when:su.createdAt||"",act:{a:"approveagent",id:su.id,label:"Approve"},auto:su.status==="approved",autoLabel:"Approved"});
@@ -1863,12 +1865,18 @@ function orbytAlerts(){
   if(typeof closingAlerts==="function")A.push(...closingAlerts());
   return A;
 }
+const ALERT_GROUPS=[["match","Matching and not booked","New requests, added services, passes and list dates coming up"],["stall","Vendors stalled","Bids or next steps that are taking too long"],["agent","Waiting on agents","Agents who haven't picked or replied"],
+  ["msg","Messages","Conversations with you"],["people","Sign-ups and vendors","New sign-ups, insurance and special offers"],["money","Invoicing and fees","Ready to invoice, overdue and fee questions"],["rev","Reviews","New reviews and agents to ask"],["other","Everything else",""]];
+function alertGroup(t){if(t.grp)return t.grp;const k=String(t.id).split("-")[0];
+  return{new:"match",svc:"match",opt:"match",decl:"match",msg:"msg",agentsu:"people",vrev:"people",ins:"people",insexp:"people",promo:"people",inv:"money",overdue:"money",disp:"money",listdue:"money",newrev:"rev",nudge:"rev"}[k]||"other"}
 function alertsView(){
   const{open,done}=splitTasks(orbytAlerts());
+  const groups=ALERT_GROUPS.map(([k,title,hint])=>{const l=open.filter(t=>alertGroup(t)===k);if(!l.length)return"";const urg=l.filter(t=>t.urgent).length;
+    return `<details class="fold" data-fold="al-${k}" ${foldOpen("al-"+k,urg>0)?"open":""}><summary><span class="foldtitle">${title}</span><span class="pill ${urg?"late":""}">${urg===l.length?urg+" urgent":l.length+(urg?` · ${urg} urgent`:"")}</span>${hint?`<span class="small foldhint">${hint}</span>`:""}</summary><div class="foldbody"><div class="tasks">${l.map(t=>taskRow(t,false)).join("")}</div></div></details>`}).join("");
   return `<section class="alerts"><div class="sechead"><div><h2>Needs your attention ${open.length?`<span class="count">${open.length}</span>`:""}</h2>
-    <span class="small">New requests, added services, reviews, sign-ups and anything that has stalled. Hit Nudge to send a ready-made text or email, or check one off to clear it for now.</span></div>
+    <span class="small">Grouped by type. Groups with something urgent open on their own. Hit Nudge to send a ready-made text or email, or check one off to clear it for now.</span></div>
     ${done.length?`<button class="linkbtn" data-act="toggledone">${S.showDone?"Hide cleared":"Show cleared ("+done.length+")"}</button>`:""}</div>
-    ${open.length?`<div class="tasks">${open.map(t=>taskRow(t,false)).join("")}</div>`:`<p class="small" style="margin:0">You're all caught up.</p>`}
+    ${open.length?`<div class="folds">${groups}</div>`:`<p class="small" style="margin:0">You're all caught up.</p>`}
     ${S.showDone&&done.length?`<div class="tasks" style="margin-top:10px">${done.map(t=>taskRow(t,true)).join("")}</div>`:""}</section>`;
 }
 function dashView(){
@@ -1881,12 +1889,12 @@ function dashView(){
   else{
     const live=b=>projById(b.projectId)&&!projById(b.projectId).listed;
     const needs=active.filter(p=>needsCats(p).length);
-    main=alertsView()+statStrip([
+    main=statStrip([
       {key:"needs",label:"Needs matching",list:needs,render:l=>projTable(l,"openmatch"),empty:"Every active project has introductions."},
       {key:"active",label:"Active projects",list:active,render:l=>projTable(l,"openmatch")},
       {key:"waiting",label:"Waiting on vendors",list:S.bids.filter(b=>["requested","changes","chosen"].includes(b.status)&&live(b)),render:l=>bidTable(l,"orbyt"),empty:"No vendors owe you a bid right now."},
       {key:"review",label:"Bids to review",list:S.bids.filter(b=>b.status==="submitted"&&live(b)),render:l=>bidTable(l,"orbyt"),empty:"No bids waiting on a decision."},
-      ...(PM_ON?[{key:"managing",label:"You're managing",list:pm,render:l=>projTable(l,"openmatch"),empty:"No active projects with project management."}]:[])]);
+      ...(PM_ON?[{key:"managing",label:"You're managing",list:pm,render:l=>projTable(l,"openmatch"),empty:"No active projects with project management."}]:[])])+alertsView();
     main+=`<section class="section"><div class="sechead"><div><h2>Needs matching</h2><span class="small">${matchMode()==="hand"?"You pick every introduction.":"Automatic matching is on. These still need a hand."}</span></div>
       ${S.canWrite&&S.openForm!=="import"?`<button class="btn ghost sm" data-act="form" data-key="import">Import website requests</button>`:""}</div>
       ${S.openForm==="import"?importPanel():""}
@@ -3555,7 +3563,7 @@ function feesSection(){
         <p class="small" style="margin:0">Each portion is charged at its own rate, like tax brackets. $25 minimum, $600 cap per job.</p></div>
       <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">On later jobs with that agent or their clients. $15 minimum, $100 cap per job.</p></div>
       <div class="feecard"><span class="eyebrow">Never a fee on</span><p class="small" style="margin:0">Staging extensions while a home is on the market, jobs cancelled before work starts, or anything the client doesn't pay you.</p>
-        <span class="eyebrow" style="margin-top:10px;display:block">Optional</span><p class="small" style="margin:0">Special offer for Orbyt clients, $20 for 30 days.</p></div></div>
+        <span class="eyebrow" style="margin-top:10px;display:block">Optional</span><p class="small" style="margin:0">Special offer for Orbyt clients, $20 for up to 30 days.</p></div></div>
     <p class="small"><b>Example:</b> a $3,000 first job is $120 on the first $1,000 plus $160 on the next $2,000, for a $280 fee. The same job as a repeat is $60.</p>
     ${feeCalc()}
     <p class="small" style="margin:0"><b>When it's due:</b> report your final invoice amount within 5 business days of finishing a job (you can do it right on the job in the portal). Orbyt sends an invoice, due 15 days after the job wraps. Fees more than 30 days past due add 1.5% a month, and new introductions pause until they're paid.</p></section>`}
@@ -3595,7 +3603,7 @@ function signupFees(){
     <div class="feecard"><span class="eyebrow">First job with a new agent</span><table class="agtable"><tbody><tr><td>First $1,000</td><td>12%</td></tr><tr><td>$1,001 to $5,000</td><td>8%</td></tr><tr><td>Above $5,000</td><td>5%</td></tr></tbody></table>
       <p class="small" style="margin:0">Each portion at its own rate, like tax brackets. $25 minimum, $600 cap per job.</p></div>
     <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">Later jobs with that agent or their clients. $15 minimum, $100 cap per job.</p></div>
-    <div class="feecard"><span class="eyebrow">Good to know</span><p class="small" style="margin:0">Nothing to join and no monthly fee. An optional special offer for Orbyt clients is $20 for 30 days. Fees more than 30 days past due add 1.5% a month, and new intros pause until they're paid.</p></div></div>`}
+    <div class="feecard"><span class="eyebrow">Good to know</span><p class="small" style="margin:0">Nothing to join and no monthly fee. An optional special offer for Orbyt clients is $20 for up to 30 days. Fees more than 30 days past due add 1.5% a month, and new intros pause until they're paid.</p></div></div>`}
 // the business name in the authority line follows what's typed
 document.addEventListener("input",e=>{const el=e.target;if(!el.matches||!el.matches("input[data-bizname]"))return;const f=el.closest("form");
   f&&f.querySelectorAll(".bizname").forEach(b=>b.textContent=el.value.trim()||"[Legal business name]")},true);
@@ -4006,26 +4014,36 @@ function foldOpen(key,dflt){S.folds=S.folds||{};if(key in S.folds)return S.folds
 document.addEventListener("toggle",e=>{const d=e.target;if(!d.matches||!d.matches("details.fold[data-fold]"))return;S.folds=S.folds||{};S.folds[d.dataset.fold]=d.open;
   try{localStorage.setItem("orbyt-fold-"+S.uid+"-"+d.dataset.fold,d.open?"1":"0")}catch(_){}},true);
 const fold=(key,title,pill,hint,body,dflt)=>body?`<details class="fold" data-fold="${key}" ${foldOpen(key,dflt)?"open":""}><summary><span class="foldtitle">${title}</span>${pill||""}${hint?`<span class="small foldhint">${hint}</span>`:""}</summary><div class="foldbody">${body}</div></details>`:"";
-function vendorFolds(v){
+const psec=(id,n,title,sub,right,body)=>`<section class="psec" data-fold="${id}"><div class="psechead"><div><div class="eyebrow">${n}</div><h2>${title}</h2>${sub?`<p class="small">${sub}</p>`:""}</div>${right?`<div>${right}</div>`:""}</div><div class="psecbody">${body}</div></section>`;
+function vendorFolds(v,mine){
   if(!v||kind()!=="vendor")return"";
-  const parts=[];
-  if(v.approved!==false)parts.push(fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false));
-  if(v.approved!==false){const st=insState(v),[pl,pc]=INS_PILL[st.state];
-    parts.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
-  const n=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf,v.overviewPdf].filter(Boolean).length;
-  parts.push(fold("port","Business overview and portfolio",n?`<span class="pill set">${n} added</span>`:`<span class="pill late">Add your work</span>`,"Business overview, website, Instagram and your work",portfolioCard(v),false));
+  const ok=v.approved!==false,out=[];let n=0;const num=()=>String(++n);
+  // 1 profile
+  const prof=[];
+  if(ok){const st=insState(v),[pl,pc]=INS_PILL[st.state];
+    prof.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
+  const c=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf,v.overviewPdf].filter(Boolean).length;
+  prof.push(fold("port","Business overview and portfolio",c?`<span class="pill set">${c} added</span>`:`<span class="pill late">Add your work</span>`,"Business overview, website, Instagram and your work",portfolioCard(v),false));
   const pr=vPricing(v),hasP=statedTier(v)||priceItems(v).length||pr.minimum;
-  parts.push(fold("price","Typical pricing",hasP?'<span class="pill set">Added</span>':'<span class="pill">Not added yet</span>',"Helps me match you to the right homes",vendorPricingCard(v),S.openForm==="pricing"));
-  if(typeof reviewInviteCard==="function"&&v.approved!==false){const sent=typeof rrFor==="function"?rrFor(v.id):[];
-    parts.push(fold("rr","Reviews from past clients",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Invite agents you've worked with",reviewInviteCard(v),!!S.rrMore))}
-  if(v.approved!==false){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
-    parts.push(fold("promo","Special offer",on?`<span class="pill featured">Live until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"","Share a deal with Orbyt clients, $20 for 30 days",promoCard(v),!!S.promoOpen))}
-  {const lc=typeof lostCard==="function"?lostCard(v):"";if(lc){const n=S.bids.filter(b=>b.vendorId===v.id&&b.lostReason).length;
-    parts.push(fold("lost","Why quotes didn't win",`<span class="pill">${n}</span>`,"What agents told you",lc,false))}}
-  parts.push(fold("refer","Refer someone to Orbyt",refCountPill(),"A ready-made message to send",referralCard("vendor"),false));
-  return `<section class="section folds"><div class="sechead" style="margin-bottom:8px"><div><h2>Your profile</h2><span class="small">Finish these when you have a minute. Tap one to open it.</span></div></div>${parts.join("")}</section>`}
+  prof.push(fold("price","Typical pricing",hasP?'<span class="pill set">Added</span>':'<span class="pill">Not added yet</span>',"Helps me match you to the right homes",vendorPricingCard(v),S.openForm==="pricing"));
+  out.push(psec("profile",num(),"Your profile","What agents see when I introduce you. Tap a row to open it.","",`<div class="folds">${prof.join("")}</div>`));
+  // 2 reviews and results
+  const rv=[];
+  if(ok)rv.push(fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false));
+  if(ok&&typeof reviewInviteCard==="function"){const sent=typeof rrFor==="function"?rrFor(v.id):[];
+    rv.push(fold("rr","Invite past clients to review you",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Agents you've worked with before Orbyt",reviewInviteCard(v),!!S.rrMore))}
+  {const lc=typeof lostCard==="function"?lostCard(v):"";if(lc){const k=S.bids.filter(b=>b.vendorId===v.id&&b.lostReason).length;
+    rv.push(fold("lost","Why quotes didn't win",`<span class="pill">${k}</span>`,"What agents told you",lc,false))}}
+  const stats=vendorStats(v,mine||[]);
+  if(stats||rv.length)out.push(psec("results",num(),"Reviews and results","How agents rate you and how your bids are doing.","",stats+(rv.length?`<div class="folds">${rv.join("")}</div>`:"")));
+  // 3 special offer
+  if(ok){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
+    out.push(psec("promo",num(),"Special offer","Share a deal with Orbyt clients, $20 for up to 30 days.",on?`<span class="pill featured">Live until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"",promoCard(v)))}
+  // 4 spread the word
+  out.push(psec("refer",num(),"Spread the word","A ready-made message with your own sign-up link.",refCountPill(),referralCard("vendor")));
+  return `<div class="vsecs">${out.join("")}</div>`}
 function agentFolds(){if(kind()!=="agent"||!S.canWrite)return"";
-  return `<section class="section folds" style="margin-top:24px">${fold("refer","Refer someone to Orbyt",refCountPill(),"Know an agent or vendor who'd like Orbyt?",referralCard("agent"),false)}</section>`}
+  return psec("refer","","Spread the word","A ready-made message with your own sign-up link.",refCountPill(),referralCard("agent"))}
 // portfolio card
 function portfolioCard(v){
   const pdf=v.portfolioPdf?blobHref(v.portfolioPdf):"";

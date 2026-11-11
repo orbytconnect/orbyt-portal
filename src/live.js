@@ -594,7 +594,7 @@ function feesSection(){
         <p class="small" style="margin:0">Each portion is charged at its own rate, like tax brackets. $25 minimum, $600 cap per job.</p></div>
       <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">On later jobs with that agent or their clients. $15 minimum, $100 cap per job.</p></div>
       <div class="feecard"><span class="eyebrow">Never a fee on</span><p class="small" style="margin:0">Staging extensions while a home is on the market, jobs cancelled before work starts, or anything the client doesn't pay you.</p>
-        <span class="eyebrow" style="margin-top:10px;display:block">Optional</span><p class="small" style="margin:0">Special offer for Orbyt clients, $20 for 30 days.</p></div></div>
+        <span class="eyebrow" style="margin-top:10px;display:block">Optional</span><p class="small" style="margin:0">Special offer for Orbyt clients, $20 for up to 30 days.</p></div></div>
     <p class="small"><b>Example:</b> a $3,000 first job is $120 on the first $1,000 plus $160 on the next $2,000, for a $280 fee. The same job as a repeat is $60.</p>
     ${feeCalc()}
     <p class="small" style="margin:0"><b>When it's due:</b> report your final invoice amount within 5 business days of finishing a job (you can do it right on the job in the portal). Orbyt sends an invoice, due 15 days after the job wraps. Fees more than 30 days past due add 1.5% a month, and new introductions pause until they're paid.</p></section>`}
@@ -634,7 +634,7 @@ function signupFees(){
     <div class="feecard"><span class="eyebrow">First job with a new agent</span><table class="agtable"><tbody><tr><td>First $1,000</td><td>12%</td></tr><tr><td>$1,001 to $5,000</td><td>8%</td></tr><tr><td>Above $5,000</td><td>5%</td></tr></tbody></table>
       <p class="small" style="margin:0">Each portion at its own rate, like tax brackets. $25 minimum, $600 cap per job.</p></div>
     <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">Later jobs with that agent or their clients. $15 minimum, $100 cap per job.</p></div>
-    <div class="feecard"><span class="eyebrow">Good to know</span><p class="small" style="margin:0">Nothing to join and no monthly fee. An optional special offer for Orbyt clients is $20 for 30 days. Fees more than 30 days past due add 1.5% a month, and new intros pause until they're paid.</p></div></div>`}
+    <div class="feecard"><span class="eyebrow">Good to know</span><p class="small" style="margin:0">Nothing to join and no monthly fee. An optional special offer for Orbyt clients is $20 for up to 30 days. Fees more than 30 days past due add 1.5% a month, and new intros pause until they're paid.</p></div></div>`}
 // the business name in the authority line follows what's typed
 document.addEventListener("input",e=>{const el=e.target;if(!el.matches||!el.matches("input[data-bizname]"))return;const f=el.closest("form");
   f&&f.querySelectorAll(".bizname").forEach(b=>b.textContent=el.value.trim()||"[Legal business name]")},true);
@@ -1045,26 +1045,36 @@ function foldOpen(key,dflt){S.folds=S.folds||{};if(key in S.folds)return S.folds
 document.addEventListener("toggle",e=>{const d=e.target;if(!d.matches||!d.matches("details.fold[data-fold]"))return;S.folds=S.folds||{};S.folds[d.dataset.fold]=d.open;
   try{localStorage.setItem("orbyt-fold-"+S.uid+"-"+d.dataset.fold,d.open?"1":"0")}catch(_){}},true);
 const fold=(key,title,pill,hint,body,dflt)=>body?`<details class="fold" data-fold="${key}" ${foldOpen(key,dflt)?"open":""}><summary><span class="foldtitle">${title}</span>${pill||""}${hint?`<span class="small foldhint">${hint}</span>`:""}</summary><div class="foldbody">${body}</div></details>`:"";
-function vendorFolds(v){
+const psec=(id,n,title,sub,right,body)=>`<section class="psec" data-fold="${id}"><div class="psechead"><div><div class="eyebrow">${n}</div><h2>${title}</h2>${sub?`<p class="small">${sub}</p>`:""}</div>${right?`<div>${right}</div>`:""}</div><div class="psecbody">${body}</div></section>`;
+function vendorFolds(v,mine){
   if(!v||kind()!=="vendor")return"";
-  const parts=[];
-  if(v.approved!==false)parts.push(fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false));
-  if(v.approved!==false){const st=insState(v),[pl,pc]=INS_PILL[st.state];
-    parts.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
-  const n=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf,v.overviewPdf].filter(Boolean).length;
-  parts.push(fold("port","Business overview and portfolio",n?`<span class="pill set">${n} added</span>`:`<span class="pill late">Add your work</span>`,"Business overview, website, Instagram and your work",portfolioCard(v),false));
+  const ok=v.approved!==false,out=[];let n=0;const num=()=>String(++n);
+  // 1 profile
+  const prof=[];
+  if(ok){const st=insState(v),[pl,pc]=INS_PILL[st.state];
+    prof.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
+  const c=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf,v.overviewPdf].filter(Boolean).length;
+  prof.push(fold("port","Business overview and portfolio",c?`<span class="pill set">${c} added</span>`:`<span class="pill late">Add your work</span>`,"Business overview, website, Instagram and your work",portfolioCard(v),false));
   const pr=vPricing(v),hasP=statedTier(v)||priceItems(v).length||pr.minimum;
-  parts.push(fold("price","Typical pricing",hasP?'<span class="pill set">Added</span>':'<span class="pill">Not added yet</span>',"Helps me match you to the right homes",vendorPricingCard(v),S.openForm==="pricing"));
-  if(typeof reviewInviteCard==="function"&&v.approved!==false){const sent=typeof rrFor==="function"?rrFor(v.id):[];
-    parts.push(fold("rr","Reviews from past clients",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Invite agents you've worked with",reviewInviteCard(v),!!S.rrMore))}
-  if(v.approved!==false){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
-    parts.push(fold("promo","Special offer",on?`<span class="pill featured">Live until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"","Share a deal with Orbyt clients, $20 for 30 days",promoCard(v),!!S.promoOpen))}
-  {const lc=typeof lostCard==="function"?lostCard(v):"";if(lc){const n=S.bids.filter(b=>b.vendorId===v.id&&b.lostReason).length;
-    parts.push(fold("lost","Why quotes didn't win",`<span class="pill">${n}</span>`,"What agents told you",lc,false))}}
-  parts.push(fold("refer","Refer someone to Orbyt",refCountPill(),"A ready-made message to send",referralCard("vendor"),false));
-  return `<section class="section folds"><div class="sechead" style="margin-bottom:8px"><div><h2>Your profile</h2><span class="small">Finish these when you have a minute. Tap one to open it.</span></div></div>${parts.join("")}</section>`}
+  prof.push(fold("price","Typical pricing",hasP?'<span class="pill set">Added</span>':'<span class="pill">Not added yet</span>',"Helps me match you to the right homes",vendorPricingCard(v),S.openForm==="pricing"));
+  out.push(psec("profile",num(),"Your profile","What agents see when I introduce you. Tap a row to open it.","",`<div class="folds">${prof.join("")}</div>`));
+  // 2 reviews and results
+  const rv=[];
+  if(ok)rv.push(fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false));
+  if(ok&&typeof reviewInviteCard==="function"){const sent=typeof rrFor==="function"?rrFor(v.id):[];
+    rv.push(fold("rr","Invite past clients to review you",sent.length?`<span class="pill">${sent.length} invited</span>`:"","Agents you've worked with before Orbyt",reviewInviteCard(v),!!S.rrMore))}
+  {const lc=typeof lostCard==="function"?lostCard(v):"";if(lc){const k=S.bids.filter(b=>b.vendorId===v.id&&b.lostReason).length;
+    rv.push(fold("lost","Why quotes didn't win",`<span class="pill">${k}</span>`,"What agents told you",lc,false))}}
+  const stats=vendorStats(v,mine||[]);
+  if(stats||rv.length)out.push(psec("results",num(),"Reviews and results","How agents rate you and how your bids are doing.","",stats+(rv.length?`<div class="folds">${rv.join("")}</div>`:"")));
+  // 3 special offer
+  if(ok){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
+    out.push(psec("promo",num(),"Special offer","Share a deal with Orbyt clients, $20 for up to 30 days.",on?`<span class="pill featured">Live until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"",promoCard(v)))}
+  // 4 spread the word
+  out.push(psec("refer",num(),"Spread the word","A ready-made message with your own sign-up link.",refCountPill(),referralCard("vendor")));
+  return `<div class="vsecs">${out.join("")}</div>`}
 function agentFolds(){if(kind()!=="agent"||!S.canWrite)return"";
-  return `<section class="section folds" style="margin-top:24px">${fold("refer","Refer someone to Orbyt",refCountPill(),"Know an agent or vendor who'd like Orbyt?",referralCard("agent"),false)}</section>`}
+  return psec("refer","","Spread the word","A ready-made message with your own sign-up link.",refCountPill(),referralCard("agent"))}
 // portfolio card
 function portfolioCard(v){
   const pdf=v.portfolioPdf?blobHref(v.portfolioPdf):"";

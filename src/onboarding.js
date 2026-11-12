@@ -98,7 +98,7 @@ function newsCard(){if(!S.session)return"";const r=setupRole(),seen=S.newsSeen??
 function newsHelp(r){const l=newsFor(r);if(!l.length)return"";
   return `<div class="helpsec" id="help-news"><h3>What's new</h3><ul class="newslist">${l.map(n=>`<li><span class="small num">${esc(fmtDate(n.date))}</span> <span class="strong">${esc(n.title)}</span>${r==="orbyt"?` <span class="pill">${n.roles.map(x=>NEWS_ROLE[x]).join(", ")}</span>`:""}<p class="small">${esc(n.body)}</p></li>`).join("")}</ul></div>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="newsok"],[data-act="newsall"]');if(!t)return;
-  const top=(newsFor(setupRole())[0]||{}).id||"";S.newsSeen=top;try{localStorage.setItem("orbyt-news-"+S.uid,top)}catch(_){}
+  const top=NEWS.map(n=>n.id).sort().pop()||"";S.newsSeen=top;try{localStorage.setItem("orbyt-news-"+S.uid,top)}catch(_){}
   if(t.dataset.act==="newsall"){S.help=true;S.helpNews=true}render()});
 function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t}</h3>${b}</div>`,p=x=>`<p>${x}</p>`;
   const emails={

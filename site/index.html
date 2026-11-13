@@ -4766,10 +4766,10 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="partn
 
 /* settlement-service check: vendors and open requests that may involve closing work (no per-introduction fee on those) */
 function closingWorkCheck(){if(!S.canWrite)return"";
-  const vs=(S.vendors||[]).filter(v=>!isPartner(v)&&(vsv(v).some(c=>/home inspection|termite|appraisal|notary|warranty/i.test(c))||vsv(v).includes("Pest control")||/^Closing work: some/i.test(v.signupNotes||"")));
+  const vs=(S.vendors||[]).filter(v=>!isPartner(v)&&(vsv(v).some(c=>/home inspection|termite|appraisal|notary|warranty/i.test(c))||/^Closing work: some/i.test(v.signupNotes||"")));
   const ps=(S.projects||[]).filter(p=>!p.listed&&(p.categories||[]).includes("Home inspection"));
   if(!vs.length&&!ps.length)return"";
-  const why=v=>/^Closing work: some/i.test(v.signupNotes||"")?"Said some of their work is part of closings":vsv(v).includes("Pest control")&&!vsv(v).some(c=>/inspection|appraisal|notary|warranty/i.test(c))?"Pest control: do they write termite reports for escrow?":"Offers a closing service";
+  const why=v=>/^Closing work: some/i.test(v.signupNotes||"")?"Said some of their work is part of closings":"Offers a closing service";
   return `<section class="section"><details class="fold" data-fold="cwcheck" ${foldOpen("cwcheck",true)?"open":""}><summary><span class="foldtitle">Closing work check</span><span class="pill late">${vs.length+ps.length}</span><span class="small foldhint">Inspections, appraisals, notaries and home warranties are closing services. No fee per introduction on that work.</span></summary><div class="foldbody">
     ${vs.length?`<h3 style="margin:4px 0 6px">Vendors to check</h3><ul class="cwlist">${vs.map(v=>`<li><span class="strong">${esc(v.name)}</span><div class="small">${esc(why(v))} · ${esc(vsv(v).join(", "))}</div></li>`).join("")}</ul>`:""}
     ${ps.length?`<h3 style="margin:12px 0 6px">Open projects with a home inspection request</h3><p class="small" style="margin:0 0 6px">Point the agent to the closing partner directory for these, and don't charge a fee.</p><ul class="cwlist">${ps.map(p=>`<li><span class="strong">${esc(p.address||"Project")}</span><div class="small">${esc(p.agent||"")}</div></li>`).join("")}</ul>`:""}

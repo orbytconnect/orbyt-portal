@@ -3303,7 +3303,7 @@ function signupView(m){
     <h1>${m==="agent"?"The right team for every listing":"More of the work you're good at"}</h1>
     <p class="small" style="margin:0">${m==="agent"?"Orbyt is free for agents. Tell me where you list and I'll start lining up vendors matched to your homes.":"I'll check your references and reach out before your first introduction."}</p>
     <form class="authform" data-proto="signup" data-kind="${m}" novalidate>
-      <p class="small" style="margin:0">Every field is required unless it says optional.</p>
+      ${m==="agent"?"":`<p class="small" style="margin:0">Every field is required unless it says optional.</p>`}
       ${m==="vendor"?`<label class="field"><span>Company name</span><input type="text" id="su-company" name="company" required></label>`:""}
       <div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>

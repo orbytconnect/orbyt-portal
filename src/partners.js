@@ -3,8 +3,8 @@
    They buy a marketing listing (Closing Partner Marketing Services Agreement): free for 90 days, then $20 a month.
    Agents see every listed partner in an open directory, in a rotating order. Orbyt never picks, introduces or
    recommends one, and partners never pay for referrals. No bids, job fees, insurance tiers or special offers. */
-const CLOSING=["Lender","Title","Escrow","Homeowners insurance"];
-const CLOSING_HINT={"Lender":"Mortgage lenders and loan officers","Title":"Title companies and title officers","Escrow":"Escrow companies and officers","Homeowners insurance":"Home and hazard insurance"};
+const CLOSING=["Lender","Title","Escrow","Homeowners insurance","Home inspection","Termite inspection","Appraisal","Notary / signing agent","Home warranty"];
+const CLOSING_HINT={"Lender":"Mortgage lenders and loan officers","Title":"Title companies and title officers","Escrow":"Escrow companies and officers","Homeowners insurance":"Home and hazard insurance","Home inspection":"Home inspectors for buyers and sellers","Termite inspection":"Wood-destroying pest reports for escrow","Appraisal":"Licensed appraisers","Notary / signing agent":"Mobile notaries and loan signing agents","Home warranty":"Home warranty plans"};
 const isPartner=v=>!!v&&v.kind==="closing";
 const introsFor=(pid,c)=>(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.project_id===pid&&(!c||i.category===c));
 const partnersFor=c=>S.vendors.filter(v=>isPartner(v)&&v.approved!==false&&vsv(v).includes(c));
@@ -62,8 +62,8 @@ function partnerSignupView(){
   if(S.billPublic===undefined){S.billPublic=false;sb.rpc("billing_enabled").then(({data})=>{if(data){S.billPublic=true;const el=document.getElementById("su-cardnote");if(el)el.textContent=CARD_NOTE}},()=>{})}
   const ck=(name,list,hint)=>`<div class="checks">${list.map((x,i)=>`<label><input type="checkbox" id="su-${name}-${i}" name="${name}" value="${esc(x)}">${esc(x)}${hint&&hint[x]?`<span class="small"> · ${esc(hint[x])}</span>`:""}</label>`).join("")}</div>`;
   return `<section class="auth one"><div class="authcard"><div class="eyebrow">For closing partners</div>
-    <h1>Lenders, title, escrow and insurance</h1>
-    <p class="small" style="margin:0">List your business in Orbyt's closing partner directory for San Diego agents. Your first 90 days are free, then it's $20 a month for your marketing listing. Cancel anytime.</p>
+    <h1>Closing services</h1>
+    <p class="small" style="margin:0">For lenders, title, escrow, insurance, inspectors, appraisers, notaries and home warranty companies. List your business in Orbyt's closing partner directory for San Diego agents. Your first 90 days are free, then it's $20 a month for your marketing listing. Cancel anytime.</p>
     <form class="authform" data-proto="signup" data-kind="partner" novalidate>
       <p class="small" style="margin:0">Every field is required unless it says optional.</p>
       <label class="field"><span>Company name</span><input type="text" id="su-company" name="company" required></label>
@@ -72,7 +72,7 @@ function partnerSignupView(){
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
         <label class="field"><span>Website (optional)</span><input type="text" id="su-web" name="web" placeholder="yourbusiness.com"></label>
-        <label class="field"><span>License number</span><input type="text" id="su-license" name="license" placeholder="NMLS, DRE, DFPI or Dept. of Insurance"></label></div>
+        <label class="field"><span>License or certification number</span><input type="text" id="su-license" name="license" placeholder="NMLS, DRE, DFPI, Dept. of Insurance, Pest Control Board, BREA, notary commission or inspector certification"></label></div>
       <div class="field"><span>What do you offer?</span>${ck("svc",CLOSING,CLOSING_HINT)}</div>
       <div class="field"><span>Where do you work?</span>${ck("area",AREAS)}</div>
       <div class="grid"><label class="field"><span>Years in business</span><select id="su-years" name="years"><option value="">Choose one</option>${YEARS.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label></div>
@@ -94,7 +94,7 @@ async function partnerSignup(f,fd,email,pass,pass2,done,btn){
   const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=fd.getAll("area").map(String);
   const checks=[[!g("company"),"Add your company name.","#su-company"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
     [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[g("phone").replace(/\D/g,"").length<10,"Add a mobile phone number, with area code.","#su-phone"],
-    [g("license").length<3,"Add your license number (NMLS, DRE, DFPI or Department of Insurance).","#su-license"],
+    [g("license").length<3,"Add your license, commission or certification number.","#su-license"],
     [!svcs.length,"Pick what you offer.","#su-svc-0"],[!areas.length,"Pick at least one area you work in.","#su-area-0"],[!g("years"),"Choose your years in business.","#su-years"],
     [pass.length<8,"Use a password with at least 8 characters.","#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
     [!g("legal"),"Add your legal business name.","#su-legal"],[!fd.get("btype"),"Choose your business type.","#su-btype"],[!g("title"),"Add your title.","#su-title"],
@@ -217,7 +217,7 @@ function partnersAdminView(){const all=partnersAll().sort((a,b)=>a.name.localeCo
   const vs=all.filter(v=>(!q||(v.name+" "+(v.contactName||"")+" "+(v.email||"")).toLowerCase().includes(q))&&(!f.c||vsv(v).includes(f.c))&&(!f.st||(f.st==="nocard"?!hasCard(billingOf(v.id)):keyOf(v)===f.st)));
   const live=partnersLive(),paying=live.filter(v=>listingStatus(v).key==="paid").length,free=live.filter(v=>listingStatus(v).key==="free").length,due=listingDue();
   const sel=(id,k,label,opts)=>`<label class="field"><span>${label}</span><select id="${id}" data-pf="${k}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${f[k]===v?"selected":""}>${esc(t)}</option>`).join("")}</select></label>`;
-  let h=(S.canWrite?billingSetupCard():"")+`<div class="stats" style="--n:4;margin-bottom:18px">
+  let h=(S.canWrite?billingSetupCard():"")+closingWorkCheck()+`<div class="stats" style="--n:4;margin-bottom:18px">
     <div class="stat static"><span class="eyebrow">Listed partners</span><b class="num">${live.length}</b><span class="small">${live.filter(v=>v.available!==false).length} showing to agents</span></div>
     <div class="stat static"><span class="eyebrow">Paying</span><b class="num">${paying}</b><span class="small">${money2(paying*LISTING_FEE)} a month</span></div>
     <div class="stat static"><span class="eyebrow">In free period</span><b class="num">${free}</b><span class="small">First ${LISTING_FREE_DAYS} days</span></div>
@@ -303,3 +303,14 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="bills
   guard(async()=>{const cur=settingVal("billing")||{};fail((await sb.from("settings").update({value:{...cur,enabled:on}}).eq("key","billing")).error,"payments");await S.db.reload()},on?"Card payments are on.":"Card payments are off.")},true);
 
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="partnerhome"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();S.tab="tasks";S.openMsg=null;render()},true);
+
+/* settlement-service check: vendors and open requests that may involve closing work (no per-introduction fee on those) */
+function closingWorkCheck(){if(!S.canWrite)return"";
+  const vs=(S.vendors||[]).filter(v=>!isPartner(v)&&(vsv(v).some(c=>/home inspection|termite|appraisal|notary|warranty/i.test(c))||vsv(v).includes("Pest control")||/^Closing work: some/i.test(v.signupNotes||"")));
+  const ps=(S.projects||[]).filter(p=>!p.listed&&(p.categories||[]).includes("Home inspection"));
+  if(!vs.length&&!ps.length)return"";
+  const why=v=>/^Closing work: some/i.test(v.signupNotes||"")?"Said some of their work is part of closings":vsv(v).includes("Pest control")&&!vsv(v).some(c=>/inspection|appraisal|notary|warranty/i.test(c))?"Pest control: do they write termite reports for escrow?":"Offers a closing service";
+  return `<section class="section"><details class="fold" data-fold="cwcheck" ${foldOpen("cwcheck",true)?"open":""}><summary><span class="foldtitle">Closing work check</span><span class="pill late">${vs.length+ps.length}</span><span class="small foldhint">Inspections, appraisals, notaries and home warranties are closing services. No fee per introduction on that work.</span></summary><div class="foldbody">
+    ${vs.length?`<h3 style="margin:4px 0 6px">Vendors to check</h3><ul class="cwlist">${vs.map(v=>`<li><span class="strong">${esc(v.name)}</span><div class="small">${esc(why(v))} · ${esc(vsv(v).join(", "))}</div></li>`).join("")}</ul>`:""}
+    ${ps.length?`<h3 style="margin:12px 0 6px">Open projects with a home inspection request</h3><p class="small" style="margin:0 0 6px">Point the agent to the closing partner directory for these, and don't charge a fee.</p><ul class="cwlist">${ps.map(p=>`<li><span class="strong">${esc(p.address||"Project")}</span><div class="small">${esc(p.agent||"")}</div></li>`).join("")}</ul>`:""}
+  </div></details></section>`}

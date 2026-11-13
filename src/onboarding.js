@@ -77,6 +77,9 @@ function setupCard(){if(!S.canWrite||!S.session)return"";
 /* the Help page, written for each role */
 /* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
 const NEWS=[
+  {id:"2026-11-13a",date:"2026-11-13",roles:["agent"],title:"Inspectors, appraisers and notaries",body:"Home inspectors, termite inspectors, appraisers, notaries and home warranty companies now live in the closing partner directory, next to lenders, title, escrow and insurance. Pick them under Closing partners when you start a project."},
+  {id:"2026-11-13b",date:"2026-11-13",roles:["vendor"],title:"Closing work is listed separately",body:"Inspections or reports required for a sale, appraisals, notary work and home warranties are now in the closing partner directory, with no fee per introduction. Everything else works the same."},
+  {id:"2026-11-13c",date:"2026-11-13",roles:["partner"],title:"More closing services",body:"The directory now includes home inspectors, termite inspectors, appraisers, notaries and home warranty companies, so agents can find every closing service in one place."},
   {id:"2026-11-11a",date:"2026-11-11",roles:["vendor"],title:"A cleaner dashboard",body:"Everything below your tasks is now in four numbered sections: Your profile, Reviews and results, Special offer, and Spread the word. Your numbers, like win rate and time to send a bid, live under Reviews and results."},
   {id:"2026-11-11b",date:"2026-11-11",roles:["agent"],title:"A shorter task list",body:"Your list now leads with what needs a decision: quotes to pick, services not booked yet, and next steps. Introductions and review reminders sit in Updates, just below."},
   {id:"2026-11-10a",date:"2026-11-10",roles:["partner"],title:"Write your own ad",body:"Add a headline, a short pitch, your logo or photo, and a flyer under Your ad. It shows on your listing in the closing partner directory."},

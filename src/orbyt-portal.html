@@ -359,6 +359,7 @@ table.mini{min-width:0}
 .newscard{border:1px solid var(--line);border-left:4px solid var(--gold,#A8871F);border-radius:var(--r);background:var(--surface);padding:16px 18px;margin:0 0 22px}
 .newshead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.newshead h2{margin:4px 0 0;font-size:20px}
 .newslist,.helpsec .newslist{list-style:none;margin:12px 0 14px;padding:0!important;display:grid;gap:10px}.newslist li{border-top:1px solid var(--line);padding-top:10px}.newslist p{margin:3px 0 0}.newslist .pill{margin-left:6px}
+.cwlist{list-style:none;margin:0;padding:0;display:grid;gap:8px}.cwlist li{border-top:1px solid var(--line);padding-top:8px}
 .vsecs{margin-top:28px}.psecbody .vst{background:var(--surface-2)}.psecbody>.folds{margin:0}.psecbody .vstats{margin-bottom:14px}.updfold{margin:10px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 @media (max-width:720px){.vstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .feebox{border-left:3px solid var(--gold)}
@@ -562,7 +563,7 @@ function timingBlock(p,mine){
     ${mine?`<p class="paynote" style="margin:10px 0 0"><b>Plan around the other work.</b> ${steps.length>1?`${myIdx>0?`On most homes, ${esc(steps.slice(0,myIdx).flat().join(", ").toLowerCase())} ${steps.slice(0,myIdx).flat().length===1?"happens":"happen"} before you.`:""} ${myIdx<steps.length-1?`${esc(capF(steps.slice(myIdx+1).flat().join(", ").toLowerCase()))} ${steps.slice(myIdx+1).flat().length===1?"comes":"come"} after, so leave room for ${steps.slice(myIdx+1).flat().length===1?"it":"them"}.`:"Yours is usually the last step, so the home should be ready for you."} `:""}This is the typical order, and ${esc(firstName(p.agent))} sets the final schedule, so confirm your dates with them before you start.${p.targetDate&&!p.listed?` Everything needs to wrap before ${buyer?"move-in":"the list date"} on ${esc(fmtDate(p.targetDate))}${d!==null&&d>=0?` (${d} ${d===1?"day":"days"} away)`:""}.`:""}</p>`
     :`<p class="small" style="margin:8px 0 0">${hasCustomOrder(p)?"Order set for this home.":"Typical order for this home."} Book the early steps first so later vendors aren't waiting${p.targetDate&&!p.listed?`, and keep everything ahead of ${esc(fmtDate(p.targetDate))}`:""}.</p>`}</div>`;
 }
-const CATS=["Staging","Cleaning","Photography","Landscaping","Painting","Handyman","General contractor / remodeling","Plumbing","Electric","HVAC","Window cleaning","Pool services","Moving","Home inspection"];
+const CATS=["Staging","Cleaning","Photography","Landscaping","Painting","Handyman","General contractor / remodeling","Plumbing","Electric","HVAC","Window cleaning","Pool services","Moving"];
 // common extras vendors offer beyond the core categories (suggestions only; anything can be typed)
 const MORE_SERVICES=["Pressure washing","Junk removal","Roofing","Gutter cleaning","Flooring","Carpet cleaning","Pest control","Fencing","Concrete","Tree service","Organizing","Appliance repair","Garage doors","Drywall","Solar panel cleaning","Signage","Window treatments","Landscape design"];
 function moreChecks(name,prefix,skip){const list=[...MORE_SERVICES].filter(c=>!(skip||[]).includes(c)).sort((a,b)=>a.localeCompare(b));if(!list.length)return "";
@@ -929,6 +930,7 @@ function profileBlock(v){
     ${v.references?`<div class="small"><span class="strong">Agent references:</span> ${esc(v.references)}</div>`:""}
     ${v.areaNote?`<div class="small"><span class="strong">Service area as written:</span> ${esc(v.areaNote)}</div>`:""}
     ${v.signupNotes?`<div class="small"><span class="strong">From their sign-up:</span> ${esc(v.signupNotes)}</div>`:""}
+    ${/^Closing work: some/i.test(v.signupNotes||"")?`<div class="small"><span class="pill late">Some closing work</span> Only introduce them for their non-closing services. No fee on closing work.</div>`:""}
     ${v.approved===false&&S.canWrite?`<div class="actions"><button class="btn sm" data-act="approvevendor" data-id="${esc(v.id)}">Approve, I've checked them</button></div>`:""}</div>`}
   return h;
 }
@@ -2310,8 +2312,9 @@ function newProjectForm(agent){
     <label class="field"><span>Home size (square feet)</span><input type="number" id="np-sqft" name="sqft" min="1" max="100000" step="1" inputmode="numeric" placeholder="2,400"></label>
     <label class="field np-lp"><span>Expected list price ($)</span><input type="number" id="np-lp" name="listPrice" min="0" step="1000" inputmode="numeric" placeholder="1,250,000"></label></div>
     <div class="field"><span>Services needed</span><div class="checks">${CATS.map((c,i)=>`<label><input type="checkbox" id="np-cat-${i}" name="cat" value="${c}">${c}</label>`).join("")}</div>${moreChecks("cat","np-ms")}
+      <p class="small" style="margin:6px 0 0">Pest control here is for treatment and listing prep. For a termite report for escrow, pick Termite inspection under Closing partners.</p>
       <div><button class="linkbtn" type="button" data-act="fullprep">Full-service listing prep (checks staging, cleaning, photography, landscaping and painting)</button></div></div>
-    ${typeof CLOSING!=="undefined"?`<div class="field"><span>Closing partners (optional)</span><div class="checks">${CLOSING.map((c,i)=>`<label><input type="checkbox" id="np-cl-${i}" name="closing" value="${c}">${c}</label>`).join("")}</div><small class="small">See local lender, title, escrow or insurance options from the closing partner directory. ${closingNote}</small></div>`:""}
+    ${typeof CLOSING!=="undefined"?`<div class="field"><span>Closing partners (optional)</span><div class="checks">${CLOSING.map((c,i)=>`<label><input type="checkbox" id="np-cl-${i}" name="closing" value="${c}">${c}</label>`).join("")}</div><small class="small">See local lenders, title, escrow, insurance, inspectors, appraisers, notaries and home warranty companies from the closing partner directory. ${closingNote}</small></div>`:""}
     <div class="grid"><label class="field"><span>Something else? Separate with commas</span><input type="text" id="np-other" name="otherCats" placeholder="Anything not listed above"></label>
     ${PM_ON?`<label class="field"><span>Interested in project management?</span><select id="np-pmi" name="pmInterest"><option value="" selected disabled hidden>Choose one</option><option value="yes">Yes</option><option value="maybe">Maybe, tell me more</option><option value="no">Not right now</option></select></label>`:""}</div>
     <label class="field"><span>Anything I should know? Vendors see this too</span><textarea id="np-notes" name="notes" placeholder="Gate code, pets, what your client cares about most"></textarea></label>

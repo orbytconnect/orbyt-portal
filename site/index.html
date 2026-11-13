@@ -394,6 +394,7 @@ table.mini{min-width:0}
 .newscard{border:1px solid var(--line);border-left:4px solid var(--gold,#A8871F);border-radius:var(--r);background:var(--surface);padding:16px 18px;margin:0 0 22px}
 .newshead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.newshead h2{margin:4px 0 0;font-size:20px}
 .newslist,.helpsec .newslist{list-style:none;margin:12px 0 14px;padding:0!important;display:grid;gap:10px}.newslist li{border-top:1px solid var(--line);padding-top:10px}.newslist p{margin:3px 0 0}.newslist .pill{margin-left:6px}
+.cwlist{list-style:none;margin:0;padding:0;display:grid;gap:8px}.cwlist li{border-top:1px solid var(--line);padding-top:8px}
 .vsecs{margin-top:28px}.psecbody .vst{background:var(--surface-2)}.psecbody>.folds{margin:0}.psecbody .vstats{margin-bottom:14px}.updfold{margin:10px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 @media (max-width:720px){.vstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .feebox{border-left:3px solid var(--gold)}
@@ -663,7 +664,7 @@ function timingBlock(p,mine){
     ${mine?`<p class="paynote" style="margin:10px 0 0"><b>Plan around the other work.</b> ${steps.length>1?`${myIdx>0?`On most homes, ${esc(steps.slice(0,myIdx).flat().join(", ").toLowerCase())} ${steps.slice(0,myIdx).flat().length===1?"happens":"happen"} before you.`:""} ${myIdx<steps.length-1?`${esc(capF(steps.slice(myIdx+1).flat().join(", ").toLowerCase()))} ${steps.slice(myIdx+1).flat().length===1?"comes":"come"} after, so leave room for ${steps.slice(myIdx+1).flat().length===1?"it":"them"}.`:"Yours is usually the last step, so the home should be ready for you."} `:""}This is the typical order, and ${esc(firstName(p.agent))} sets the final schedule, so confirm your dates with them before you start.${p.targetDate&&!p.listed?` Everything needs to wrap before ${buyer?"move-in":"the list date"} on ${esc(fmtDate(p.targetDate))}${d!==null&&d>=0?` (${d} ${d===1?"day":"days"} away)`:""}.`:""}</p>`
     :`<p class="small" style="margin:8px 0 0">${hasCustomOrder(p)?"Order set for this home.":"Typical order for this home."} Book the early steps first so later vendors aren't waiting${p.targetDate&&!p.listed?`, and keep everything ahead of ${esc(fmtDate(p.targetDate))}`:""}.</p>`}</div>`;
 }
-const CATS=["Staging","Cleaning","Photography","Landscaping","Painting","Handyman","General contractor / remodeling","Plumbing","Electric","HVAC","Window cleaning","Pool services","Moving","Home inspection"];
+const CATS=["Staging","Cleaning","Photography","Landscaping","Painting","Handyman","General contractor / remodeling","Plumbing","Electric","HVAC","Window cleaning","Pool services","Moving"];
 // common extras vendors offer beyond the core categories (suggestions only; anything can be typed)
 const MORE_SERVICES=["Pressure washing","Junk removal","Roofing","Gutter cleaning","Flooring","Carpet cleaning","Pest control","Fencing","Concrete","Tree service","Organizing","Appliance repair","Garage doors","Drywall","Solar panel cleaning","Signage","Window treatments","Landscape design"];
 function moreChecks(name,prefix,skip){const list=[...MORE_SERVICES].filter(c=>!(skip||[]).includes(c)).sort((a,b)=>a.localeCompare(b));if(!list.length)return "";
@@ -1034,6 +1035,7 @@ function profileBlock(v){
     ${v.references?`<div class="small"><span class="strong">Agent references:</span> ${esc(v.references)}</div>`:""}
     ${v.areaNote?`<div class="small"><span class="strong">Service area as written:</span> ${esc(v.areaNote)}</div>`:""}
     ${v.signupNotes?`<div class="small"><span class="strong">From their sign-up:</span> ${esc(v.signupNotes)}</div>`:""}
+    ${/^Closing work: some/i.test(v.signupNotes||"")?`<div class="small"><span class="pill late">Some closing work</span> Only introduce them for their non-closing services. No fee on closing work.</div>`:""}
     ${v.approved===false&&S.canWrite?`<div class="actions"><button class="btn sm" data-act="approvevendor" data-id="${esc(v.id)}">Approve, I've checked them</button></div>`:""}</div>`}
   return h;
 }
@@ -2416,8 +2418,9 @@ function newProjectForm(agent){
     <label class="field"><span>Home size (square feet)</span><input type="number" id="np-sqft" name="sqft" min="1" max="100000" step="1" inputmode="numeric" placeholder="2,400"></label>
     <label class="field np-lp"><span>Expected list price ($)</span><input type="number" id="np-lp" name="listPrice" min="0" step="1000" inputmode="numeric" placeholder="1,250,000"></label></div>
     <div class="field"><span>Services needed</span><div class="checks">${CATS.map((c,i)=>`<label><input type="checkbox" id="np-cat-${i}" name="cat" value="${c}">${c}</label>`).join("")}</div>${moreChecks("cat","np-ms")}
+      <p class="small" style="margin:6px 0 0">Pest control here is for treatment and listing prep. For a termite report for escrow, pick Termite inspection under Closing partners.</p>
       <div><button class="linkbtn" type="button" data-act="fullprep">Full-service listing prep (checks staging, cleaning, photography, landscaping and painting)</button></div></div>
-    ${typeof CLOSING!=="undefined"?`<div class="field"><span>Closing partners (optional)</span><div class="checks">${CLOSING.map((c,i)=>`<label><input type="checkbox" id="np-cl-${i}" name="closing" value="${c}">${c}</label>`).join("")}</div><small class="small">See local lender, title, escrow or insurance options from the closing partner directory. ${closingNote}</small></div>`:""}
+    ${typeof CLOSING!=="undefined"?`<div class="field"><span>Closing partners (optional)</span><div class="checks">${CLOSING.map((c,i)=>`<label><input type="checkbox" id="np-cl-${i}" name="closing" value="${c}">${c}</label>`).join("")}</div><small class="small">See local lenders, title, escrow, insurance, inspectors, appraisers, notaries and home warranty companies from the closing partner directory. ${closingNote}</small></div>`:""}
     <div class="grid"><label class="field"><span>Something else? Separate with commas</span><input type="text" id="np-other" name="otherCats" placeholder="Anything not listed above"></label>
     ${PM_ON?`<label class="field"><span>Interested in project management?</span><select id="np-pmi" name="pmInterest"><option value="" selected disabled hidden>Choose one</option><option value="yes">Yes</option><option value="maybe">Maybe, tell me more</option><option value="no">Not right now</option></select></label>`:""}</div>
     <label class="field"><span>Anything I should know? Vendors see this too</span><textarea id="np-notes" name="notes" placeholder="Gate code, pets, what your client cares about most"></textarea></label>
@@ -3315,7 +3318,14 @@ function signupView(m){
         <p class="small" style="margin:0">If you have a website, Instagram or portfolio, adding it helps me match you. You can upload a portfolio PDF and a business overview from your dashboard once you're approved.</p>`:""}
       ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}${moreChecks("svc","su-ms")}</div>
         <label class="field"><span>Anything else? (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything not listed above"></label>
-        <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>`:""}
+        <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>
+        <div class="field cwq" id="su-cw"><span>Is any of your work part of a home sale's closing?</span>
+          <p class="small" style="margin:0 0 6px">For example: inspections or reports required by the purchase contract or the lender (home, termite, roof or sewer), appraisals, notary or signing services, or home warranties.</p>
+          <div class="checks">${[["no","No"],["yes","Yes, that's my main business"],["some","Some of it"]].map(([v,l],i)=>`<label><input type="radio" id="su-cw-${i}" name="closingwork" value="${v}">${l}</label>`).join("")}</div>
+          <div class="callout cwyes" id="su-cwyes" hidden><p class="small" style="margin:0 0 8px">Because your work is part of the closing, federal rules say Orbyt can't charge a fee per introduction. Instead, you'll get a marketing listing in the closing partner directory, where agents and their buyers can find you. Your details carry over.</p>
+            <button class="btn sm" type="button" id="su-cwgo" data-act="cwswitch">Continue as a closing partner</button></div>
+          <div id="su-cwsome" hidden><label class="field"><span>Which of your services are part of closings?</span><input type="text" id="su-cwnote" name="cwnote" maxlength="200" placeholder="Termite reports for escrow"></label>
+            <p class="small" style="margin:4px 0 0">Those jobs won't come through Orbyt introductions, so there's never a fee on them. You're welcome to list that work in the closing partner directory too.</p></div></div>`:""}
       <div class="field"><span>${m==="agent"?"Where do you list homes?":"Where do you work?"}</span>${ck("area",AREAS)}</div>
       ${m==="vendor"?`<div class="grid">${sel("years","Years in business",YEARS)}${sel("team","Team size",TEAM)}${sel("lead","Typical lead time",LEAD)}</div>
         <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="su-refs" name="references" placeholder="Names and phone numbers or emails"></textarea></label>
@@ -3438,6 +3448,9 @@ document.addEventListener("submit",async e=>{
         [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[digits.length<10,"Add a mobile phone number, with area code.","#su-phone"],
         [!V&&!g("brokerage"),"Add your brokerage.","#su-brokerage"],
         [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!areas.length,V?"Pick at least one area you work in.":"Pick at least one area where you list homes.","#su-area-0"],
+        [V&&!fd.get("closingwork"),"Tell me whether any of your work is part of a home sale's closing.","#su-cw-0"],
+        [V&&fd.get("closingwork")==="yes","Your work is part of closings, so it's listed in the closing partner directory instead. Tap Continue as a closing partner.","#su-cwgo"],
+        [V&&fd.get("closingwork")==="some"&&g("cwnote").length<3,"Tell me which of your services are part of closings.","#su-cwnote"],
         [V&&!g("years"),"Choose your years in business.","#su-years"],[V&&!g("team"),"Choose your team size.","#su-team"],[V&&!g("lead"),"Choose your typical lead time.","#su-lead"],
         [V&&g("references").length<10,"Add 2 to 3 agent references, with names and phone numbers or emails.","#su-refs"],
         [pass.length<8,"Use a password with at least 8 characters.","#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
@@ -3448,7 +3461,8 @@ document.addEventListener("submit",async e=>{
       const meta={ref:S.ref||"",role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();
       else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),website:String(fd.get("web")||"").trim(),instagram:igHandle(fd.get("instagram")),portfolio_url:String(fd.get("portfolio")||"").trim(),services:svcs,years_in_business:String(fd.get("years")||""),
-        team_size:String(fd.get("team")||""),lead_time:String(fd.get("lead")||""),references:String(fd.get("references")||"").trim(),heard_about:String(fd.get("heard")||"").trim()});
+        team_size:String(fd.get("team")||""),lead_time:String(fd.get("lead")||""),references:String(fd.get("references")||"").trim(),heard_about:String(fd.get("heard")||"").trim(),
+        closing_work:String(fd.get("closingwork")||""),signup_notes:fd.get("closingwork")==="some"?"Closing work: some. "+g("cwnote"):""});
       const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
       if(error)return done(friendlyAuthError(error));
       if(data.session){S.authErr="";await enter(data.user);return}
@@ -3776,7 +3790,17 @@ function signupInsNote(){const f=document.querySelector('form[data-proto="signup
   el.innerHTML=g==="high"?`<b>Insurance:</b> because you offer ${esc(t)}, Orbyt needs to be named as an additional insured on your liability insurance before your first introduction. After you're approved, I'll give you a ready-made email to send your insurance agent.`
     :g==="mid"?`<b>Insurance:</b> because you offer ${esc(t)}, Orbyt needs to be named as an additional insured on your liability insurance within 30 days of approval. After you're approved, I'll give you a ready-made email to send your insurance agent.`
     :`<b>Insurance:</b> after you're approved, you'll upload a certificate of your general liability insurance.`;el.hidden=false}
-document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest('form[data-proto="signup"]'))signupInsNote()});
+document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest('form[data-proto="signup"]'))signupInsNote();
+  if(e.target.name==="closingwork"){const v=e.target.value,y=document.getElementById("su-cwyes"),so=document.getElementById("su-cwsome");if(y)y.hidden=v!=="yes";if(so)so.hidden=v!=="some"}});
+// "Yes, that's my main business": move to closing partner sign-up, keeping what they typed
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="cwswitch"]');if(!b)return;e.preventDefault();e.stopPropagation();
+  const f=b.closest("form"),keep={};["company","first","last","email","phone","web"].forEach(k=>{const el=f.querySelector(`[name="${k}"]`);if(el)keep[k]=el.value});
+  keep.areas=[...f.querySelectorAll('input[name="area"]:checked')].map(x=>x.value);
+  S.authMode="partner";S.authErr="";render();window.scrollTo(0,0);
+  const g=document.querySelector('form[data-kind="partner"]');if(!g)return;
+  Object.entries(keep).forEach(([k,v])=>{if(k==="areas")return;const el=g.querySelector(`[name="${k}"]`);if(el&&v)el.value=v});
+  g.querySelectorAll('input[name="area"]').forEach(x=>{if(keep.areas.includes(x.value))x.checked=true});
+  toast("Your details carried over")},true);
 document.addEventListener("input",e=>{if(e.target.id==="su-othersvc")signupInsNote()});
 
 /* Ashleigh's side: the check on the vendor card, and items on her dashboard */
@@ -4234,17 +4258,17 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="promo
 /* ---------- home team cards: a printable card agents give buyer clients, and the request page behind its QR code ---------- */
 // services worth putting in front of buyers, in the order they come up after a move
 const HC_ORDER=["Painting","Cleaning","Handyman","Landscaping","Moving","HVAC","Plumbing","Electric","General contractor / remodeling","Window treatments",
-  "Landscape design","Pool services","Roofing","Flooring","Pest control","Home inspection","Pressure washing","Window cleaning","Junk removal","Gutter cleaning",
+  "Landscape design","Pool services","Roofing","Flooring","Pest control","Pressure washing","Window cleaning","Junk removal","Gutter cleaning",
   "Carpet cleaning","Fencing","Concrete","Tree service","Organizing","Appliance repair","Garage doors","Drywall","Solar panel cleaning"];
 const HC_SKIP=["Staging","Photography","Signage"];
-const HC_ALSO_DEFAULT=["Window treatments","Landscape design","General contractor / remodeling","Electric","Plumbing","Pool services","Roofing","Flooring","Pest control","Home inspection","Pressure washing"];
+const HC_ALSO_DEFAULT=["Window treatments","Landscape design","General contractor / remodeling","Electric","Plumbing","Pool services","Roofing","Flooring","Pest control","Pressure washing"];
 const HC_LABEL={"General contractor / remodeling":"Remodeling","Electric":"Electrical"};
 const hcLabel=c=>HC_LABEL[c]||c;
 const HC_SPEC={"Painting":"Interiors, exteriors and cabinets","Cleaning":"Move-in deep cleans and windows","Handyman":"Small repairs, installs, punch lists",
   "Landscaping":"Yard refresh, planting, irrigation","Moving":"Local moves, packing, junk haul-away","HVAC":"Tune-ups, repairs and new systems",
   "Plumbing":"Leaks, fixtures and water heaters","Electric":"Fixtures, outlets, panels and EV chargers","General contractor / remodeling":"Kitchens, baths and bigger projects",
   "Window treatments":"Shades, shutters and drapery","Landscape design":"Plans for the yard you want","Pool services":"Weekly service and repairs",
-  "Roofing":"Repairs, inspections and new roofs","Flooring":"Hardwood, tile and carpet","Pest control":"Inspections and ongoing service",
+  "Roofing":"Repairs, inspections and new roofs","Flooring":"Hardwood, tile and carpet","Pest control":"Ongoing service",
   "Home inspection":"Before you renovate or buy again","Pressure washing":"Driveways, patios and siding","Window cleaning":"Inside and out",
   "Junk removal":"Haul-away after the move","Carpet cleaning":"Deep cleans and stain removal","Tree service":"Trimming and removal",
   "Organizing":"Unpacking and closets","Garage doors":"Repairs and openers","Appliance repair":"Washers, fridges and ovens"};
@@ -4439,8 +4463,8 @@ document.addEventListener("input",e=>{const f=e.target.closest('form[data-form="
    They buy a marketing listing (Closing Partner Marketing Services Agreement): free for 90 days, then $20 a month.
    Agents see every listed partner in an open directory, in a rotating order. Orbyt never picks, introduces or
    recommends one, and partners never pay for referrals. No bids, job fees, insurance tiers or special offers. */
-const CLOSING=["Lender","Title","Escrow","Homeowners insurance"];
-const CLOSING_HINT={"Lender":"Mortgage lenders and loan officers","Title":"Title companies and title officers","Escrow":"Escrow companies and officers","Homeowners insurance":"Home and hazard insurance"};
+const CLOSING=["Lender","Title","Escrow","Homeowners insurance","Home inspection","Termite inspection","Appraisal","Notary / signing agent","Home warranty"];
+const CLOSING_HINT={"Lender":"Mortgage lenders and loan officers","Title":"Title companies and title officers","Escrow":"Escrow companies and officers","Homeowners insurance":"Home and hazard insurance","Home inspection":"Home inspectors for buyers and sellers","Termite inspection":"Wood-destroying pest reports for escrow","Appraisal":"Licensed appraisers","Notary / signing agent":"Mobile notaries and loan signing agents","Home warranty":"Home warranty plans"};
 const isPartner=v=>!!v&&v.kind==="closing";
 const introsFor=(pid,c)=>(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.project_id===pid&&(!c||i.category===c));
 const partnersFor=c=>S.vendors.filter(v=>isPartner(v)&&v.approved!==false&&vsv(v).includes(c));
@@ -4498,8 +4522,8 @@ function partnerSignupView(){
   if(S.billPublic===undefined){S.billPublic=false;sb.rpc("billing_enabled").then(({data})=>{if(data){S.billPublic=true;const el=document.getElementById("su-cardnote");if(el)el.textContent=CARD_NOTE}},()=>{})}
   const ck=(name,list,hint)=>`<div class="checks">${list.map((x,i)=>`<label><input type="checkbox" id="su-${name}-${i}" name="${name}" value="${esc(x)}">${esc(x)}${hint&&hint[x]?`<span class="small"> · ${esc(hint[x])}</span>`:""}</label>`).join("")}</div>`;
   return `<section class="auth one"><div class="authcard"><div class="eyebrow">For closing partners</div>
-    <h1>Lenders, title, escrow and insurance</h1>
-    <p class="small" style="margin:0">List your business in Orbyt's closing partner directory for San Diego agents. Your first 90 days are free, then it's $20 a month for your marketing listing. Cancel anytime.</p>
+    <h1>Closing services</h1>
+    <p class="small" style="margin:0">For lenders, title, escrow, insurance, inspectors, appraisers, notaries and home warranty companies. List your business in Orbyt's closing partner directory for San Diego agents. Your first 90 days are free, then it's $20 a month for your marketing listing. Cancel anytime.</p>
     <form class="authform" data-proto="signup" data-kind="partner" novalidate>
       <p class="small" style="margin:0">Every field is required unless it says optional.</p>
       <label class="field"><span>Company name</span><input type="text" id="su-company" name="company" required></label>
@@ -4508,7 +4532,7 @@ function partnerSignupView(){
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
         <label class="field"><span>Website (optional)</span><input type="text" id="su-web" name="web" placeholder="yourbusiness.com"></label>
-        <label class="field"><span>License number</span><input type="text" id="su-license" name="license" placeholder="NMLS, DRE, DFPI or Dept. of Insurance"></label></div>
+        <label class="field"><span>License or certification number</span><input type="text" id="su-license" name="license" placeholder="NMLS, DRE, DFPI, Dept. of Insurance, Pest Control Board, BREA, notary commission or inspector certification"></label></div>
       <div class="field"><span>What do you offer?</span>${ck("svc",CLOSING,CLOSING_HINT)}</div>
       <div class="field"><span>Where do you work?</span>${ck("area",AREAS)}</div>
       <div class="grid"><label class="field"><span>Years in business</span><select id="su-years" name="years"><option value="">Choose one</option>${YEARS.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label></div>
@@ -4530,7 +4554,7 @@ async function partnerSignup(f,fd,email,pass,pass2,done,btn){
   const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=fd.getAll("area").map(String);
   const checks=[[!g("company"),"Add your company name.","#su-company"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
     [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[g("phone").replace(/\D/g,"").length<10,"Add a mobile phone number, with area code.","#su-phone"],
-    [g("license").length<3,"Add your license number (NMLS, DRE, DFPI or Department of Insurance).","#su-license"],
+    [g("license").length<3,"Add your license, commission or certification number.","#su-license"],
     [!svcs.length,"Pick what you offer.","#su-svc-0"],[!areas.length,"Pick at least one area you work in.","#su-area-0"],[!g("years"),"Choose your years in business.","#su-years"],
     [pass.length<8,"Use a password with at least 8 characters.","#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
     [!g("legal"),"Add your legal business name.","#su-legal"],[!fd.get("btype"),"Choose your business type.","#su-btype"],[!g("title"),"Add your title.","#su-title"],
@@ -4653,7 +4677,7 @@ function partnersAdminView(){const all=partnersAll().sort((a,b)=>a.name.localeCo
   const vs=all.filter(v=>(!q||(v.name+" "+(v.contactName||"")+" "+(v.email||"")).toLowerCase().includes(q))&&(!f.c||vsv(v).includes(f.c))&&(!f.st||(f.st==="nocard"?!hasCard(billingOf(v.id)):keyOf(v)===f.st)));
   const live=partnersLive(),paying=live.filter(v=>listingStatus(v).key==="paid").length,free=live.filter(v=>listingStatus(v).key==="free").length,due=listingDue();
   const sel=(id,k,label,opts)=>`<label class="field"><span>${label}</span><select id="${id}" data-pf="${k}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${f[k]===v?"selected":""}>${esc(t)}</option>`).join("")}</select></label>`;
-  let h=(S.canWrite?billingSetupCard():"")+`<div class="stats" style="--n:4;margin-bottom:18px">
+  let h=(S.canWrite?billingSetupCard():"")+closingWorkCheck()+`<div class="stats" style="--n:4;margin-bottom:18px">
     <div class="stat static"><span class="eyebrow">Listed partners</span><b class="num">${live.length}</b><span class="small">${live.filter(v=>v.available!==false).length} showing to agents</span></div>
     <div class="stat static"><span class="eyebrow">Paying</span><b class="num">${paying}</b><span class="small">${money2(paying*LISTING_FEE)} a month</span></div>
     <div class="stat static"><span class="eyebrow">In free period</span><b class="num">${free}</b><span class="small">First ${LISTING_FREE_DAYS} days</span></div>
@@ -4740,6 +4764,17 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="bills
 
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="partnerhome"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();S.tab="tasks";S.openMsg=null;render()},true);
 
+/* settlement-service check: vendors and open requests that may involve closing work (no per-introduction fee on those) */
+function closingWorkCheck(){if(!S.canWrite)return"";
+  const vs=(S.vendors||[]).filter(v=>!isPartner(v)&&(vsv(v).some(c=>/home inspection|termite|appraisal|notary|warranty/i.test(c))||vsv(v).includes("Pest control")||/^Closing work: some/i.test(v.signupNotes||"")));
+  const ps=(S.projects||[]).filter(p=>!p.listed&&(p.categories||[]).includes("Home inspection"));
+  if(!vs.length&&!ps.length)return"";
+  const why=v=>/^Closing work: some/i.test(v.signupNotes||"")?"Said some of their work is part of closings":vsv(v).includes("Pest control")&&!vsv(v).some(c=>/inspection|appraisal|notary|warranty/i.test(c))?"Pest control: do they write termite reports for escrow?":"Offers a closing service";
+  return `<section class="section"><details class="fold" data-fold="cwcheck" ${foldOpen("cwcheck",true)?"open":""}><summary><span class="foldtitle">Closing work check</span><span class="pill late">${vs.length+ps.length}</span><span class="small foldhint">Inspections, appraisals, notaries and home warranties are closing services. No fee per introduction on that work.</span></summary><div class="foldbody">
+    ${vs.length?`<h3 style="margin:4px 0 6px">Vendors to check</h3><ul class="cwlist">${vs.map(v=>`<li><span class="strong">${esc(v.name)}</span><div class="small">${esc(why(v))} · ${esc(vsv(v).join(", "))}</div></li>`).join("")}</ul>`:""}
+    ${ps.length?`<h3 style="margin:12px 0 6px">Open projects with a home inspection request</h3><p class="small" style="margin:0 0 6px">Point the agent to the closing partner directory for these, and don't charge a fee.</p><ul class="cwlist">${ps.map(p=>`<li><span class="strong">${esc(p.address||"Project")}</span><div class="small">${esc(p.agent||"")}</div></li>`).join("")}</ul>`:""}
+  </div></details></section>`}
+
 
 /* ---------- getting started: a checklist on each dashboard, and a Help page ---------- */
 const HELP_EMAIL="ashleigh@orbytconnect.com";
@@ -4819,6 +4854,9 @@ function setupCard(){if(!S.canWrite||!S.session)return"";
 /* the Help page, written for each role */
 /* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
 const NEWS=[
+  {id:"2026-11-13a",date:"2026-11-13",roles:["agent"],title:"Inspectors, appraisers and notaries",body:"Home inspectors, termite inspectors, appraisers, notaries and home warranty companies now live in the closing partner directory, next to lenders, title, escrow and insurance. Pick them under Closing partners when you start a project."},
+  {id:"2026-11-13b",date:"2026-11-13",roles:["vendor"],title:"Closing work is listed separately",body:"Inspections or reports required for a sale, appraisals, notary work and home warranties are now in the closing partner directory, with no fee per introduction. Everything else works the same."},
+  {id:"2026-11-13c",date:"2026-11-13",roles:["partner"],title:"More closing services",body:"The directory now includes home inspectors, termite inspectors, appraisers, notaries and home warranty companies, so agents can find every closing service in one place."},
   {id:"2026-11-11a",date:"2026-11-11",roles:["vendor"],title:"A cleaner dashboard",body:"Everything below your tasks is now in four numbered sections: Your profile, Reviews and results, Special offer, and Spread the word. Your numbers, like win rate and time to send a bid, live under Reviews and results."},
   {id:"2026-11-11b",date:"2026-11-11",roles:["agent"],title:"A shorter task list",body:"Your list now leads with what needs a decision: quotes to pick, services not booked yet, and next steps. Introductions and review reminders sit in Updates, just below."},
   {id:"2026-11-10a",date:"2026-11-10",roles:["partner"],title:"Write your own ad",body:"Add a headline, a short pitch, your logo or photo, and a flyer under Your ad. It shows on your listing in the closing partner directory."},

@@ -2,17 +2,17 @@
 /* ---------- home team cards: a printable card agents give buyer clients, and the request page behind its QR code ---------- */
 // services worth putting in front of buyers, in the order they come up after a move
 const HC_ORDER=["Painting","Cleaning","Handyman","Landscaping","Moving","HVAC","Plumbing","Electric","General contractor / remodeling","Window treatments",
-  "Landscape design","Pool services","Roofing","Flooring","Pest control","Home inspection","Pressure washing","Window cleaning","Junk removal","Gutter cleaning",
+  "Landscape design","Pool services","Roofing","Flooring","Pest control","Pressure washing","Window cleaning","Junk removal","Gutter cleaning",
   "Carpet cleaning","Fencing","Concrete","Tree service","Organizing","Appliance repair","Garage doors","Drywall","Solar panel cleaning"];
 const HC_SKIP=["Staging","Photography","Signage"];
-const HC_ALSO_DEFAULT=["Window treatments","Landscape design","General contractor / remodeling","Electric","Plumbing","Pool services","Roofing","Flooring","Pest control","Home inspection","Pressure washing"];
+const HC_ALSO_DEFAULT=["Window treatments","Landscape design","General contractor / remodeling","Electric","Plumbing","Pool services","Roofing","Flooring","Pest control","Pressure washing"];
 const HC_LABEL={"General contractor / remodeling":"Remodeling","Electric":"Electrical"};
 const hcLabel=c=>HC_LABEL[c]||c;
 const HC_SPEC={"Painting":"Interiors, exteriors and cabinets","Cleaning":"Move-in deep cleans and windows","Handyman":"Small repairs, installs, punch lists",
   "Landscaping":"Yard refresh, planting, irrigation","Moving":"Local moves, packing, junk haul-away","HVAC":"Tune-ups, repairs and new systems",
   "Plumbing":"Leaks, fixtures and water heaters","Electric":"Fixtures, outlets, panels and EV chargers","General contractor / remodeling":"Kitchens, baths and bigger projects",
   "Window treatments":"Shades, shutters and drapery","Landscape design":"Plans for the yard you want","Pool services":"Weekly service and repairs",
-  "Roofing":"Repairs, inspections and new roofs","Flooring":"Hardwood, tile and carpet","Pest control":"Inspections and ongoing service",
+  "Roofing":"Repairs, inspections and new roofs","Flooring":"Hardwood, tile and carpet","Pest control":"Ongoing service",
   "Home inspection":"Before you renovate or buy again","Pressure washing":"Driveways, patios and siding","Window cleaning":"Inside and out",
   "Junk removal":"Haul-away after the move","Carpet cleaning":"Deep cleans and stain removal","Tree service":"Trimming and removal",
   "Organizing":"Unpacking and closets","Garage doors":"Repairs and openers","Appliance repair":"Washers, fridges and ovens"};

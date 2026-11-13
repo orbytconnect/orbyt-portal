@@ -342,7 +342,14 @@ function signupView(m){
         <p class="small" style="margin:0">If you have a website, Instagram or portfolio, adding it helps me match you. You can upload a portfolio PDF and a business overview from your dashboard once you're approved.</p>`:""}
       ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}${moreChecks("svc","su-ms")}</div>
         <label class="field"><span>Anything else? (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything not listed above"></label>
-        <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>`:""}
+        <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>
+        <div class="field cwq" id="su-cw"><span>Is any of your work part of a home sale's closing?</span>
+          <p class="small" style="margin:0 0 6px">For example: inspections or reports required by the purchase contract or the lender (home, termite, roof or sewer), appraisals, notary or signing services, or home warranties.</p>
+          <div class="checks">${[["no","No"],["yes","Yes, that's my main business"],["some","Some of it"]].map(([v,l],i)=>`<label><input type="radio" id="su-cw-${i}" name="closingwork" value="${v}">${l}</label>`).join("")}</div>
+          <div class="callout cwyes" id="su-cwyes" hidden><p class="small" style="margin:0 0 8px">Because your work is part of the closing, federal rules say Orbyt can't charge a fee per introduction. Instead, you'll get a marketing listing in the closing partner directory, where agents and their buyers can find you. Your details carry over.</p>
+            <button class="btn sm" type="button" id="su-cwgo" data-act="cwswitch">Continue as a closing partner</button></div>
+          <div id="su-cwsome" hidden><label class="field"><span>Which of your services are part of closings?</span><input type="text" id="su-cwnote" name="cwnote" maxlength="200" placeholder="Termite reports for escrow"></label>
+            <p class="small" style="margin:4px 0 0">Those jobs won't come through Orbyt introductions, so there's never a fee on them. You're welcome to list that work in the closing partner directory too.</p></div></div>`:""}
       <div class="field"><span>${m==="agent"?"Where do you list homes?":"Where do you work?"}</span>${ck("area",AREAS)}</div>
       ${m==="vendor"?`<div class="grid">${sel("years","Years in business",YEARS)}${sel("team","Team size",TEAM)}${sel("lead","Typical lead time",LEAD)}</div>
         <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="su-refs" name="references" placeholder="Names and phone numbers or emails"></textarea></label>
@@ -465,6 +472,9 @@ document.addEventListener("submit",async e=>{
         [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[digits.length<10,"Add a mobile phone number, with area code.","#su-phone"],
         [!V&&!g("brokerage"),"Add your brokerage.","#su-brokerage"],
         [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!areas.length,V?"Pick at least one area you work in.":"Pick at least one area where you list homes.","#su-area-0"],
+        [V&&!fd.get("closingwork"),"Tell me whether any of your work is part of a home sale's closing.","#su-cw-0"],
+        [V&&fd.get("closingwork")==="yes","Your work is part of closings, so it's listed in the closing partner directory instead. Tap Continue as a closing partner.","#su-cwgo"],
+        [V&&fd.get("closingwork")==="some"&&g("cwnote").length<3,"Tell me which of your services are part of closings.","#su-cwnote"],
         [V&&!g("years"),"Choose your years in business.","#su-years"],[V&&!g("team"),"Choose your team size.","#su-team"],[V&&!g("lead"),"Choose your typical lead time.","#su-lead"],
         [V&&g("references").length<10,"Add 2 to 3 agent references, with names and phone numbers or emails.","#su-refs"],
         [pass.length<8,"Use a password with at least 8 characters.","#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
@@ -475,7 +485,8 @@ document.addEventListener("submit",async e=>{
       const meta={ref:S.ref||"",role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();
       else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),website:String(fd.get("web")||"").trim(),instagram:igHandle(fd.get("instagram")),portfolio_url:String(fd.get("portfolio")||"").trim(),services:svcs,years_in_business:String(fd.get("years")||""),
-        team_size:String(fd.get("team")||""),lead_time:String(fd.get("lead")||""),references:String(fd.get("references")||"").trim(),heard_about:String(fd.get("heard")||"").trim()});
+        team_size:String(fd.get("team")||""),lead_time:String(fd.get("lead")||""),references:String(fd.get("references")||"").trim(),heard_about:String(fd.get("heard")||"").trim(),
+        closing_work:String(fd.get("closingwork")||""),signup_notes:fd.get("closingwork")==="some"?"Closing work: some. "+g("cwnote"):""});
       const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
       if(error)return done(friendlyAuthError(error));
       if(data.session){S.authErr="";await enter(data.user);return}
@@ -803,7 +814,17 @@ function signupInsNote(){const f=document.querySelector('form[data-proto="signup
   el.innerHTML=g==="high"?`<b>Insurance:</b> because you offer ${esc(t)}, Orbyt needs to be named as an additional insured on your liability insurance before your first introduction. After you're approved, I'll give you a ready-made email to send your insurance agent.`
     :g==="mid"?`<b>Insurance:</b> because you offer ${esc(t)}, Orbyt needs to be named as an additional insured on your liability insurance within 30 days of approval. After you're approved, I'll give you a ready-made email to send your insurance agent.`
     :`<b>Insurance:</b> after you're approved, you'll upload a certificate of your general liability insurance.`;el.hidden=false}
-document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest('form[data-proto="signup"]'))signupInsNote()});
+document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest('form[data-proto="signup"]'))signupInsNote();
+  if(e.target.name==="closingwork"){const v=e.target.value,y=document.getElementById("su-cwyes"),so=document.getElementById("su-cwsome");if(y)y.hidden=v!=="yes";if(so)so.hidden=v!=="some"}});
+// "Yes, that's my main business": move to closing partner sign-up, keeping what they typed
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="cwswitch"]');if(!b)return;e.preventDefault();e.stopPropagation();
+  const f=b.closest("form"),keep={};["company","first","last","email","phone","web"].forEach(k=>{const el=f.querySelector(`[name="${k}"]`);if(el)keep[k]=el.value});
+  keep.areas=[...f.querySelectorAll('input[name="area"]:checked')].map(x=>x.value);
+  S.authMode="partner";S.authErr="";render();window.scrollTo(0,0);
+  const g=document.querySelector('form[data-kind="partner"]');if(!g)return;
+  Object.entries(keep).forEach(([k,v])=>{if(k==="areas")return;const el=g.querySelector(`[name="${k}"]`);if(el&&v)el.value=v});
+  g.querySelectorAll('input[name="area"]').forEach(x=>{if(keep.areas.includes(x.value))x.checked=true});
+  toast("Your details carried over")},true);
 document.addEventListener("input",e=>{if(e.target.id==="su-othersvc")signupInsNote()});
 
 /* Ashleigh's side: the check on the vendor card, and items on her dashboard */

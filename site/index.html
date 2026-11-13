@@ -3301,7 +3301,7 @@ function signupView(m){
   const sel=(id,label,list)=>`<label class="field"><span>${label}</span><select id="su-${id}" name="${id}"><option value="">Choose one</option>${list.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label>`;
   return `<section class="auth one"><div class="authcard"><div class="eyebrow">${m==="agent"?"For agents":"For vendor partners"}</div>
     <h1>${m==="agent"?"The right team for every listing":"More of the work you're good at"}</h1>
-    <p class="small" style="margin:0">${m==="agent"?"Orbyt is free for agents, with no fees or contracts. Tell me where you list and I'll start lining up vendors matched to your homes.":"I'll check your references and reach out before your first introduction."}</p>
+    <p class="small" style="margin:0">${m==="agent"?"Orbyt is free for agents. Tell me where you list and I'll start lining up vendors matched to your homes.":"I'll check your references and reach out before your first introduction."}</p>
     <form class="authform" data-proto="signup" data-kind="${m}" novalidate>
       <p class="small" style="margin:0">Every field is required unless it says optional.</p>
       ${m==="vendor"?`<label class="field"><span>Company name</span><input type="text" id="su-company" name="company" required></label>`:""}

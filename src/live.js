@@ -285,6 +285,7 @@ function authView(){
   const m=S.authMode||"signin",err=authMsg();
   if(!S.authReady)return `<div class="emptystate" style="margin-top:28px"><h2>Loading</h2><p>Checking your sign-in.</p></div>`;
   const card=(eyebrow,title,body)=>`<section class="auth one"><div class="authcard"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${body}</div></section>`;
+  if(m==="pending"&&S.setupV&&S.setupV.kind==="closing"&&setupMissing(S.setupV).length)return finishSetupView();
   if(m==="pending"&&S.billMine&&S.billMine.kind==="closing"){const bm=S.billMine,first=bm.start?fmtDate(bm.start):"";
     return card("Almost there",`Thanks${S.pendingName?", "+esc(S.pendingName):""}`,`<p>I'll check your license and let you know when your listing is live, usually within a day.</p>
       ${bm.enabled?(bm.has_card?`<div class="callout" style="margin:12px 0"><p style="margin:0"><span class="strong">Your card is saved.</span> Your launch offer is free, and your first $20 charge is on ${esc(first)}. Cancel anytime before then and you won't be charged.</p></div>`
@@ -372,7 +373,7 @@ async function enter(user){
   S.me=prof||null;S.authReady=true;
   if(!prof||prof.status==="pending"){S.authMode="pending";S.pendingName=prof&&prof.full_name?prof.full_name.split(" ")[0]:"";
     if(prof&&prof.role==="vendor"){try{const{data}=await sb.rpc("billing_mine");S.billMine=data||null}catch(_){S.billMine=null}
-      if(!(S.billMine&&S.billMine.kind==="closing"))await loadSetupV(user.id)}
+      await loadSetupV(user.id)}
     render();return}
   if(prof.status==="declined"){S.authMode="declined";render();return}
   if(prof.role==="agent"||prof.role==="vendor")sb.rpc("note_terms_login").then(()=>{},()=>{});
@@ -1275,15 +1276,18 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="promo
 
 /* ---------- vendor sign-up, step 2: finish your profile (shown while waiting for approval) ---------- */
 const SETUP_FIELDS=[["years","years in business"],["team","team size"],["leadTime","typical lead time"],["references","agent references"]];
-function setupMissing(v){if(!v||(typeof isPartner==="function"&&isPartner(v))||v.kind==="closing")return[];
+// card: include "card on file" for closing partners (Ashleigh's view; the partner's own screen handles the card step itself)
+function setupMissing(v,card){if(!v)return[];
+  if((typeof isPartner==="function"&&isPartner(v))||v.kind==="closing")return[String(v.license||"").trim().length<3?"license number":"",!v.years?"years in business":"",
+    card&&typeof billingOn==="function"&&billingOn()&&typeof hasCard==="function"&&!hasCard(billingOf(v.id))?"card on file":""].filter(Boolean);
   return SETUP_FIELDS.filter(([k])=>k==="references"?String(v.references||"").trim().length<10:!v[k]).map(([,l])=>l)}
 async function loadSetupV(uid){try{
-  const{data:v}=await sb.from("vendors").select("id,name,kind,years_in_business,team_size,lead_time,website,instagram,portfolio_url").eq("user_id",uid).maybeSingle();
-  if(!v||v.kind==="closing"){S.setupV=null;return}
+  const{data:v}=await sb.from("vendors").select("id,name,kind,years_in_business,team_size,lead_time,website,instagram,portfolio_url,license_number").eq("user_id",uid).maybeSingle();
+  if(!v){S.setupV=null;return}
   const{data:pv}=await sb.from("vendor_private").select("references_text").eq("vendor_id",v.id).maybeSingle();
-  S.setupV={id:v.id,name:v.name,kind:v.kind,years:v.years_in_business||"",team:v.team_size||"",leadTime:v.lead_time||"",web:v.website||"",instagram:v.instagram||"",portfolioUrl:v.portfolio_url||"",references:(pv&&pv.references_text)||""}
+  S.setupV={id:v.id,name:v.name,kind:v.kind,license:v.license_number||"",years:v.years_in_business||"",team:v.team_size||"",leadTime:v.lead_time||"",web:v.website||"",instagram:v.instagram||"",portfolioUrl:v.portfolio_url||"",references:(pv&&pv.references_text)||""}
 }catch(_){S.setupV=null}}
-function finishSetupView(){const v=S.setupV,miss=setupMissing(v);
+function finishSetupView(){const v=S.setupV,miss=setupMissing(v);if(v.kind==="closing")return finishPartnerView(v,miss);
   const sel=(id,label,list,val)=>`<label class="field"><span>${label}</span><select id="fs-${id}" name="${id}"><option value="">Choose one</option>${list.map(x=>`<option ${x===val?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`;
   return `<section class="auth one"><div class="authcard"><div class="eyebrow">Step 2 of 2</div><h1>Finish your profile${S.pendingName?", "+esc(S.pendingName):""}</h1>
     <p class="small" style="margin:0">Your account is created. Add these details so I can review ${esc(v.name||"your business")} and start introducing you to agents. Still needed: ${esc(miss.join(", "))}.</p>
@@ -1312,11 +1316,10 @@ document.addEventListener("submit",async e=>{const f=e.target.closest('form[data
   }catch(x){console.error(x);btn.disabled=false;show("That didn't save. Check your connection and try again.")}},true);
 
 /* Ashleigh's side: who hasn't finished signing up, and reminders */
-function setupPill(v){if(typeof isPartner==="function"&&isPartner(v))return'<span class="pill late">Needs review</span>';
-  return setupMissing(v).length?'<span class="pill late">Setup incomplete</span>':'<span class="pill comparing">Ready to review</span>'}
-function setupMissLine(v){const m=setupMissing(v);return m.length?`<span class="small setupmiss">Missing ${esc(m.join(", "))}</span>`:""}
+function setupPill(v){return setupMissing(v,true).length?'<span class="pill late">Setup incomplete</span>':'<span class="pill comparing">Ready to review</span>'}
+function setupMissLine(v){const m=setupMissing(v,true);return m.length?`<span class="small setupmiss">Missing ${esc(m.join(", "))}</span>`:""}
 function setupStat(v){return(S.setupStatus||{})[v.id]||null}
-function setupPanel(v){const m=setupMissing(v);if(!m.length)return"";const st=setupStat(v);
+function setupPanel(v){const m=setupMissing(v,true);if(!m.length)return"";const st=setupStat(v);
   const bits=[st&&st.email_confirmed===false?"Hasn't confirmed their email yet":"",st&&st.reminders?`${st.reminders} ${st.reminders===1?"reminder":"reminders"} sent, last ${ago(st.reminded_at)}`:"Reminders go out after 1, 4 and 7 days, then weekly until they finish"].filter(Boolean);
   return `<div class="setuppanel"><div class="small"><span class="strong">Not finished signing up.</span> Missing ${esc(m.join(", "))}.</div>
     <div class="small">${esc(bits.join(" · "))}</div>
@@ -1327,3 +1330,26 @@ document.addEventListener("click",e=>{const b=e.target.closest('[data-act="setup
   guard(async()=>{b.disabled=true;const{error}=await sb.rpc("vendor_setup_remind",{p_vendor:b.dataset.id});
     if(error){b.disabled=false;toast(/function/i.test(error.message||"")?"Run update 29 in Supabase first":"That reminder didn't send");return}
     toast("Reminder sent");await loadSetupStatus()})},true);
+
+function finishPartnerView(v,miss){
+  return `<section class="auth one"><div class="authcard"><div class="eyebrow">Step 2 of 2</div><h1>Finish your listing${S.pendingName?", "+esc(S.pendingName):""}</h1>
+    <p class="small" style="margin:0">Your account is created. Add these details so I can check your license and get ${esc(v.name||"your business")} listed in the closing partner directory. Still needed: ${esc(miss.join(", "))}.</p>
+    <form class="authform" data-form="finishpartner" novalidate>
+      <label class="field"><span>License or certification number</span><input type="text" id="fp-license" name="license" value="${esc(v.license)}" placeholder="NMLS, DRE, DFPI, Dept. of Insurance, Pest Control Board, BREA, notary commission or inspector certification"></label>
+      <div class="grid"><label class="field"><span>Years in business</span><select id="fp-years" name="years"><option value="">Choose one</option>${YEARS.map(x=>`<option ${x===v.years?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
+        <label class="field"><span>Website (optional)</span><input type="text" id="fp-web" name="web" value="${esc(v.web)}" placeholder="yourbusiness.com"></label></div>
+      <label class="field"><span>Agents you've worked with (optional)</span><textarea id="fp-refs" name="references" placeholder="Names and phone numbers or emails. I can invite them to review you.">${esc(v.references)}</textarea></label>
+      <p class="autherr" role="alert" hidden></p>
+      <div class="actions"><button class="btn" type="submit">${S.billMine&&S.billMine.enabled&&!S.billMine.has_card?"Save and add my card":"Finish my listing"}</button><button class="btn ghost" type="button" data-act="signout">Sign out</button></div>
+    </form></div></section>`}
+document.addEventListener("submit",async e=>{const f=e.target.closest('form[data-form="finishpartner"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const fd=new FormData(f),g=k=>String(fd.get(k)||"").trim(),err=f.querySelector(".autherr"),btn=f.querySelector('button[type="submit"]');
+  const show=(m,sel)=>{err.textContent=m;err.hidden=!m;const el=sel&&f.querySelector(sel);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}};
+  const hit=[[g("license").length<3,"Add your license, commission or certification number.","#fp-license"],[!g("years"),"Choose your years in business.","#fp-years"]].find(c=>c[0]);
+  if(hit)return show(hit[1],hit[2]);
+  btn.disabled=true;show("");
+  try{const v=S.setupV;
+    let r=await sb.from("vendors").update({license_number:g("license"),years_in_business:g("years"),website:g("web")||null}).eq("id",v.id);if(r.error)throw r.error;
+    if(g("references")){r=await sb.from("vendor_private").update({references_text:g("references")}).eq("vendor_id",v.id);if(r.error)throw r.error}
+    await loadSetupV(S.uid);render();window.scrollTo(0,0)
+  }catch(x){console.error(x);btn.disabled=false;show("That didn't save. Check your connection and try again.")}},true);

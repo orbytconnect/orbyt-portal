@@ -65,18 +65,14 @@ function partnerSignupView(){
     <h1>Closing services</h1>
     <p class="small" style="margin:0">For lenders, title, escrow, insurance, inspectors, appraisers, notaries and home warranty companies. List your business in Orbyt's closing partner directory for San Diego agents. Your first 90 days are free, then it's $20 a month for your marketing listing. Cancel anytime.</p>
     <form class="authform" data-proto="signup" data-kind="partner" novalidate>
-      <p class="small" style="margin:0">Every field is required unless it says optional.</p>
+      <div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> It takes about 2 minutes. Next, you'll add your license number and years in business${S.billPublic?", then your card":""}. Every field is required unless it says optional.</div>
       <label class="field"><span>Company name</span><input type="text" id="su-company" name="company" required></label>
       <div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
-        <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
-        <label class="field"><span>Website (optional)</span><input type="text" id="su-web" name="web" placeholder="yourbusiness.com"></label>
-        <label class="field"><span>License or certification number</span><input type="text" id="su-license" name="license" placeholder="NMLS, DRE, DFPI, Dept. of Insurance, Pest Control Board, BREA, notary commission or inspector certification"></label></div>
+        <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label></div>
       <div class="field"><span>What do you offer?</span>${ck("svc",CLOSING,CLOSING_HINT)}</div>
       <div class="field"><span>Where do you work?</span>${ck("area",AREAS)}</div>
-      <div class="grid"><label class="field"><span>Years in business</span><select id="su-years" name="years"><option value="">Choose one</option>${YEARS.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label></div>
-      <label class="field"><span>Agents you've worked with (optional)</span><textarea id="su-refs" name="references" placeholder="Names and phone numbers or emails. We can invite them to review you."></textarea></label>
       <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>
       <div class="grid"><label class="field"><span>Create a password (8+ characters)</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}
@@ -94,8 +90,7 @@ async function partnerSignup(f,fd,email,pass,pass2,done,btn){
   const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=fd.getAll("area").map(String);
   const checks=[[!g("company"),"Add your company name.","#su-company"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
     [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[g("phone").replace(/\D/g,"").length<10,"Add a mobile phone number, with area code.","#su-phone"],
-    [g("license").length<3,"Add your license, commission or certification number.","#su-license"],
-    [!svcs.length,"Pick what you offer.","#su-svc-0"],[!areas.length,"Pick at least one area you work in.","#su-area-0"],[!g("years"),"Choose your years in business.","#su-years"],
+    [!svcs.length,"Pick what you offer.","#su-svc-0"],[!areas.length,"Pick at least one area you work in.","#su-area-0"],
     [pass.length<8,"Use a password with at least 8 characters.","#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
     [!g("legal"),"Add your legal business name.","#su-legal"],[!fd.get("btype"),"Choose your business type.","#su-btype"],[!g("title"),"Add your title.","#su-title"],
     [!fd.get("terms"),`Check the box to agree to the ${TERMS.partner.title}.`,"#su-terms"],[!fd.get("authority"),"Check the box to confirm you have authority to agree for the business.","#su-auth"]];
@@ -214,7 +209,7 @@ function listingCell(v){const st=listingStatus(v),b=st.b||{};
 function partnersAdminView(){const all=partnersAll().sort((a,b)=>a.name.localeCompare(b.name)),f=S.pf||{c:"",st:"",q:""},q=(f.q||"").trim().toLowerCase();
   const pend=all.filter(v=>v.approved===false);
   const keyOf=v=>{const k=listingStatus(v).key;return k==="canceled"?k:v.approved===false?"review":v.available===false?"hidden":k};
-  const vs=all.filter(v=>(!q||(v.name+" "+(v.contactName||"")+" "+(v.email||"")).toLowerCase().includes(q))&&(!f.c||vsv(v).includes(f.c))&&(!f.st||(f.st==="nocard"?!hasCard(billingOf(v.id)):keyOf(v)===f.st)));
+  const vs=all.filter(v=>(!q||(v.name+" "+(v.contactName||"")+" "+(v.email||"")).toLowerCase().includes(q))&&(!f.c||vsv(v).includes(f.c))&&(!f.st||(f.st==="nocard"?!hasCard(billingOf(v.id)):f.st==="setup"?v.approved===false&&setupMissing(v,true).length>0:keyOf(v)===f.st)));
   const live=partnersLive(),paying=live.filter(v=>listingStatus(v).key==="paid").length,free=live.filter(v=>listingStatus(v).key==="free").length,due=listingDue();
   const sel=(id,k,label,opts)=>`<label class="field"><span>${label}</span><select id="${id}" data-pf="${k}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${f[k]===v?"selected":""}>${esc(t)}</option>`).join("")}</select></label>`;
   let h=(S.canWrite?billingSetupCard():"")+closingWorkCheck()+`<div class="stats" style="--n:4;margin-bottom:18px">
@@ -223,14 +218,14 @@ function partnersAdminView(){const all=partnersAll().sort((a,b)=>a.name.localeCo
     <div class="stat static"><span class="eyebrow">In free period</span><b class="num">${free}</b><span class="small">First ${LISTING_FREE_DAYS} days</span></div>
     <div class="stat static"><span class="eyebrow">Fee due</span><b class="num ${due.length?"warntext":""}">${due.length}</b><span class="small">${money2(due.reduce((s,x)=>s+x.amt,0))} owed</span></div></div>`;
   if(pend.length)h+=`<section class="section"><h2>Waiting for your review <span class="count">${pend.length}</span></h2><p class="small" style="margin:4px 0 10px">Check each license, then approve. Approve every licensed provider: the directory stays open to all.</p>
-    <div class="tablewrap"><table><thead><tr><th>Partner</th><th>Service</th><th>License</th><th>Signed up</th><th></th></tr></thead><tbody>${pend.map(v=>`<tr><td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button><div class="small">${esc([v.contactName,vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div></td>
+    <div class="tablewrap"><table><thead><tr><th>Partner</th><th>Service</th><th>License</th><th>Signed up</th><th></th></tr></thead><tbody>${pend.map(v=>`<tr><td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button> ${setupPill(v)}${setupMissLine(v)}<div class="small">${esc([v.contactName,vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div></td>
       <td>${esc(vsv(v).join(", "))}</td><td class="small">${esc(v.license||"None given")}</td><td class="small">${v.createdAt?ago(v.createdAt):""}</td><td><button class="btn sm" data-act="vcard" data-id="${esc(v.id)}">Review</button></td></tr>`).join("")}</tbody></table></div></section>`;
   h+=`<section class="section"><div class="sechead"><div><h2>Closing partner directory</h2><span class="small">Lenders, title, escrow and insurance. Agents see listed partners in a rotating order with the advertising note.</span></div></div>
     <div class="rfilters"><label class="field rsearch"><span>Search</span><input type="text" id="pf-q" data-pf="q" value="${esc(f.q||"")}" placeholder="Name or contact"></label>
       ${sel("pf-c","c","Service",[["","All services"],...CLOSING.map(c=>[c,c])])}
-      ${sel("pf-st","st","Status",[["","Everyone"],["review","Needs review"],["free","Free period"],["paid","Paid"],["due","Fee due"],["hidden","Hidden by partner"],["canceled","Canceled"],["nocard","No card on file"],["agree","Hasn't accepted the agreement"]])}</div>
+      ${sel("pf-st","st","Status",[["","Everyone"],["review","Needs review"],["setup","Setup incomplete"],["free","Free period"],["paid","Paid"],["due","Fee due"],["hidden","Hidden by partner"],["canceled","Canceled"],["nocard","No card on file"],["agree","Hasn't accepted the agreement"]])}</div>
     ${vs.length?`<div class="tablewrap"><table><thead><tr><th>Partner</th><th>Service</th><th>Areas</th><th>License</th><th>Listing</th><th>Fee</th></tr></thead><tbody>${vs.map(v=>`<tr>
-      <td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${v.approved===false?' <span class="pill late">Needs review</span>':""}${agreementPill(v)}<div class="small">${esc([v.contactName,vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div><div class="small">${ratingHtml(v.id)}</div></td>
+      <td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${v.approved===false?" "+setupPill(v)+setupMissLine(v):""}${agreementPill(v)}<div class="small">${esc([v.contactName,vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div><div class="small">${ratingHtml(v.id)}</div></td>
       <td>${esc(vsv(v).join(", "))}</td><td class="small" style="max-width:200px" title="${esc((v.areas||[]).join(", "))}">${esc(areasShort(v.areas))}</td>
       <td>${v.licensed?"Licensed":'<span style="color:var(--warn)">Check license</span>'}${v.license?`<div class="small">${esc(v.license)}</div>`:""}</td>
       <td class="small">${v.approved===false?"Not live yet":v.available!==false?"Showing":"Hidden by partner"}</td>

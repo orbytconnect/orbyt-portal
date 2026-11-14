@@ -1317,7 +1317,7 @@ function setupPill(v){if(typeof isPartner==="function"&&isPartner(v))return'<spa
 function setupMissLine(v){const m=setupMissing(v);return m.length?`<span class="small setupmiss">Missing ${esc(m.join(", "))}</span>`:""}
 function setupStat(v){return(S.setupStatus||{})[v.id]||null}
 function setupPanel(v){const m=setupMissing(v);if(!m.length)return"";const st=setupStat(v);
-  const bits=[st&&st.email_confirmed===false?"Hasn't confirmed their email yet":"",st&&st.reminders?`${st.reminders} ${st.reminders===1?"reminder":"reminders"} sent, last ${ago(st.reminded_at)}`:"Automatic reminders go out after 1, 4 and 7 days"].filter(Boolean);
+  const bits=[st&&st.email_confirmed===false?"Hasn't confirmed their email yet":"",st&&st.reminders?`${st.reminders} ${st.reminders===1?"reminder":"reminders"} sent, last ${ago(st.reminded_at)}`:"Reminders go out after 1, 4 and 7 days, then weekly until they finish"].filter(Boolean);
   return `<div class="setuppanel"><div class="small"><span class="strong">Not finished signing up.</span> Missing ${esc(m.join(", "))}.</div>
     <div class="small">${esc(bits.join(" · "))}</div>
     <div class="actions" style="margin-top:6px"><button class="btn ghost sm" type="button" data-act="setupremind" data-id="${esc(v.id)}">Send a reminder now</button></div></div>`}

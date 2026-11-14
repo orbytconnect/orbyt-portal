@@ -1,7 +1,7 @@
 -- Orbyt update 29: two-step vendor sign-up
 -- Vendors create their account first (step 1), then finish their profile (step 2: years in business,
 -- team size, lead time, agent references) while they wait for approval.
--- This adds automatic reminders for vendors who haven't finished, plus a "Send a reminder now" button for Ashleigh.
+-- This adds automatic reminders for vendors who haven't finished (after about 1, 4 and 7 days, then weekly until they do), plus a "Send a reminder now" button for Ashleigh.
 -- Safe to run more than once.
 
 alter table public.vendor_admin add column if not exists setup_reminders   integer not null default 0;
@@ -48,17 +48,19 @@ begin
 end $$;
 revoke execute on function public.vendor_setup_send(uuid) from public, anon, authenticated;
 
--- daily: reminders after about 1, 4 and 7 days, then stop
+-- daily: reminders after about 1, 4 and 7 days, then weekly until they finish (stops if declined)
 create or replace function public.vendor_setup_reminders_run() returns integer
 language plpgsql security definer set search_path = '' as $$
 declare r record; sent integer := 0;
 begin
   for r in
     select v.id from public.vendors v join public.vendor_admin a on a.vendor_id = v.id
+    left join public.profiles pr on pr.id = v.user_id
     where a.approved = false and coalesce(v.kind, '') <> 'closing' and v.user_id is not null
+      and coalesce(pr.status, 'pending') <> 'declined'
       and v.created_at < now() - interval '20 hours'
-      and coalesce(a.setup_reminders, 0) < 3
-      and (a.setup_reminded_at is null or a.setup_reminded_at < now() - interval '68 hours')
+      and (a.setup_reminded_at is null
+           or a.setup_reminded_at < now() - case when coalesce(a.setup_reminders, 0) < 3 then interval '68 hours' else interval '164 hours' end)
       and coalesce(array_length(public.vendor_setup_missing(v.id), 1), 0) > 0
   loop
     if public.vendor_setup_send(r.id) then sent := sent + 1; end if;

@@ -360,6 +360,8 @@ table.mini{min-width:0}
 .newshead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.newshead h2{margin:4px 0 0;font-size:20px}
 .newslist,.helpsec .newslist{list-style:none;margin:12px 0 14px;padding:0!important;display:grid;gap:10px}.newslist li{border-top:1px solid var(--line);padding-top:10px}.newslist p{margin:3px 0 0}.newslist .pill{margin-left:6px}
 .cwlist{list-style:none;margin:0;padding:0;display:grid;gap:8px}.cwlist li{border-top:1px solid var(--line);padding-top:8px}
+.stepnote{background:var(--surface-2);border-left:4px solid var(--gold,#A8871F);border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.5}
+.setuppanel{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}.setupmiss{display:block;margin-top:2px}
 .vsecs{margin-top:28px}.psecbody .vst{background:var(--surface-2)}.psecbody>.folds{margin:0}.psecbody .vstats{margin-bottom:14px}.updfold{margin:10px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 @media (max-width:720px){.vstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .feebox{border-left:3px solid var(--gold)}
@@ -880,7 +882,7 @@ function vendorCard(v){
   const dist=[5,4,3,2,1].map(n=>[n,all.filter(r=>r.rating===n).length]);
   const line=(label,val)=>val?`<div class="cline"><span class="eyebrow">${label}</span><span class="cval" id="cv-${label.toLowerCase()}">${esc(val)}</span><button class="btn ghost sm" data-act="copy" data-text="${esc(val)}" data-label="${label}">Copy</button></div>`:"";
   return `<div class="scrim" data-act="vclose"></div><div class="vcard" role="dialog" aria-modal="true" aria-labelledby="vc-title">
-    <div class="vchead"><div style="min-width:0"><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.approved===false?'<span class="pill late">Needs review</span>':""}</div><h2 id="vc-title" style="font-weight:500;margin-top:4px">${esc(v.name)}</h2></div>
+    <div class="vchead"><div style="min-width:0"><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.approved===false?setupPill(v):""}</div><h2 id="vc-title" style="font-weight:500;margin-top:4px">${esc(v.name)}</h2></div>
       <button class="xbtn" id="vc-close" data-act="vclose" aria-label="Close">×</button></div>
     ${agent&&S.canWrite?`<div><button class="btn ${fav?"":"ghost"} sm" data-act="fav" data-id="${esc(v.id)}" aria-pressed="${!!fav}">${fav?"♥ In your favorites":"♡ Save to favorites"}</button></div>`:""}
     <div class="clines">${typeof vendorContactGate==="function"&&msgOn()&&vendorContactGate(v)!==null?vendorContactGate(v):`${line("Phone",phone)}${line("Email",email)}${!phone&&!email?`<p class="small" style="margin:0">No contact info on file yet. Reach out to Ashleigh and she'll connect you.</p>`:""}`}</div>
@@ -914,6 +916,7 @@ function formBlock(v){
   return `<div><span class="eyebrow">Their sign-up form</span>
     <dl class="formlist">${F.map(([k,x])=>`<div><dt>${k}</dt><dd>${x||'<span class="small">Not given</span>'}</dd></div>`).join("")}</dl>
     <p class="small" style="margin:8px 0 0">${v.source?esc(v.source)+" · ":""}${v.createdAt?"Joined "+fmtStamp(v.createdAt)+" · ":""}${v.licensed?"License checked":"License not checked"} · ${v.insured?"Insurance checked":"Insurance not checked"}</p>
+    ${v.approved===false&&S.canWrite?setupPanel(v):""}
     ${v.approved===false&&S.canWrite?`<div class="actions" style="margin-top:8px"><button class="btn sm" data-act="approvevendor" data-id="${esc(v.id)}">Approve, I've checked them</button></div>`:""}${typeof deleteVendorBlock==="function"?deleteVendorBlock(v):""}</div>`;
 }
 function profileBlock(v){
@@ -1757,7 +1760,7 @@ function orbytAlerts(){
     when:new Date(Date.now()-x.days*864e5).toISOString(),act:x.pid?{a:"openmatch",id:x.pid,label:"Open project"}:null,auto:false,resurface:3,nudge:x.nudge});
   for(const su of (S.signups||[]).filter(x=>x.kind==="agent"))A.push({id:"agentsu-"+su.id,cls:"k-ink",label:"Agent sign-up",title:`${su.name} wants to join${su.brokerage?" ("+su.brokerage+")":""}`,
     meta:[(su.areas||[]).join(", "),su.email,ago(su.createdAt)].filter(Boolean).join(" · "),when:su.createdAt||"",act:{a:"approveagent",id:su.id,label:"Approve"},auto:su.status==="approved",autoLabel:"Approved"});
-  for(const v of S.vendors.filter(v=>v.approved===false)){const cp=typeof isPartner==="function"&&isPartner(v);A.push({id:"vrev-"+v.id,cls:"k-ink",label:cp?"Closing partner sign-up":"Vendor sign-up",title:`${v.name} wants to join (${vsv(v).join(", ")})`,
+  for(const v of S.vendors.filter(v=>v.approved===false)){const cp=typeof isPartner==="function"&&isPartner(v);A.push({id:"vrev-"+v.id,cls:"k-ink",label:cp?"Closing partner sign-up":setupMissing(v).length?"Setup incomplete":"Vendor sign-up",title:setupMissing(v).length?`${v.name} started signing up. Missing ${setupMissing(v).join(", ")}`:`${v.name} wants to join (${vsv(v).join(", ")})`,
     meta:[v.areaNote||v.areas?.join(", "),v.source,v.createdAt?ago(v.createdAt):""].filter(Boolean).join(" · "),when:v.createdAt||"",act:{a:"vcard",id:v.id,label:"Review"},auto:false})}
   if(typeof listingAlerts==="function")A.push(...listingAlerts());
   if(typeof msgAlerts==="function")A.push(...msgAlerts());
@@ -2254,7 +2257,7 @@ function rosterView(){
   if(!all.length)return h+`<div class="emptystate"><h2>No vendors yet</h2><p>Add the painters, landscapers, photographers and cleaners you trust. Everyone here should be licensed and insured, and checked before they join.</p></div>`;
   const f=S.rf,q=f.q.trim().toLowerCase();
   const vs=all.filter(v=>(!q||v.name.toLowerCase().includes(q)||(vPhone(v)+" "+vEmail(v)).toLowerCase().includes(q))&&(!f.cat||vsv(v).includes(f.cat))&&(!f.area||(v.areas||[]).includes(f.area))
-    &&(!f.status||(f.status==="review"?v.approved===false:f.status==="taking"?v.available!==false&&v.approved!==false:v.available===false))&&(!f.cred||(f.cred==="yes"?v.licensed&&v.insured:!(v.licensed&&v.insured)))
+    &&(!f.status||(f.status==="review"?v.approved===false:f.status==="setup"?v.approved===false&&setupMissing(v).length>0:f.status==="taking"?v.available!==false&&v.approved!==false:v.available===false))&&(!f.cred||(f.cred==="yes"?v.licensed&&v.insured:!(v.licensed&&v.insured)))
     &&(!f.promo||(f.promo==="featured"?featuredNow(v):!featuredNow(v)))&&(!f.rating||((rating(v.id)||{avg:0}).avg>=Number(f.rating)))
     &&(!f.price||(f.price==="none"?!(priceStats(v.id)||{}).tier:(priceStats(v.id)||{}).tier===f.price)));
   const on=q||f.cat||f.area||f.status||f.cred||f.promo||f.rating||f.price;
@@ -2263,7 +2266,7 @@ function rosterView(){
   h+=`<div class="rfilters"><label class="field rsearch"><span>Search</span><input type="text" id="rs-q" value="${esc(f.q)}" placeholder="Name or contact"></label>
     ${sel("rs-cat","Service",f.cat,[["","All services"],...usedCats.map(c=>[c,c])])}
     ${sel("rs-area","Area",f.area,[["","All areas"],...AREAS.map(a=>[a,a])])}
-    ${sel("rs-status","Status",f.status,[["","Everyone"],["taking","Taking work"],["paused","Paused"],["review","Needs review"]])}
+    ${sel("rs-status","Status",f.status,[["","Everyone"],["taking","Taking work"],["paused","Paused"],["review","Needs review"],["setup","Setup incomplete"]])}
     ${sel("rs-cred","Licensed and insured",f.cred,[["","Everyone"],["yes","Yes"],["check","Needs a check"]])}
     ${sel("rs-rating","Rating",f.rating,[["","Any rating"],["4.5","4.5 stars and up"],["4","4 stars and up"],["3","3 stars and up"]])}
     ${sel("rs-promo","Special offer",f.promo,[["","Everyone"],["featured","Special offer"],["none","No offer"]])}
@@ -2273,7 +2276,7 @@ function rosterView(){
     <div class="actions" style="margin-bottom:12px"><span class="small num">Showing ${vs.length} of ${all.length} vendors</span>${on?`<button class="linkbtn" data-act="rclear">Clear filters</button>`:""}</div>`;
   if(!vs.length)return h+`<p class="small">No vendors match those filters.</p>`;
   return h+`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Service</th><th>Areas</th><th>Rating</th><th>Pricing</th><th>Licensed and insured</th><th>Taking work</th><th>Booked</th><th></th></tr></thead><tbody>${vs.map(v=>`<tr>
-    <td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${vnotes(v.id).length?` <span class="small" title="You have notes on this vendor">· ${vnotes(v.id).length} ${vnotes(v.id).length===1?"note":"notes"}</span>`:""} ${v.approved===false?'<span class="pill late">Needs review</span>':""} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.sample?'<span class="pill example">Example</span>':""}${vPhone(v)||vEmail(v)?`<div class="small">${esc([vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div>`:""}</td>
+    <td><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${vnotes(v.id).length?` <span class="small" title="You have notes on this vendor">· ${vnotes(v.id).length} ${vnotes(v.id).length===1?"note":"notes"}</span>`:""} ${v.approved===false?setupPill(v):""} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""} ${v.sample?'<span class="pill example">Example</span>':""}${v.approved===false?setupMissLine(v):""}${vPhone(v)||vEmail(v)?`<div class="small">${esc([vPhone(v),vEmail(v)].filter(Boolean).join(" · "))}</div>`:""}</td>
     <td>${esc(vsv(v).join(", "))}</td><td class="small" style="max-width:200px" title="${esc((v.areas||[]).join(", "))}">${esc(areasShort(v.areas))}</td><td>${ratingHtml(v.id)}${(()=>{const k=S.reviews.filter(r=>r.vendorId===v.id&&!r.approved).length;return k?`<div><button class="pill comparing" style="border:0;cursor:pointer;margin-top:4px" data-act="vcard" data-id="${esc(v.id)}">${k} to approve</button></div>`:""})()}</td>
     <td>${(()=>{const st=priceStats(v.id);return st?`${st.tier?tierPill(st):'<span class="small">Not enough bids yet</span>'}<div class="small num" style="margin-top:4px">Avg ${money(st.avgAmt)} · ${st.n} ${st.n===1?"bid":"bids"}${st.decided?` · won ${st.won} of ${st.decided}`:""}</div>`:'<span class="small">No bids yet</span>'})()}</td>
     <td>${typeof isPartner==="function"&&isPartner(v)?(v.licensed?"Licensed":'<span style="color:var(--warn)">Check license</span>')+(v.license?`<div class="small">${esc(v.license)}</div>`:""):v.licensed&&v.insured?"Yes":'<span style="color:var(--warn)">Check</span>'}</td>

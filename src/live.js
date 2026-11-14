@@ -291,10 +291,11 @@ function authView(){
         :`<div class="callout" style="margin:12px 0"><p style="margin:0 0 8px"><span class="strong">Last step: add your card.</span> Your launch offer gives you 90 days free. Your card isn't charged until ${esc(first)}, then it's $20 a month for your marketing listing. Cancel anytime before then and you won't be charged.</p>
           <button class="btn" data-act="paycard" data-kind="listing">Add my card</button></div>`):""}
       <p class="small">Ashleigh at Orbyt</p><div class="actions"><button class="btn ghost" data-act="signout">Sign out</button></div>`)}
-  if(m==="pending")return card("Almost there",`Thanks${S.pendingName?", "+esc(S.pendingName):""}`,`<p>I review every new account before the first introduction, usually within a day. You'll get an email as soon as you're in.</p><p class="small">Ashleigh at Orbyt</p>
+  if(m==="pending"&&S.setupV&&setupMissing(S.setupV).length)return finishSetupView();
+  if(m==="pending")return card("Almost there",`Thanks${S.pendingName?", "+esc(S.pendingName):""}`,`<p>${S.setupV?"Your profile is complete. ":""}I review every new account before the first introduction, usually within a day. You'll get an email as soon as you're in.</p><p class="small">Ashleigh at Orbyt</p>
     <div class="actions"><button class="btn ghost" data-act="signout">Sign out</button></div>`);
   if(m==="declined")return card("Account","This account isn't active",`<p>Reach out to ashleigh@orbytconnect.com with any questions.</p><div class="actions"><button class="btn ghost" data-act="signout">Sign out</button></div>`);
-  if(m==="checkemail")return card("One more step","Check your email",`<p>I sent a confirmation link to <span class="strong">${esc(S.pendingEmail||"your inbox")}</span>. Click it, then sign in here${S.pendingPartner?" to add your card and finish signing up":""}.</p>
+  if(m==="checkemail")return card("One more step","Check your email",`<p>I sent a confirmation link to <span class="strong">${esc(S.pendingEmail||"your inbox")}</span>. Click it, then sign in here${S.pendingPartner?" to add your card and finish signing up":S.pendingVendor?" for step 2: a few business details and 2 to 3 agent references":""}.</p>
     <div class="actions"><button class="btn" data-act="authmode" data-m="signin">Back to sign in</button></div>`);
   if(m==="forgot")return card("Password","Reset your password",`<form class="authform" data-proto="forgot" novalidate>
       <label class="field"><span>Email</span><input type="email" id="fp-email" name="email" autocomplete="email" required></label>${err}
@@ -309,7 +310,7 @@ function authView(){
   if(m==="join")return card("Join Orbyt","How will you use Orbyt?",`<p class="small" style="margin:0">Pick one to get started. Every match is made by a real person.</p>
     <div class="demolist"><button class="demoacct" data-act="authmode" data-m="agent"><span class="strong">I'm an agent</span><span class="small">The right team for every listing</span></button>
       <button class="demoacct" data-act="authmode" data-m="vendor"><span class="strong">I'm a vendor partner</span><span class="small">More of the work you're good at, less chasing it</span></button>
-      <button class="demoacct" data-act="authmode" data-m="partner"><span class="strong">I'm a closing partner</span><span class="small">Lender, title, escrow or insurance</span></button></div>
+      <button class="demoacct" data-act="authmode" data-m="partner"><span class="strong">I'm a closing partner</span><span class="small">Lending, title, escrow, insurance, inspections and more</span></button></div>
     <p class="small" style="margin:0">Already have an account? <button class="linkbtn" data-act="authmode" data-m="signin">Sign in</button></p>`);
   return `<section class="auth"><div class="authcard"><div class="eyebrow">Welcome back</div><h1>Sign in to Orbyt</h1>
       <form class="authform" data-proto="signin" novalidate>
@@ -321,7 +322,7 @@ function authView(){
       <p class="small" style="margin:0">Agents get vendors matched to each home. Vendor partners get warm intros to agents who need their work. Every match is made by a real person.</p>
       <div class="demolist"><button class="demoacct" data-act="authmode" data-m="agent"><span class="strong">Join as an agent</span><span class="small">Free to join. The right team for every listing</span></button>
         <button class="demoacct" data-act="authmode" data-m="vendor"><span class="strong">Join as a vendor partner</span><span class="small">More of the work you're good at</span></button>
-        <button class="demoacct" data-act="authmode" data-m="partner"><span class="strong">Join as a closing partner</span><span class="small">Lender, title, escrow or insurance</span></button></div></div></section>`;
+        <button class="demoacct" data-act="authmode" data-m="partner"><span class="strong">Join as a closing partner</span><span class="small">Lending, title, escrow, insurance, inspections and more</span></button></div></div></section>`;
 }
 function signupView(m){
   const ck=(name,list)=>`<div class="checks">${list.map((x,i)=>`<label><input type="checkbox" id="su-${name}-${i}" name="${name}" value="${esc(x)}">${esc(x)}</label>`).join("")}</div>`;
@@ -330,16 +331,13 @@ function signupView(m){
     <h1>${m==="agent"?"The right team for every listing":"More of the work you're good at"}</h1>
     <p class="small" style="margin:0">${m==="agent"?"Orbyt is free for agents. Tell me where you list and I'll start lining up vendors matched to your homes.":"I'll check your references and reach out before your first introduction."}</p>
     <form class="authform" data-proto="signup" data-kind="${m}" novalidate>
-      ${m==="agent"?"":`<p class="small" style="margin:0">Every field is required unless it says optional.</p>`}
+      ${m==="agent"?"":`<div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> It takes about 2 minutes. Next, you'll add a few business details and 2 to 3 agent references. Every field is required unless it says optional.</div>`}
       ${m==="vendor"?`<label class="field"><span>Company name</span><input type="text" id="su-company" name="company" required></label>`:""}
       <div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
-        ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label>`:`<label class="field"><span>Website (optional)</span><input type="text" id="su-web" name="web" placeholder="yourbusiness.com"></label>`}</div>
-      ${m==="vendor"?`<div class="grid"><label class="field"><span>Instagram (optional)</span><input type="text" id="su-ig" name="instagram" placeholder="@yourbusiness"></label>
-        <label class="field"><span>Portfolio link (optional)</span><input type="text" id="su-port" name="portfolio" placeholder="Google Drive, Houzz, Dropbox or anywhere"></label></div>
-        <p class="small" style="margin:0">If you have a website, Instagram or portfolio, adding it helps me match you. You can upload a portfolio PDF and a business overview from your dashboard once you're approved.</p>`:""}
+        ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label>`:""}</div>
       ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}${moreChecks("svc","su-ms")}</div>
         <label class="field"><span>Anything else? (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything not listed above"></label>
         <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>
@@ -351,9 +349,7 @@ function signupView(m){
           <div id="su-cwsome" hidden><label class="field"><span>Which of your services are part of closings?</span><input type="text" id="su-cwnote" name="cwnote" maxlength="200" placeholder="Termite reports for escrow"></label>
             <p class="small" style="margin:4px 0 0">Those jobs won't come through Orbyt introductions, so there's never a fee on them. You're welcome to list that work in the closing partner directory too.</p></div></div>`:""}
       <div class="field"><span>${m==="agent"?"Where do you list homes?":"Where do you work?"}</span>${ck("area",AREAS)}</div>
-      ${m==="vendor"?`<div class="grid">${sel("years","Years in business",YEARS)}${sel("team","Team size",TEAM)}${sel("lead","Typical lead time",LEAD)}</div>
-        <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="su-refs" name="references" placeholder="Names and phone numbers or emails"></textarea></label>
-        <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>`:""}
+      ${m==="vendor"?`<label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>`:""}
       <div class="grid"><label class="field"><span>Create a password (8+ characters)</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}
       ${m==="vendor"?`<div class="reviewagree"><div class="eyebrow">Review and agree</div>
@@ -375,7 +371,8 @@ async function enter(user){
   if(S.recovering)return;
   S.me=prof||null;S.authReady=true;
   if(!prof||prof.status==="pending"){S.authMode="pending";S.pendingName=prof&&prof.full_name?prof.full_name.split(" ")[0]:"";
-    if(prof&&prof.role==="vendor"){try{const{data}=await sb.rpc("billing_mine");S.billMine=data||null}catch(_){S.billMine=null}}
+    if(prof&&prof.role==="vendor"){try{const{data}=await sb.rpc("billing_mine");S.billMine=data||null}catch(_){S.billMine=null}
+      if(!(S.billMine&&S.billMine.kind==="closing"))await loadSetupV(user.id)}
     render();return}
   if(prof.status==="declined"){S.authMode="declined";render();return}
   if(prof.role==="agent"||prof.role==="vendor")sb.rpc("note_terms_login").then(()=>{},()=>{});
@@ -387,6 +384,7 @@ async function enter(user){
   S.downloads={save:async({filename,data})=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data]));a.download=filename;document.body.appendChild(a);a.click();a.remove();return{status:"saved"}}};
   subscribeAll(db);render();
   try{await db.reload()}catch(e){console.error(e);toast("Couldn't load your projects. Refresh to try again.")}
+  loadSetupStatus();
   setInterval(()=>{if(document.visibilityState==="visible"&&!S.busy)db.reload().catch(()=>{})},30000);
 }
 function subscribeAll(db){
@@ -475,8 +473,6 @@ document.addEventListener("submit",async e=>{
         [V&&!fd.get("closingwork"),"Tell me whether any of your work is part of a home sale's closing.","#su-cw-0"],
         [V&&fd.get("closingwork")==="yes","Your work is part of closings, so it's listed in the closing partner directory instead. Tap Continue as a closing partner.","#su-cwgo"],
         [V&&fd.get("closingwork")==="some"&&g("cwnote").length<3,"Tell me which of your services are part of closings.","#su-cwnote"],
-        [V&&!g("years"),"Choose your years in business.","#su-years"],[V&&!g("team"),"Choose your team size.","#su-team"],[V&&!g("lead"),"Choose your typical lead time.","#su-lead"],
-        [V&&g("references").length<10,"Add 2 to 3 agent references, with names and phone numbers or emails.","#su-refs"],
         [pass.length<8,"Use a password with at least 8 characters.","#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
         [V&&!g("legal"),"Add your legal business name.","#su-legal"],[V&&!fd.get("btype"),"Choose your business type.","#su-btype"],[V&&!g("title"),"Add your title.","#su-title"],
         [!fd.get("terms"),`Check the box to agree to the ${TERMS[m].title}.`,"#su-terms"],[V&&!fd.get("authority"),"Check the box to confirm you have authority to agree for the business.","#su-auth"]];
@@ -484,13 +480,12 @@ document.addEventListener("submit",async e=>{
       if(hit){done(hit[1]);const el=hit[2]&&f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}
       const meta={ref:S.ref||"",role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();
-      else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),website:String(fd.get("web")||"").trim(),instagram:igHandle(fd.get("instagram")),portfolio_url:String(fd.get("portfolio")||"").trim(),services:svcs,years_in_business:String(fd.get("years")||""),
-        team_size:String(fd.get("team")||""),lead_time:String(fd.get("lead")||""),references:String(fd.get("references")||"").trim(),heard_about:String(fd.get("heard")||"").trim(),
+      else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),services:svcs,heard_about:String(fd.get("heard")||"").trim(),
         closing_work:String(fd.get("closingwork")||""),signup_notes:fd.get("closingwork")==="some"?"Closing work: some. "+g("cwnote"):""});
       const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
       if(error)return done(friendlyAuthError(error));
       if(data.session){S.authErr="";await enter(data.user);return}
-      S.pendingEmail=email;S.authMode="checkemail";S.authErr="";if(btn)btn.disabled=false;render();return}
+      S.pendingEmail=email;S.pendingVendor=m==="vendor";S.authMode="checkemail";S.authErr="";if(btn)btn.disabled=false;render();return}
   }catch(x){console.error(x);done("Something went wrong. Check your connection and try again.")}
 },true);
 
@@ -1277,3 +1272,58 @@ document.addEventListener("input",e=>{const f=e.target.closest('form[data-form="
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="promostop"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   const d=(document.getElementById("pr-stop")||{}).value;if(!d)return;
   guard(async()=>{fail((await sb.rpc("promo_set_end",{p_end:d})).error,"offer");await S.db.reload()},`Your offer now ends ${fmtDate(d)}.`)},true);
+
+/* ---------- vendor sign-up, step 2: finish your profile (shown while waiting for approval) ---------- */
+const SETUP_FIELDS=[["years","years in business"],["team","team size"],["leadTime","typical lead time"],["references","agent references"]];
+function setupMissing(v){if(!v||(typeof isPartner==="function"&&isPartner(v))||v.kind==="closing")return[];
+  return SETUP_FIELDS.filter(([k])=>k==="references"?String(v.references||"").trim().length<10:!v[k]).map(([,l])=>l)}
+async function loadSetupV(uid){try{
+  const{data:v}=await sb.from("vendors").select("id,name,kind,years_in_business,team_size,lead_time,website,instagram,portfolio_url").eq("user_id",uid).maybeSingle();
+  if(!v||v.kind==="closing"){S.setupV=null;return}
+  const{data:pv}=await sb.from("vendor_private").select("references_text").eq("vendor_id",v.id).maybeSingle();
+  S.setupV={id:v.id,name:v.name,kind:v.kind,years:v.years_in_business||"",team:v.team_size||"",leadTime:v.lead_time||"",web:v.website||"",instagram:v.instagram||"",portfolioUrl:v.portfolio_url||"",references:(pv&&pv.references_text)||""}
+}catch(_){S.setupV=null}}
+function finishSetupView(){const v=S.setupV,miss=setupMissing(v);
+  const sel=(id,label,list,val)=>`<label class="field"><span>${label}</span><select id="fs-${id}" name="${id}"><option value="">Choose one</option>${list.map(x=>`<option ${x===val?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`;
+  return `<section class="auth one"><div class="authcard"><div class="eyebrow">Step 2 of 2</div><h1>Finish your profile${S.pendingName?", "+esc(S.pendingName):""}</h1>
+    <p class="small" style="margin:0">Your account is created. Add these details so I can review ${esc(v.name||"your business")} and start introducing you to agents. Still needed: ${esc(miss.join(", "))}.</p>
+    <form class="authform" data-form="finishsetup" novalidate>
+      <div class="grid">${sel("years","Years in business",YEARS,v.years)}${sel("team","Team size",TEAM,v.team)}${sel("lead","Typical lead time",LEAD,v.leadTime)}</div>
+      <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="fs-refs" name="references" placeholder="Names and phone numbers or emails">${esc(v.references)}</textarea></label>
+      <p class="small" style="margin:0">Agents you've done work for. I'll reach out to them before your first introduction.</p>
+      <div class="grid"><label class="field"><span>Website (optional)</span><input type="text" id="fs-web" name="web" value="${esc(v.web)}" placeholder="yourbusiness.com"></label>
+        <label class="field"><span>Instagram (optional)</span><input type="text" id="fs-ig" name="instagram" value="${esc(v.instagram)}" placeholder="@yourbusiness"></label>
+        <label class="field"><span>Portfolio link (optional)</span><input type="text" id="fs-port" name="portfolio" value="${esc(v.portfolioUrl)}" placeholder="Google Drive, Houzz, Dropbox or anywhere"></label></div>
+      <p class="autherr" role="alert" hidden></p>
+      <div class="actions"><button class="btn" type="submit">Finish my profile</button><button class="btn ghost" type="button" data-act="signout">Sign out</button></div>
+    </form></div></section>`}
+document.addEventListener("submit",async e=>{const f=e.target.closest('form[data-form="finishsetup"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const fd=new FormData(f),g=k=>String(fd.get(k)||"").trim(),err=f.querySelector(".autherr"),btn=f.querySelector('button[type="submit"]');
+  const show=(m,sel)=>{err.textContent=m;err.hidden=!m;const el=sel&&f.querySelector(sel);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}};
+  const hit=[[!g("years"),"Choose your years in business.","#fs-years"],[!g("team"),"Choose your team size.","#fs-team"],[!g("lead"),"Choose your typical lead time.","#fs-lead"],
+    [g("references").length<10,"Add 2 to 3 agent references, with names and phone numbers or emails.","#fs-refs"]].find(c=>c[0]);
+  if(hit)return show(hit[1],hit[2]);
+  btn.disabled=true;show("");
+  try{const v=S.setupV;
+    let r=await sb.from("vendors").update({years_in_business:g("years"),team_size:g("team"),lead_time:g("lead"),website:g("web")||null,instagram:igHandle(fd.get("instagram"))||null,portfolio_url:g("portfolio")||null}).eq("id",v.id);
+    if(r.error)throw r.error;
+    r=await sb.from("vendor_private").update({references_text:g("references")}).eq("vendor_id",v.id);if(r.error)throw r.error;
+    await loadSetupV(S.uid);render();window.scrollTo(0,0)
+  }catch(x){console.error(x);btn.disabled=false;show("That didn't save. Check your connection and try again.")}},true);
+
+/* Ashleigh's side: who hasn't finished signing up, and reminders */
+function setupPill(v){if(typeof isPartner==="function"&&isPartner(v))return'<span class="pill late">Needs review</span>';
+  return setupMissing(v).length?'<span class="pill late">Setup incomplete</span>':'<span class="pill comparing">Ready to review</span>'}
+function setupMissLine(v){const m=setupMissing(v);return m.length?`<span class="small setupmiss">Missing ${esc(m.join(", "))}</span>`:""}
+function setupStat(v){return(S.setupStatus||{})[v.id]||null}
+function setupPanel(v){const m=setupMissing(v);if(!m.length)return"";const st=setupStat(v);
+  const bits=[st&&st.email_confirmed===false?"Hasn't confirmed their email yet":"",st&&st.reminders?`${st.reminders} ${st.reminders===1?"reminder":"reminders"} sent, last ${ago(st.reminded_at)}`:"Automatic reminders go out after 1, 4 and 7 days"].filter(Boolean);
+  return `<div class="setuppanel"><div class="small"><span class="strong">Not finished signing up.</span> Missing ${esc(m.join(", "))}.</div>
+    <div class="small">${esc(bits.join(" · "))}</div>
+    <div class="actions" style="margin-top:6px"><button class="btn ghost sm" type="button" data-act="setupremind" data-id="${esc(v.id)}">Send a reminder now</button></div></div>`}
+async function loadSetupStatus(){if(kind()!=="orbyt")return;try{const{data,error}=await sb.rpc("vendor_setup_status");if(error)return;
+  const o={};(data||[]).forEach(r=>o[r.vendor_id]=r);S.setupStatus=o;schedule()}catch(_){}}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="setupremind"]');if(!b)return;e.preventDefault();e.stopPropagation();
+  guard(async()=>{b.disabled=true;const{error}=await sb.rpc("vendor_setup_remind",{p_vendor:b.dataset.id});
+    if(error){b.disabled=false;toast(/function/i.test(error.message||"")?"Run update 29 in Supabase first":"That reminder didn't send");return}
+    toast("Reminder sent");await loadSetupStatus()})},true);

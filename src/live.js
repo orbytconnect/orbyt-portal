@@ -1489,4 +1489,4 @@ const suBiz=()=>`<div class="grid"><label class="field"><span>Legal entity name<
 // agreeing to the terms and confirming authority is one checkbox; the authority flag rides along with it
 const suAgree=kind=>`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink(kind)}${kind==="vendor"?", including the fee structure,":""} and I have authority to agree on behalf of <b class="bizname">[Legal business name]</b>.</span></label><input type="hidden" id="su-auth" name="authority" value="1">
   <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>
-  <label class="checkrow top"><input type="checkbox" id="su-optout" name="optout"> <span class="small" style="font-weight:300">If you'd rather not receive Orbyt updates and announcements, tick this box.</span></label>`;
+  <label class="checkrow top optoutrow"><input type="checkbox" id="su-optout" name="optout"> <span>Prefer not to get Orbyt updates and announcements? Tick this box to opt out.</span></label>`;

@@ -239,6 +239,7 @@ textarea{resize:vertical;min-height:64px}
 .fbar i{display:block;height:100%;background:var(--fc-exp)}
 @media (max-width:640px){.fstep{grid-template-columns:minmax(0,1fr) auto}.fstep .fbar{grid-column:1 / -1;grid-row:2}}
 .stat.static{cursor:default}
+.seqfold{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:6px 0;background:var(--surface)}.seqfold>summary{cursor:pointer;list-style:none;line-height:1.5}.seqfold>summary::-webkit-details-marker{display:none}.seqfold>summary::before{content:"▸ ";color:var(--muted)}.seqfold[open]>summary::before{content:"▾ "}.seqfold .seq{margin-top:8px}
 .stat.static:hover{background:none}
 .stat .small{display:block;margin-top:2px}
 .invgroups{display:grid;gap:14px}
@@ -578,7 +579,13 @@ function timingBlock(p,mine){
   const st=c=>{if(c===mine)return"";const t=teamBid(p.id,c);if(!t)return`<span class="small">Not booked yet</span>`;
     return `<span class="small">${t.status==="chosen"?"Being confirmed":"Booked"}${t.startDate?" · starts "+esc(fmtDate(t.startDate)):""}${t.days?" · about "+workDays(t):""}</span>`};
   const myIdx=mine?steps.findIndex(g=>g.includes(mine)):-1;
-  return `<div class="timing"><ol class="seq">${steps.map((g,i)=>`<li class="${g.includes(mine)?"mine":""}"><span class="sn num">${i+1}</span><div>${g.map(c=>`<div><span class="${c===mine?"strong":""}">${esc(c)}${c===mine?" · you":""}</span> ${st(c)}</div>`).join("")}${g.length>1?`<div class="small">These can usually happen around the same time.</div>`:""}</div></li>`).join("")}</ol>
+  const li=(g,i)=>`<li class="${g.includes(mine)?"mine":""}"><span class="sn num">${i+1}</span><div>${g.map(c=>`<div><span class="${c===mine?"strong":""}">${esc(c)}${c===mine?" · you":""}</span> ${st(c)}</div>`).join("")}${g.length>1?`<div class="small">These can usually happen around the same time.</div>`:""}</div></li>`;
+  // a vendor sees their own step, with the work before and after them folded away
+  const grp=(label,list,off)=>{if(!list.length)return"";const all=list.flat(),bk=all.filter(c=>teamBid(p.id,c)).length;
+    return `<details class="seqfold"><summary><span class="strong">${label}</span> <span class="small">${all.length} ${all.length===1?"service":"services"}${bk?`, ${bk} booked`:""}: ${esc(all.join(", "))}</span></summary><ol class="seq">${list.map((g,j)=>li(g,off+j)).join("")}</ol></details>`};
+  const seqHtml=mine&&myIdx>=0&&steps.length>1?grp("Before your work",steps.slice(0,myIdx),0)+`<ol class="seq">${li(steps[myIdx],myIdx)}</ol>`+grp("After your work",steps.slice(myIdx+1),myIdx+1)
+    :`<ol class="seq">${steps.map(li).join("")}</ol>`;
+  return `<div class="timing">${seqHtml}
     ${mine?`<p class="paynote" style="margin:10px 0 0"><b>Plan around the other work.</b> ${steps.length>1?`${myIdx>0?`On most homes, ${esc(steps.slice(0,myIdx).flat().join(", ").toLowerCase())} ${steps.slice(0,myIdx).flat().length===1?"happens":"happen"} before you.`:""} ${myIdx<steps.length-1?`${esc(capF(steps.slice(myIdx+1).flat().join(", ").toLowerCase()))} ${steps.slice(myIdx+1).flat().length===1?"comes":"come"} after, so leave room for ${steps.slice(myIdx+1).flat().length===1?"it":"them"}.`:"Yours is usually the last step, so the home should be ready for you."} `:""}This is the typical order, and ${esc(firstName(p.agent))} sets the final schedule, so confirm your dates with them before you start.${p.targetDate&&!p.listed?` Everything needs to wrap before ${buyer?"move-in":"the list date"} on ${esc(fmtDate(p.targetDate))}${d!==null&&d>=0?` (${d} ${d===1?"day":"days"} away)`:""}.`:""}</p>`
     :`<p class="small" style="margin:8px 0 0">${hasCustomOrder(p)?"Order set for this home.":"Typical order for this home."} Book the early steps first so later vendors aren't waiting${p.targetDate&&!p.listed?`, and keep everything ahead of ${esc(fmtDate(p.targetDate))}`:""}.</p>`}</div>`;
 }
@@ -1093,26 +1100,29 @@ function vendorView(){
   if(v&&typeof isPartner==="function"&&isPartner(v))return partnerView(v);
   if(!v)return `<div class="emptystate" style="margin-top:28px"><h2>Pick a vendor</h2><p>Choose a vendor in "Viewing as" to see their requests.</p></div>`;
   if(typeof msgPending==="function")msgPending();
-  if(!["tasks","projects","messages"].includes(S.tab))S.tab="tasks";
-  const T=vendorTasks(v.id);const openN=splitTasks(T).open.length;
+  if(!["tasks","projects","messages","profile"].includes(S.tab))S.tab="tasks";
+  const T=vendorTasks(v.id),ok=v.approved!==false;const openN=splitTasks(T).open.length;
   const mine=S.bids.filter(b=>b.vendorId===v.id&&projById(b.projectId));
-  let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""}</div><h1>Hi, ${esc(v.name)}</h1>${v.approved===false?`<p class="banner" style="margin-top:10px">Thanks for signing up. I'll reach out to say hi and check your references before your first introduction.</p>`:""}
+  let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""}</div><h1>Hi, ${esc(v.name)}</h1>${ok?"":`<p class="banner" style="margin-top:10px">Welcome to Orbyt. Finish the steps under Get approved below, and I'll check your references and approve you for introductions.</p>`}
     <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
-  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function")h+=setupCard();
-  const foot=typeof vendorFolds==="function"?vendorFolds(v,mine):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
+  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function"&&ok)h+=setupCard();
+  const folds=typeof vendorFolds==="function"?vendorFolds(v,mine):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
+  // before approval: Get approved, then the profile, right on the dashboard. After: the profile lives on its own tab
+  const pre=!ok&&typeof approvalSec==="function"?approvalSec(v):"",foot=ok?"":folds;
   h+=statStrip([
     {key:"requested",label:"Bids requested",list:req,render:l=>bidTable(l,"vendor"),empty:"No open requests right now."},
     {key:"overdue",label:"Overdue",list:req.filter(b=>b.status==="requested"&&ageDays(b.requestedAt)>=REMIND_DAYS),render:l=>bidTable(l,"vendor"),empty:"Nothing overdue. Nice work."},
     {key:"sent",label:"Bids sent",list:mine.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"vendor"),empty:"No bids waiting on a decision."},
     {key:"accepted",label:"Bids accepted",list:mine.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"vendor"),empty:"No accepted bids yet."},...(typeof msgStat==="function"?msgStat():[])]);
-  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[])]);
+  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],["profile","Profile",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[])]);
   if(S.tab==="messages"&&typeof messagesView==="function")return h+messagesView();
+  if(S.tab==="profile")return h+(ok?"":pre)+folds;
   const ob=S.openRequest&&mine.find(b=>b.id===S.openRequest);
   if(ob)return h+`<div class="back"><button class="linkbtn" data-act="closereq">${S.tab==="tasks"?"Back to tasks":"All projects"}</button></div>`+requestDetail(ob);
-  if(S.tab==="tasks")return h+tasksView(T,"New bid requests show up here as soon as a listing needs you.")+
-    `<p class="small" style="margin-top:14px">If a request goes ${REMIND_DAYS} days without a bid, it comes back here as a reminder and you'll get an email.</p>`+foot;
+  if(S.tab==="tasks")return h+pre+tasksView(T,ok?"New bid requests show up here as soon as a listing needs you.":"Bid requests show up here once you're approved.")+
+    (ok?`<p class="small" style="margin-top:14px">If a request goes ${REMIND_DAYS} days without a bid, it comes back here as a reminder and you'll get an email.</p>`:"")+foot;
   if(!mine.length)return h+`<div class="emptystate"><h2>No projects yet</h2><p>Projects you're asked to bid on will be listed here with the agent and your bid status.</p></div>`+foot;
   const rows=sortRows(mine.filter(b=>inRange(projById(b.projectId))),{address:b=>projById(b.projectId).address,agent:b=>projById(b.projectId).agent,date:b=>projById(b.projectId).targetDate||"9999"});
   h+=rangeFilter(mine.length,rows.length);

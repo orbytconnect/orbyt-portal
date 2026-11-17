@@ -705,7 +705,7 @@ const agreementPill=v=>v.userId&&v.approved!==false&&Array.isArray(D.terms_accep
 const agentTermsLine=uid=>{if(!uid)return"";const t=currentAcceptance(uid,"agent");
   return t?`<div class="small">Agreed to terms ${esc(fmtStamp(t.accepted_at))}</div>`:`<div class="small warntext">Hasn't agreed to terms yet</div>`};
 const myAgreementBtn=()=>{const r=myRole();if(!r)return"";const old=r==="vendor"&&agreementsFor(myVendorId())[0];
-  return `<button class="linkbtn" data-act="mydetails">My details</button><a class="linkbtn" href="${esc(termsUrl(r))}" target="_blank" rel="noopener">Terms of Use</a>${old?`<button class="linkbtn" data-act="agview" data-id="${esc(old.id)}">Signed agreement</button>`:""}`};
+  return `<button class="linkbtn" data-act="mydetails">My details</button>${old?`<button class="linkbtn" data-act="agview" data-id="${esc(old.id)}">Signed agreement</button>`:""}`};
 function printAgreement(html){
   const w=window.open("","_blank");if(!w){toast("Allow pop-ups for this site to print the agreement.");return}
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Orbyt Vendor Network Agreement</title><style>body{font:15px/1.55 Georgia,serif;max-width:760px;margin:40px auto;padding:0 20px;color:#111}

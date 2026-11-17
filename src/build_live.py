@@ -1,7 +1,7 @@
 import re, pathlib, sys
 HERE = pathlib.Path(__file__).resolve().parent
 src = (HERE / "orbyt-portal.html").read_text()
-live = (HERE / "live.js").read_text() + "\n" + (HERE / "homecard.js").read_text() + "\n" + (HERE / "partners.js").read_text() + "\n" + (HERE / "onboarding.js").read_text() + "\n" + (HERE / "messages.js").read_text()
+live = (HERE / "taxonomy.js").read_text() + "\n" + (HERE / "live.js").read_text() + "\n" + (HERE / "homecard.js").read_text() + "\n" + (HERE / "partners.js").read_text() + "\n" + (HERE / "onboarding.js").read_text() + "\n" + (HERE / "messages.js").read_text()
 qrlib = (HERE / "vendor" / "qrcode-generator.min.js").read_text()
 L = src.split("\n")
 
@@ -169,8 +169,8 @@ sub(".vcard.wide{width:min(720px,calc(100% - 32px))}", """.vcard.wide{width:min(
 sub('<span class="rating"><b>${"\u2605".repeat(r.rating)}</b><span class="small">${"\u2605".repeat(5-r.rating)}</span></span></div>',
     '<span class="rating"><b>${"\u2605".repeat(r.rating)}</b><span class="small">${"\u2605".repeat(5-r.rating)}</span></span>${revSource(r)}</div>')
 sub('${esc(r.agent||"Agent")} · ${esc(p?p.address:"")} · ${ago(r.createdAt)}', '${esc(revWho(r))}${p?" · "+esc(p.address):""} · ${ago(r.createdAt)}')
-sub('${esc(r.comment||"")}<div class="small">${esc(r.agent||"Agent")}, ${ago(r.createdAt)}</div></blockquote>',
-    '${esc(r.comment||"")}<div class="small">${esc(revWho(r))}, ${ago(r.createdAt)}${revSource(r)}</div></blockquote>')
+sub('${typeof revAspectLine==="function"?revAspectLine(r):""}<div class="small">${esc(r.agent||"Agent")}, ${ago(r.createdAt)}</div></blockquote>',
+    '${typeof revAspectLine==="function"?revAspectLine(r):""}<div class="small">${esc(revWho(r))}, ${ago(r.createdAt)}${revSource(r)}</div></blockquote>')
 sub('A.push({id:"newrev-"+r.id,cls:"k-bid",label:"New review",', 'A.push({id:"newrev-"+r.id,cls:"k-bid",label:r.source==="past_client"?"Past client review":"New review",')
 # only Orbyt can create introductions in the database, so automatic matching runs from Ashleigh's side
 sub("if(auto)for(const c of cats)", "if(auto&&kind()===\"orbyt\")for(const c of cats)")

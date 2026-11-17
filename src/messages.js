@@ -152,6 +152,32 @@ function projectMsgs(p){if(!msgOn()||!p||kind()==="vendor")return"";
   const rows=vids.map(id=>{const v=vendorById(id),t=msgThreads().find(x=>x.project_id===p.id&&x.vendor_id===id),n=t?unreadOf(t):0,last=t&&t.msgs[t.msgs.length-1];
     return `<button class="mthread ${open===id?"on":""} ${n?"unread":""}" type="button" data-act="projmsg" data-key="${esc(p.id+"|"+id)}"><span class="mtop"><span class="maddr">${esc(v.name)}</span><span class="small num">${last?ago(last.created_at):""}</span></span>
       <span class="small msnip">${n?`<span class="count">${n}</span> `:""}${last?esc((last.sender_name?last.sender_name+": ":"")+String(last.body).slice(0,90)):"No messages yet"}</span></button>`}).join("");
-  return `<section class="projmsgs"><h2 style="margin:0 0 8px">Messages about this home</h2><div class="pmgrid"><div class="mside inline">${rows}</div>${open?`<div>${msgInline(p.id,open,{close:true})}</div>`:`<p class="small" style="margin:8px 0">${kind()==="orbyt"?"Pick a vendor to read their thread with the agent.":"Pick a vendor to message them. Everything about the job stays in one place."}</p>`}</div></section>`}
+  const bulk=vids.length>1&&S.canWrite&&kind()==="agent"?(S.bulkMsg===p.id?bulkForm(p,vids):`<button class="btn ghost sm" type="button" data-act="bulkmsg" data-id="${esc(p.id)}">Message several vendors</button>`):"";
+  return `<section class="projmsgs"><div class="sechead" style="margin:0 0 8px"><h2 style="margin:0">Messages about this home</h2>${S.bulkMsg===p.id?"":bulk}</div>${S.bulkMsg===p.id?bulk:""}<div class="pmgrid"><div class="mside inline">${rows}</div>${open?`<div>${msgInline(p.id,open,{close:true})}</div>`:`<p class="small" style="margin:8px 0">${kind()==="orbyt"?"Pick a vendor to read their thread with the agent.":"Pick a vendor to message them. Everything about the job stays in one place."}</p>`}</div></section>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="projmsg"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   S.projMsg=t.dataset.key||"";render();if(S.projMsg)setTimeout(()=>{msgScroll();const box=document.querySelector(".projmsgs .msginline");if(box)box.scrollIntoView({block:"nearest"});const el=document.getElementById("msg-body");if(el&&kind()!=="orbyt")el.focus({preventScroll:true})},0)},true);
+
+/* ---------- one message to several vendors on a project (each gets it in their own private thread) ---------- */
+function bulkForm(p,vids){const bs=id=>S.bids.find(b=>b.projectId===p.id&&b.vendorId===id&&b.status!=="declined")||{};
+  const booked=id=>ONTEAM.includes(bs(id).status),lbl=id=>{const b=bs(id);return booked(id)?"Booked":b.status==="requested"?"Bid requested":b.status==="passed"?"Not picked":"Sent a bid"};
+  const nb=vids.filter(booked).length;
+  return `<form class="form inner bulkform" data-form="bulkmsg" data-p="${esc(p.id)}" novalidate style="margin:0 0 12px">
+    <div class="eyebrow">Message several vendors</div>
+    <div class="actions" style="margin:0"><span class="small">Pick:</span><button class="linkbtn" type="button" data-act="bulkpick" data-w="all">Everyone</button>${nb?`<button class="linkbtn" type="button" data-act="bulkpick" data-w="booked">Booked only (${nb})</button>`:""}<button class="linkbtn" type="button" data-act="bulkpick" data-w="none">No one</button></div>
+    <div class="checks bulkchecks">${vids.map((id,i)=>`<label><input type="checkbox" name="v" id="bm-${i}" value="${esc(id)}" data-booked="${booked(id)?1:0}" ${booked(id)||!nb?"checked":""}>${esc(vendorById(id).name)} <span class="small">· ${esc(lbl(id))}</span></label>`).join("")}</div>
+    <label class="field"><span>Message</span><textarea id="bm-body" name="body" rows="3" maxlength="4000" placeholder="Quick update on ${esc(p.address)}: the list date moved to..."></textarea></label>
+    <p class="small" style="margin:0">Each vendor gets this in their own thread with you, so they won't see who else got it.</p>
+    <p class="small warntext bmerr" role="alert" style="margin:0" hidden></p>
+    <div class="actions"><button class="btn sm" type="submit">Send</button><button class="btn ghost sm" type="button" data-act="bulkmsg" data-id="">Cancel</button></div></form>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="bulkmsg"],[data-act="bulkpick"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  if(t.dataset.act==="bulkmsg"){S.bulkMsg=t.dataset.id||"";render();setTimeout(()=>{const el=document.getElementById("bm-body");if(el)el.focus()},0);return}
+  const w=t.dataset.w;t.closest("form").querySelectorAll('input[name="v"]').forEach(c=>c.checked=w==="all"||(w==="booked"&&c.dataset.booked==="1"))},true);
+document.addEventListener("submit",async e=>{const f=e.target.closest('form[data-form="bulkmsg"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const ids=[...f.querySelectorAll('input[name="v"]:checked')].map(c=>c.value),body=f.querySelector("#bm-body").value.trim(),err=f.querySelector(".bmerr"),btn=f.querySelector('button[type="submit"]');
+  const show=m=>{err.textContent=m;err.hidden=!m};
+  if(!ids.length)return show("Pick at least one vendor.");if(!body)return show("Write a message first.");
+  btn.disabled=true;btn.textContent="Sending...";show("");let bad=0;
+  for(const id of ids){const{error}=await sb.rpc("message_send",{p_project:f.dataset.p,p_vendor:id,p_body:body});if(error)bad++}
+  await msgRefresh();
+  if(bad===ids.length){btn.disabled=false;btn.textContent="Send";return show("That didn't send. Check your connection and try again.")}
+  S.bulkMsg="";render();toast(bad?`Sent to ${ids.length-bad} of ${ids.length}. Try the others again.`:`Sent to ${ids.length} ${ids.length===1?"vendor":"vendors"}`)},true);

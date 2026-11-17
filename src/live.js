@@ -40,7 +40,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
     return{id:v.id,userId:v.user_id,name:v.name,contactName:v.contact_name||"",email:v.email||"",phone:v.phone||"",web:v.website||"",
       services:v.services||[],category:(v.services||[])[0]||"",areas:normAreas(v.areas||[]),areaNote:v.area_note||"",years:v.years_in_business||"",
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
-      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",kind:v.kind||"vendor",license:v.license_number||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",listingPaidThrough:a.listing_paid_through||"",overviewPdfName:v.overview_pdf_name||"",adHeadline:v.ad_headline||"",adBody:v.ad_body||"",adImage:v.ad_image||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
+      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",promoServices:v.promo_services||[],serviceDetails:v.service_details||[],kind:v.kind||"vendor",license:v.license_number||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",listingPaidThrough:a.listing_paid_through||"",overviewPdfName:v.overview_pdf_name||"",adHeadline:v.ad_headline||"",adBody:v.ad_body||"",adImage:v.ad_image||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
       pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
       legalName:p.legal_name||"",dba:p.dba||"",businessType:p.business_type||"",signerTitle:p.signer_title||"",marketingOptOut:!!p.marketing_opt_out,
@@ -68,7 +68,7 @@ function appBids(){const INV=byKey(D.invoices,"bid_id");
     return o})}
 function appReviews(){return(D.reviews||[]).map(r=>({id:r.id,bidId:r.bid_id,vendorId:r.vendor_id,projectId:r.project_id,agent:r.agent_name||"",agentId:r.agent_id,
   rating:r.rating,comment:r.comment||"",approved:!!r.approved,createdAt:r.created_at,source:r.source||"booked",brokerage:r.reviewer_brokerage||"",
-  reviewerEmail:r.reviewer_email||"",workWhen:r.work_when||""}))}
+  reviewerEmail:r.reviewer_email||"",workWhen:r.work_when||"",scores:r.scores||null,again:r.book_again==null?null:!!r.book_again}))}
 const settingVal=k=>((D.settings||[]).find(x=>x.key===k)||{}).value;
 function myAgentName(){return S.me?(S.me.full_name||S.me.email):""}
 function appCollection(n){
@@ -208,7 +208,7 @@ async function write(c,id,op,d){
   }
   if(c==="reviews"){
     if(op==="add"){const r=await sb.from("reviews").insert({bid_id:d.bidId,vendor_id:d.vendorId,project_id:d.projectId,agent_id:kind()==="agent"?S.uid:null,
-      agent_name:d.agent||myAgentName(),rating:d.rating,comment:d.comment||null,approved:kind()==="orbyt"?!!d.approved:false}).select("id").single();fail(r.error,"review");return r.data.id}
+      agent_name:d.agent||myAgentName(),rating:d.rating,comment:d.comment||null,scores:d.scores||null,book_again:d.again==null?null:!!d.again,approved:kind()==="orbyt"?!!d.approved:false}).select("id").single();fail(r.error,"review");return r.data.id}
     if(op==="delete"){fail((await sb.from("reviews").delete().eq("id",id)).error,"review");return}
     fail((await sb.from("reviews").update({approved:!!d.approved}).eq("id",id)).error,"review");return id;
   }
@@ -340,8 +340,8 @@ function signupView(m){
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
         ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label>`:""}</div>
-      ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}${moreChecks("svc","su-ms")}</div>
-        <label class="field"><span>Anything else? (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything not listed above"></label>
+      ${m==="vendor"?`<div class="field"><span>Services you offer</span><small class="small">Tick each kind of work you do, then the services you actually offer in it.</small>${svcPicker("vendor","su-svc")}</div>
+        <label class="field"><span>Request a category (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything you offer that isn't listed"></label>
         <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>
         <div class="field cwq" id="su-cw"><span>Is any of your work part of a home sale's closing?</span>
           <p class="small" style="margin:0 0 6px">For example: inspections or reports required by the purchase contract or the lender (home, termite, roof or sewer), appraisals, notary or signing services, or home warranties.</p>
@@ -466,12 +466,12 @@ document.addEventListener("submit",async e=>{
     if(kindOf==="signup"&&f.dataset.kind==="partner"&&typeof partnerSignup==="function")return await partnerSignup(f,fd,email,pass,pass2,done,btn);
     if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
-      const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,"");
+      const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,""),tp=V?taxProblem(f):null;
       // [problem, message, field to jump to]
       const checks=[[V&&!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
         [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[digits.length<10,"Add a mobile phone number, with area code.","#su-phone"],
         [!V&&!g("brokerage"),"Add your brokerage.","#su-brokerage"],
-        [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!areas.length,V?"Pick at least one area you work in.":"Pick at least one area where you list homes.","#su-area-0"],
+        [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[!areas.length,V?"Pick at least one area you work in.":"Pick at least one area where you list homes.","#su-area-0"],
         [V&&!fd.get("closingwork"),"Tell me whether any of your work is part of a home sale's closing.","#su-cw-0"],
         [V&&fd.get("closingwork")==="yes","Your work is part of closings, so it's listed in the closing partner directory instead. Tap Continue as a closing partner.","#su-cwgo"],
         [V&&fd.get("closingwork")==="some"&&g("cwnote").length<3,"Tell me which of your services are part of closings.","#su-cwnote"],
@@ -482,7 +482,7 @@ document.addEventListener("submit",async e=>{
       if(hit){done(hit[1]);const el=hit[2]&&f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}
       const meta={ref:S.ref||"",role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();
-      else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),services:svcs,heard_about:String(fd.get("heard")||"").trim(),
+      else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),services:svcs,service_details:fd.getAll("sub").map(String),heard_about:String(fd.get("heard")||"").trim(),
         closing_work:String(fd.get("closingwork")||""),signup_notes:fd.get("closingwork")==="some"?"Closing work: some. "+g("cwnote"):""});
       const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
       if(error)return done(friendlyAuthError(error));
@@ -1022,6 +1022,7 @@ async function renderReviewPage(token){
     <p class="small" style="margin:0">${esc(data.vendor)} asked for your review. It helps other San Diego agents find good people. No account needed.</p>
     <form class="authform" data-form="reviewsubmit" data-token="${esc(token)}" novalidate>
       <fieldset class="field" style="border:0;padding:0;margin:0"><legend class="legend">Your rating</legend><div class="starpick">${stars}</div></fieldset>
+      ${aspectFields("rvp")}
       <label class="field"><span>About the work</span><textarea id="rv-comment" name="comment" rows="5" maxlength="2000" placeholder="What did they do, and how did it go? Quality, communication, timing, anything another agent should know."></textarea></label>
       <div class="grid"><label class="field"><span>Your name</span><input type="text" id="rv-name" name="name" value="${esc(data.agent_name||"")}" autocomplete="name"></label>
         <label class="field"><span>Your brokerage</span><input type="text" id="rv-brokerage" name="brokerage" autocomplete="organization"></label></div>
@@ -1032,11 +1033,11 @@ async function renderReviewPage(token){
 }
 document.addEventListener("submit",async e=>{const f=e.target.closest('form[data-form="reviewsubmit"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
   const fd=new FormData(f),g=k=>String(fd.get(k)||"").trim(),er=f.querySelector(".rverr"),show=m=>{if(er){er.textContent=m;er.hidden=!m;if(m)er.scrollIntoView({block:"nearest"})}};
-  const rating=Number(fd.get("rating")||0);
-  const bad=!rating?"Pick a star rating.":!g("comment")?"Add a few words about the work.":!g("name")?"Add your name.":!g("brokerage")?"Add your brokerage.":"";
+  const rating=Number(fd.get("rating")||0),sc=aspectScores(fd);
+  const bad=!rating?"Pick a star rating.":!sc.ok?"Rate each of the four areas, and say whether you'd hire them again.":!g("comment")?"Add a few words about the work.":!g("name")?"Add your name.":!g("brokerage")?"Add your brokerage.":"";
   if(bad)return show(bad);show("");
   const btn=f.querySelector('button[type="submit"]');if(btn)btn.disabled=true;
-  const{error}=await sb.rpc("review_request_submit",{p_token:f.dataset.token,p_rating:rating,p_comment:g("comment"),p_name:g("name"),p_brokerage:g("brokerage"),p_when:g("when")||null});
+  const{error}=await sb.rpc("review_request_submit",{p_token:f.dataset.token,p_rating:rating,p_comment:g("comment"),p_name:g("name"),p_brokerage:g("brokerage"),p_when:g("when")||null,p_scores:sc.scores,p_again:sc.again});
   if(btn)btn.disabled=false;
   if(error){console.error(error);return show(/already been sent|isn't active|Pick|Add /.test(error.message||"")?String(error.message).replace(/^.*?ERROR:\s*/,""):"That didn't send. Check your connection and try again.")}
   $("#app").innerHTML=reviewCard("Review","Thank you!",`<p>Your review is in. I'll check it and add it to the profile, usually within a day.</p><p class="small">Ashleigh at Orbyt</p>`);window.scrollTo({top:0})},true);
@@ -1071,6 +1072,8 @@ function vendorFolds(v,mine){
   const prof=[];
   if(ok){const st=insState(v),[pl,pc]=INS_PILL[st.state];
     prof.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
+  {const sd=(v.serviceDetails||[]).length,need=vsv(v).filter(c=>taxSvcs("vendor",c).length&&!(v.serviceDetails||[]).some(x=>taxCatOf(x)===c)).length;
+    prof.push(fold("svcs","Your services",sd?`<span class="pill ${need?"late":"set"}">${sd} picked</span>`:'<span class="pill late">Pick yours</span>',need?"Pick the services you offer, so I can match you to the right jobs":"What you offer in each kind of work",svcEditCard(v,"vendor"),!sd))}
   const c=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf,v.overviewPdf].filter(Boolean).length;
   prof.push(fold("port","Business overview and portfolio",c?`<span class="pill set">${c} added</span>`:`<span class="pill late">Add your work</span>`,"Business overview, website, Instagram and your work",portfolioCard(v),false));
   const pr=vPricing(v),hasP=statedTier(v)||priceItems(v).length||pr.minimum;
@@ -1166,10 +1169,10 @@ function revService(r){const b=r.bidId?S.bids.find(x=>x.id===r.bidId):null;retur
 const revQuote=r=>`"${String(r.comment||"").trim()}" (${[shortName(r.agent),revBrokerage(r)].filter(Boolean).join(", ")})`;
 function myReviewsCard(v){const rs=myReviews(v);
   if(!rs.length)return `<p class="small" style="margin:0">No reviews yet. After a job, the agent gets asked to rate your work, and every review I approve shows up here. You can also ask agents you've worked with before for a review in "Reviews from past clients."</p>`;
-  return `<p class="small" style="margin:0 0 4px">Every review agents see on your Orbyt profile. Feel free to share them on your website or social. "Copy" gives you the words with the agent's first name, last initial and brokerage.</p>
+  return aspectSummary(v.id)+`<p class="small" style="margin:0 0 4px">Every review agents see on your Orbyt profile. Feel free to share them on your website or social. "Copy" gives you the words with the agent's first name, last initial and brokerage.</p>
     <div class="myrevs">${rs.map(r=>{const when=r.source==="past_client"&&r.workWhen?"Work in "+r.workWhen:fmtDate(String(r.createdAt||"").slice(0,10));
       return `<blockquote class="myrev"><div class="row"><span class="rating"><b>${"★".repeat(r.rating)}</b><span class="small">${"★".repeat(5-r.rating)}</span></span>${typeof revSource==="function"?revSource(r):""}</div>
-        ${r.comment?`<p style="margin:6px 0">${esc(r.comment)}</p>`:`<p class="small" style="margin:6px 0">Stars only, no comment.</p>`}
+        ${r.comment?`<p style="margin:6px 0">${esc(r.comment)}</p>`:`<p class="small" style="margin:6px 0">Stars only, no comment.</p>`}${revAspectLine(r)}
         <div class="small">${esc([r.agent||"Agent",revBrokerage(r)].filter(Boolean).join(", "))}${revService(r)?" · "+esc(revService(r)):""}${when?" · "+esc(when):""}</div>
         ${r.comment?`<button class="linkbtn" type="button" data-act="copyrev" data-id="${esc(r.id)}">Copy</button>`:""}</blockquote>`}).join("")}</div>`}
 function myReviewsPill(v){const rt=rating(v.id);return rt?`<span class="pill set">★ ${rt.avg.toFixed(1)} · ${rt.n} ${rt.n===1?"review":"reviews"}</span>`:`<span class="pill">None yet</span>`}
@@ -1202,7 +1205,7 @@ function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.pr
     const endField=!on||renew?`<label class="field"><span>${renew?"Renewal runs until":"Run it until"}</span><input type="date" id="pr-end" name="end" min="${start}" max="${maxEnd}" value="${maxEnd}"></label><p class="small" style="margin:-6px 0 0">${renew?`Starts ${esc(fmtDate(start))} when your current offer ends. `:""}Up to 30 days for $20.</p>`:"";
     return `<form class="form inner" data-form="promo" novalidate>${status}
     <label class="field"><span>Your offer for Orbyt agents and their clients</span><input type="text" id="pr-offer" name="offer" maxlength="90" value="${esc(v.promoOffer||"")}" placeholder="10% off move-in cleans booked through Orbyt"></label>
-    <label class="field"><span>Details (optional)</span><textarea id="pr-details" name="details" rows="2" maxlength="400" placeholder="Good through December. Homes up to 3,000 sq ft.">${esc(v.promoDetails||"")}</textarea></label>
+    <label class="field"><span>Details (optional)</span><textarea id="pr-details" name="details" rows="2" maxlength="400" placeholder="Good through December. Homes up to 3,000 sq ft.">${esc(v.promoDetails||"")}</textarea></label>${promoSvcField(v)}
     <p class="small" style="margin:0">A discount, a free add-on, faster scheduling, or whatever fits your service. Make it something you'll honor for anyone who books through Orbyt while it's live.</p>
     ${endField}<p class="small warntext prerr" role="alert" style="margin:0" hidden></p>
     <div class="actions">${on?(left!==null&&left<=7?`<button class="btn sm" type="submit" data-pay="1">Renew for 30 days, $20</button>`:"")+`<button class="btn ghost sm" type="submit">Save offer</button>`
@@ -1212,7 +1215,7 @@ function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.pr
     :`<p class="small" style="margin:0">Run a special offer for Orbyt clients for 30 days, for $20. Agents see your offer next to your quotes and on your profile, so they can pass the deal on. It doesn't change how I match. That's always the best fit for each home.</p>`;
   return `<form class="form inner" data-form="promo" novalidate>${status}
     <label class="field"><span>Your offer for Orbyt agents and their clients</span><input type="text" id="pr-offer" name="offer" maxlength="90" value="${esc(v.promoOffer||"")}" placeholder="10% off move-in cleans booked through Orbyt"></label>
-    <label class="field"><span>Details (optional)</span><textarea id="pr-details" name="details" rows="2" maxlength="400" placeholder="Good through December. Homes up to 3,000 sq ft.">${esc(v.promoDetails||"")}</textarea></label>
+    <label class="field"><span>Details (optional)</span><textarea id="pr-details" name="details" rows="2" maxlength="400" placeholder="Good through December. Homes up to 3,000 sq ft.">${esc(v.promoDetails||"")}</textarea></label>${promoSvcField(v)}
     <p class="small" style="margin:0">A discount, a free add-on, faster scheduling, or whatever fits your service. Make it something you'll honor for anyone who books through Orbyt while it's live.</p>
     <p class="small warntext prerr" role="alert" style="margin:0" hidden></p>
     <div class="actions">${on?(left!==null&&left<=7&&!req?`<button class="btn sm" type="submit" data-req="1">Renew for 30 days</button>`:"")+`<button class="btn ghost sm" type="submit">Save offer</button>`
@@ -1224,11 +1227,12 @@ document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form=
     const btn=e.submitter;btn.disabled=true;btn.textContent="Opening Stripe...";
     const endEl=f.querySelector("#pr-end"),endV=endEl&&endEl.value;
     if(endEl&&endV&&(endV<endEl.min||endV>endEl.max)){btn.disabled=false;btn.textContent="Try again";if(el){el.textContent="Pick an end date within 30 days.";el.hidden=false}return}
-    (async()=>{try{fail((await sb.from("vendors").update({promo_offer:offer,promo_details:details||null}).eq("id",v.id)).error,"offer");await startCheckout("promo",endV?{promo_end:endV}:{})}
+    (async()=>{try{fail((await sb.from("vendors").update({promo_offer:offer,promo_details:details||null,promo_services:promoSvcPicked(f,v)}).eq("id",v.id)).error,"offer");await startCheckout("promo",endV?{promo_end:endV}:{})}
       catch(err){btn.disabled=false;btn.textContent="Try again";if(el){el.textContent=err.message||"That didn't work.";el.hidden=false}}})();return}
   const wantReq=!!(e.submitter&&e.submitter.dataset.req);
   if(wantReq&&!offer){if(el){el.textContent="Add your offer first. It's what agents see next to your quotes.";el.hidden=false}f.querySelector("#pr-offer").focus();return}
-  const row={promo_offer:offer||null,promo_details:details||null};if(wantReq)row.promo_requested_at=new Date().toISOString();
+  if(f.querySelector('input[name="psvc"]')&&!f.querySelectorAll('input[name="psvc"]:checked').length){if(el){el.textContent="Pick at least one service for your offer.";el.hidden=false}return}
+  const row={promo_offer:offer||null,promo_details:details||null,promo_services:promoSvcPicked(f,v)};if(wantReq)row.promo_requested_at=new Date().toISOString();
   S.promoOpen=true;
   guard(async()=>{fail((await sb.from("vendors").update(row).eq("id",v.id)).error,"offer");await S.db.reload()},wantReq?"Request sent. I'll email you a payment link.":"Offer saved.")},true);
 
@@ -1427,3 +1431,46 @@ function vendorFeesCard(v){if(typeof invRow!=="function")return null;
       <td class="money">${r.type==="waived"?"Waived":money2(r.fee)}<div class="small">${r.type==="repeat"?"Repeat job":r.type==="waived"?"":"First job with this agent"}</div></td><td>${st(r)}</td></tr>`).join("")}</tbody></table></div>
     <p class="small" style="margin:8px 0 0">Fees are based on your final invoice amount and due ${PAY_DAYS} days after a job wraps. Questions about a fee? Message Ashleigh.</p>`;
   return{pill:owed.length?`<span class="pill ${owed.some(r=>r.overdue)?"late":"comparing"}">${money2(sum(owed))} owed</span>`:"",body}}
+
+/* ---------- structured reviews: four areas and "would you hire them again?" ---------- */
+const ASPECTS=[["quality","Quality of work"],["timeliness","On time"],["communication","Communication"],["value","Value for the price"]];
+const ASPECT_MIN=3;  // averages show once this many reviews have them
+function aspectFields(pre){
+  const row=([k,l])=>`<div class="aspect"><span class="aspl">${esc(l)}</span><div class="stars sm">${[5,4,3,2,1].map(n=>`<input type="radio" id="${pre}-${k}-${n}" name="s_${k}" value="${n}"><label for="${pre}-${k}-${n}" title="${n} ${n===1?"star":"stars"}">★</label>`).join("")}</div></div>`;
+  return `<fieldset class="aspects"><legend class="legend">Rate each area</legend>${ASPECTS.map(row).join("")}
+    <div class="aspect"><span class="aspl">Would you hire them again?</span><div class="yesno"><label><input type="radio" name="again" value="1"> Yes</label><label><input type="radio" name="again" value="0"> No</label></div></div></fieldset>`}
+function aspectScores(fd){const scores={};for(const[k]of ASPECTS){const n=Number(fd.get("s_"+k)||0);if(n)scores[k]=n}
+  const a=fd.get("again"),again=a==="1"?true:a==="0"?false:null;
+  return{scores:Object.keys(scores).length?scores:null,again,ok:Object.keys(scores).length===ASPECTS.length&&again!==null}}
+function revAspectLine(r){if(!r.scores&&r.again==null)return"";
+  const bits=ASPECTS.filter(([k])=>r.scores&&r.scores[k]).map(([k,l])=>`${l} ${r.scores[k]}/5`);
+  return `<div class="small revasp">${esc(bits.join(" · "))}${r.again!=null?`${bits.length?" · ":""}<span class="strong">${r.again?"Would hire again":"Wouldn't hire again"}</span>`:""}</div>`}
+function aspectSummary(vid){const rs=S.reviews.filter(r=>r.vendorId===vid&&r.approved&&r.scores);if(rs.length<ASPECT_MIN)return"";
+  const avg=k=>{const l=rs.filter(r=>r.scores[k]);return l.length?l.reduce((t,r)=>t+r.scores[k],0)/l.length:null};
+  const ag=S.reviews.filter(r=>r.vendorId===vid&&r.approved&&r.again!=null),pct=ag.length?Math.round(ag.filter(r=>r.again).length/ag.length*100):null;
+  return `<div class="aspsum">${ASPECTS.map(([k,l])=>{const a=avg(k);return a==null?"":`<div class="asprow"><span class="small">${esc(l)}</span><span class="aspbar"><span style="width:${Math.round(a/5*100)}%"></span></span><b class="num">${a.toFixed(1)}</b></div>`}).join("")}
+    ${pct!=null?`<div class="small" style="margin-top:4px"><span class="strong">${pct}%</span> of agents would hire them again (${ag.length} ${ag.length===1?"review":"reviews"})</div>`:""}</div>`}
+
+/* ---------- special offers tied to services ---------- */
+function promoSvcField(v){const sv=vsv(v).filter(Boolean);if(sv.length<2)return"";const cur=v.promoServices||[];
+  return `<fieldset class="field" style="border:0;padding:0;margin:0"><legend class="legend">Which services is it for?</legend><div class="checks">${sv.map((c,i)=>`<label><input type="checkbox" name="psvc" id="pr-svc-${i}" value="${esc(c)}" ${!cur.length||cur.includes(c)?"checked":""}>${esc(c)}</label>`).join("")}</div>
+    <p class="small" style="margin:4px 0 0">Agents see it next to your quotes for these services.</p></fieldset>`}
+function promoSvcPicked(f,v){const all=vsv(v).filter(Boolean),on=[...f.querySelectorAll('input[name="psvc"]:checked')].map(c=>c.value);
+  return !f.querySelector('input[name="psvc"]')||!on.length||on.length===all.length?null:on}
+
+/* ---------- a vendor or partner edits the services they offer ---------- */
+function svcEditCard(v,side){
+  return `<form class="form inner" data-form="mysvcs" novalidate><p class="small" style="margin:0">Tick only what you actually do. I use this to match you to jobs, and agents see it on your profile.</p>
+    ${svcPicker(side,"ms-svc",vsv(v).filter(Boolean),v.serviceDetails||[],side==="partner"&&typeof CLOSING_HINT!=="undefined"?CLOSING_HINT:null)}
+    <p class="small warntext mserr" role="alert" style="margin:0" hidden></p><div class="actions"><button class="btn sm" type="submit">Save my services</button></div></form>`}
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="mysvcs"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),cats=fd.getAll("svc").map(String),el=f.querySelector(".mserr"),tp=taxProblem(f);
+  const show=m=>{el.textContent=m;el.hidden=!m};
+  if(!cats.length)return show("Pick at least one kind of work you do.");if(tp){show(tp.msg);tp.el.scrollIntoView({block:"center"});return}
+  // keep any category they asked for that isn't in the list yet
+  const side=typeof isPartner==="function"&&isPartner(v)?"partner":"vendor",extra=vsv(v).filter(c=>c&&!taxCats(side).includes(c));
+  guard(async()=>{fail((await sb.from("vendors").update({services:[...cats,...extra],service_details:fd.getAll("sub").map(String)}).eq("id",v.id)).error,"services");await S.db.reload()},"Services saved")},true);
+// the services under each category, for vendor cards and search
+function svcDetailLine(v){const sd=v.serviceDetails||[];if(!sd.length)return"";
+  const by={};sd.forEach(x=>{const c=taxCatOf(x);(by[c]=by[c]||[]).push(x.slice(c.length+2))});
+  return `<div class="svcdet">${Object.entries(by).map(([c,l])=>`<div class="small"><span class="strong">${esc(c)}:</span> ${esc(l.join(", "))}</div>`).join("")}</div>`}

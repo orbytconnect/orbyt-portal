@@ -56,7 +56,7 @@ a{color:var(--teal-text)}
 .brand .tag{font-size:14px;color:var(--muted);border-left:1px solid var(--line);padding-left:12px}
 .as{display:flex;align-items:center;gap:10px}
 .as label{font-size:11px;font-weight:300;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)}
-select,input[type=text],input[type=email],input[type=password],input[type=tel],input[type=url],input[type=number],input[type=date],textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:14px;min-width:0;width:100%}
+select,input[type=text],input[type=search],input[type=email],input[type=password],input[type=tel],input[type=url],input[type=number],input[type=date],textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:14px;min-width:0;width:100%}
 .as select{width:auto;max-width:62vw}
 textarea{resize:vertical;min-height:64px}
 
@@ -239,6 +239,9 @@ textarea{resize:vertical;min-height:64px}
 .fbar i{display:block;height:100%;background:var(--fc-exp)}
 @media (max-width:640px){.fstep{grid-template-columns:minmax(0,1fr) auto}.fstep .fbar{grid-column:1 / -1;grid-row:2}}
 .stat.static{cursor:default}
+.taxpick{display:grid;gap:10px}.taxsearch{width:100%}.taxlist{display:grid;gap:12px;max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface)}.taxgrp{display:grid;gap:4px}.taxcat{padding:4px 0}.taxhead{display:flex;gap:8px;align-items:flex-start;cursor:pointer}.taxsubs{margin:6px 0 4px 26px;display:grid;gap:6px}.tchips{display:flex;flex-wrap:wrap;gap:6px}.tchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:13px;cursor:pointer;background:var(--bg)}.tchip input{position:absolute;opacity:0;width:1px;height:1px}.tchip:has(input:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}.tchip:has(input:checked)::before{content:"✓"}.tchip:has(input:focus-visible){outline:2px solid var(--gold,#A8871F)}.tchip.hit{border-color:var(--gold,#A8871F)}.taxcat.on>.taxhead{color:var(--ink,#18314F)}
+.aspects{border:0;padding:0;margin:0;display:grid;gap:6px}.aspect{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.aspl{font-size:14px}.stars.sm label{font-size:22px}.yesno{display:flex;gap:14px}.yesno label{display:flex;gap:6px;align-items:center;font-size:14px}
+.aspsum{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 10px;background:var(--surface);display:grid;gap:6px}.asprow{display:grid;grid-template-columns:150px 1fr 34px;align-items:center;gap:10px}.aspbar{height:6px;border-radius:99px;background:var(--line);overflow:hidden}.aspbar span{display:block;height:100%;background:var(--gold,#A8871F)}.revasp{margin:2px 0 4px}
 .seqfold{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:6px 0;background:var(--surface)}.seqfold>summary{cursor:pointer;list-style:none;line-height:1.5}.seqfold>summary::-webkit-details-marker{display:none}.seqfold>summary::before{content:"▸ ";color:var(--muted)}.seqfold[open]>summary::before{content:"▾ "}.seqfold .seq{margin-top:8px}
 .stat.static:hover{background:none}
 .stat .small{display:block;margin-top:2px}
@@ -679,10 +682,11 @@ function promoCell(v){if(typeof isPartner==="function"&&isPartner(v))return type
     <div><button class="linkbtn" style="white-space:nowrap" data-act="feature" data-id="${esc(v.id)}">${on?"Add 30 days":"Mark offer paid"}</button></div>${on?`<div><button class="linkbtn" data-act="feature" data-mode="end" data-id="${esc(v.id)}">End offer</button></div>`:""}`}
 function featuredNow(v){if(!v||!v.featured)return false;if(!v.featuredUntil)return true;const t=new Date();const d=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");return v.featuredUntil>=d}
 // what agents see for a featured vendor: the label and the vendor's own offer
-function promoTag(vid){const v=typeof vid==="string"?vendorById(vid):vid;if(!featuredNow(v))return"";
+const promoFor=(v,cat)=>!cat||!(v.promoServices||[]).length||v.promoServices.includes(cat);
+function promoTag(vid,cat){const v=typeof vid==="string"?vendorById(vid):vid;if(!featuredNow(v)||!promoFor(v,cat))return"";
   return `<div class="promotag"><span class="pill featured">Special offer</span>${v.promoOffer?` <span class="small strong">${esc(v.promoOffer)}</span>`:""}</div>`}
 function offerBlock(v){if(!featuredNow(v)||!(v.promoOffer||v.promoDetails))return"";
-  return `<div class="callout offer" style="margin:0"><div class="eyebrow">Special offer for Orbyt clients${kind()==="orbyt"&&v.featuredUntil?" · until "+esc(fmtDate(v.featuredUntil)):""}</div>${v.promoOffer?`<div class="strong">${esc(v.promoOffer)}</div>`:""}${v.promoDetails?`<p class="small" style="margin:0">${esc(v.promoDetails)}</p>`:""}</div>`}
+  return `<div class="callout offer" style="margin:0"><div class="eyebrow">Special offer for Orbyt clients${kind()==="orbyt"&&v.featuredUntil?" · until "+esc(fmtDate(v.featuredUntil)):""}</div>${v.promoOffer?`<div class="strong">${esc(v.promoOffer)}</div>`:""}${v.promoDetails?`<p class="small" style="margin:0">${esc(v.promoDetails)}</p>`:""}${(v.promoServices||[]).length?`<p class="small" style="margin:0">For ${esc(v.promoServices.join(", ").toLowerCase())}</p>`:""}</div>`}
 function rating(vid){const rs=S.reviews.filter(r=>r.vendorId===vid&&r.approved);if(!rs.length)return null;return{avg:rs.reduce((s,r)=>s+r.rating,0)/rs.length,n:rs.length}}
 const ratingHtml=vid=>{const r=rating(vid);return r?`<span class="rating"><b>★ ${r.avg.toFixed(1)}</b> <span class="small">(${r.n})</span></span>`:`<span class="small">No reviews yet</span>`};
 
@@ -923,10 +927,10 @@ function vendorCard(v){
     <div class="vfacts"><div class="wide"><span class="eyebrow">Works in</span><div>${esc((v.areas||[]).join(", ")||"Not set")}</div></div>
       ${withYou!==null?`<div><span class="eyebrow">Jobs with you</span><div class="num">${withYou}</div></div>`:""}
       ${favBy!==null?`<div><span class="eyebrow">Agent favorite</span><div class="num">${favBy} ${favBy===1?"agent":"agents"}</div></div>`:""}</div>
-    ${offerBlock(v)}${kind()==="orbyt"?workBlock(v)+notesBlock(v)+pricingBlock(v)+formBlock(v):profileBlock(v)}
+    ${typeof svcDetailLine==="function"?svcDetailLine(v):""}${offerBlock(v)}${kind()==="orbyt"?workBlock(v)+notesBlock(v)+pricingBlock(v)+formBlock(v):profileBlock(v)}
     ${kind()==="orbyt"?(()=>{const mine=S.reviews.filter(r=>r.vendorId===v.id).sort((a,b)=>(a.approved?1:0)-(b.approved?1:0)||String(b.createdAt).localeCompare(String(a.createdAt)));
       return mine.length?`<div><span class="eyebrow">Reviews · approve or hide them here</span><div class="revlist" style="margin-top:6px">${mine.map(r=>revItem(r,false)).join("")}</div></div>`:""})()
-    :revs.length?`<div><span class="eyebrow">What agents say</span><div class="vrevs">${revs.map(r=>`<blockquote><span class="rating"><b>${"★".repeat(r.rating)}</b></span> ${esc(r.comment||"")}<div class="small">${esc(r.agent||"Agent")}, ${ago(r.createdAt)}</div></blockquote>`).join("")}</div></div>`:""}
+    :revs.length?`<div><span class="eyebrow">What agents say</span>${typeof aspectSummary==="function"?aspectSummary(v.id):""}<div class="vrevs">${revs.map(r=>`<blockquote><span class="rating"><b>${"★".repeat(r.rating)}</b></span> ${esc(r.comment||"")}${typeof revAspectLine==="function"?revAspectLine(r):""}<div class="small">${esc(r.agent||"Agent")}, ${ago(r.createdAt)}</div></blockquote>`).join("")}</div></div>`:""}
   </div>`;
 }
 const vnotes=id=>(S.vnotes[id]||{}).entries||[];
@@ -1055,7 +1059,7 @@ function upNext(agent,openN){
   const when=p.targetDate?`Lists ${fmtDate(p.targetDate)}${d!==null&&d>=0?` · ${d===0?"today":d+(d===1?" day":" days")+" away"}`:" · date passed"}`:"";
   let body="";
   if(n.kind==="compare"){const fd=n.bids.filter(b=>b.availableFrom),fast=fd.length>1?fd.map(b=>b.availableFrom).sort()[0]:null;
-    body=`<div class="unrows">${n.bids.map(b=>{const v=vendorById(b.vendorId);return `<div class="unrow"><div style="min-width:0"><span class="strong">${vLink(b)}</span> <span class="small">${v?ratingHtml(v.id):""}</span>${promoTag(b.vendorId)}${b.note?`<div class="small">${esc(b.note)}</div>`:""}</div>
+    body=`<div class="unrows">${n.bids.map(b=>{const v=vendorById(b.vendorId);return `<div class="unrow"><div style="min-width:0"><span class="strong">${vLink(b)}</span> <span class="small">${v?ratingHtml(v.id):""}</span>${promoTag(b.vendorId,b.category)}${b.note?`<div class="small">${esc(b.note)}</div>`:""}</div>
       <div class="num unamt">${money(b.amount)}<div class="small">${esc(timeline(b))}${fast!==null&&b.availableFrom===fast?" · soonest":""}</div></div>
       <div class="small">${b.pdfId?pdfLink(b):""}${vendorDocs(b.vendorId)?`<div>${vendorDocs(b.vendorId)}</div>`:""}</div>
       <div><button class="btn sm" data-act="select" data-id="${esc(b.id)}">Add to team</button></div></div>`}).join("")}</div>
@@ -2238,7 +2242,7 @@ function projectDetail(p,mode){
     const shown=bids;
     if(shown.length){
       h+=`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Bid</th><th>Timeline</th><th>Notes</th><th>PDF</th><th></th></tr></thead><tbody>${shown.map(b=>{const v=vendorById(b.vendorId);
-        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}${typeof lostTag==="function"?lostTag(b):""}${!isOrbyt&&typeof msgBtn==="function"&&b.vendorId&&msgOn()?`<div>${projMsgBtn(p.id,b.vendorId)}</div>`:""}
+        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId,b.category)}${typeof lostTag==="function"?lostTag(b):""}${!isOrbyt&&typeof msgBtn==="function"&&b.vendorId&&msgOn()?`<div>${projMsgBtn(p.id,b.vendorId)}</div>`:""}
           ${b.introNote?`<div class="intronote">${b.introducedBy==="auto"?"":isOrbyt?"Your note: ":"From Ashleigh: "}“${esc(b.introNote)}”</div>`:""}
           ${b.availChecked&&b.status==="requested"?`<div class="small">${isOrbyt?"Availability checked":"Ashleigh confirmed they're available"}</div>`:""}</td>
         <td class="money">${b.status==="requested"?'<span class="small">Waiting</span>':money(b.amount)}</td>
@@ -2318,7 +2322,7 @@ function rosterView(){
   h+=reviewQueue();
   if(!all.length)return h+`<div class="emptystate"><h2>No vendors yet</h2><p>Add the painters, landscapers, photographers and cleaners you trust. Everyone here should be licensed and insured, and checked before they join.</p></div>`;
   const f=S.rf,q=f.q.trim().toLowerCase();
-  const vs=all.filter(v=>(!q||v.name.toLowerCase().includes(q)||(vPhone(v)+" "+vEmail(v)).toLowerCase().includes(q))&&(!f.cat||vsv(v).includes(f.cat))&&(!f.area||(v.areas||[]).includes(f.area))
+  const vs=all.filter(v=>(!q||v.name.toLowerCase().includes(q)||(vPhone(v)+" "+vEmail(v)+" "+vsv(v).join(" ")+" "+(v.serviceDetails||[]).join(" ")).toLowerCase().includes(q))&&(!f.cat||vsv(v).includes(f.cat))&&(!f.area||(v.areas||[]).includes(f.area))
     &&(!f.status||(f.status==="review"?v.approved===false:f.status==="setup"?v.approved===false&&setupMissing(v).length>0:f.status==="taking"?v.available!==false&&v.approved!==false:v.available===false))&&(!f.cred||(f.cred==="yes"?v.licensed&&v.insured:!(v.licensed&&v.insured)))
     &&(!f.promo||(f.promo==="featured"?featuredNow(v):!featuredNow(v)))&&(!f.rating||((rating(v.id)||{avg:0}).avg>=Number(f.rating)))
     &&(!f.price||(f.price==="none"?!(priceStats(v.id)||{}).tier:(priceStats(v.id)||{}).tier===f.price)));
@@ -2351,7 +2355,7 @@ function rosterView(){
 function revItem(r,showVendor){const p=projById(r.projectId);const v=vendorById(r.vendorId);
   return `<div class="rev"><div class="top"><div>${showVendor?`<button class="vlink strong" data-act="vcard" data-id="${esc(r.vendorId)}">${esc(v?v.name:"Vendor")}</button> `:""}<span class="rating"><b>${"★".repeat(r.rating)}</b><span class="small">${"★".repeat(5-r.rating)}</span></span></div>
     ${r.approved?`<span class="pill set">Showing</span>`:`<span class="pill comparing">Needs approval</span>`}</div>
-    ${r.comment?`<div>${esc(r.comment)}</div>`:""}<div class="small">${esc(r.agent||"Agent")} · ${esc(p?p.address:"")} · ${ago(r.createdAt)}</div>
+    ${r.comment?`<div>${esc(r.comment)}</div>`:""}${typeof revAspectLine==="function"?revAspectLine(r):""}<div class="small">${esc(r.agent||"Agent")} · ${esc(p?p.address:"")} · ${ago(r.createdAt)}</div>
     ${S.canWrite?`<div class="actions">${r.approved?`<button class="btn ghost sm" data-act="approve" data-id="${esc(r.id)}" data-v="0">Hide</button>`:`<button class="btn sm" data-act="approve" data-id="${esc(r.id)}" data-v="1">Approve</button>`}</div>`:""}</div>`}
 function reviewQueue(){
   const pend=S.reviews.filter(r=>!r.approved).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
@@ -2434,11 +2438,13 @@ function reviewStrip(agent){
         ${open?"":`<div class="quickstars" role="group" aria-label="Rate ${esc(bidName(b))}">${[1,2,3,4,5].map(n=>`<button type="button" data-act="quickrate" data-id="${esc(b.id)}" data-n="${n}" aria-label="${n} star${n>1?"s":""}">★</button>`).join("")}</div>`}</div>
         ${open?reviewForm(b,S.preRating):`<button class="linkbtn" data-act="snoozereview" data-id="${esc(b.id)}">Remind me in ${SNOOZE_DAYS} days</button>`}</div>`}).join("")}</div></section>`;
 }
+let RF_N=0;
 function reviewForm(b,pre){
-  const id=esc(b.id);
+  const id=esc(b.id),u=id+"-"+(++RF_N);
   return `<form class="form" data-form="review" data-id="${id}" style="margin-top:4px">
-    <fieldset><legend class="legend">Rating for ${esc(bidName(b))}</legend><div class="stars">${[5,4,3,2,1].map(n=>`<input type="radio" id="rv-${id}-${n}" name="rating" value="${n}" required ${pre===n?"checked":""}><label for="rv-${id}-${n}" title="${n} star${n>1?"s":""}">★</label>`).join("")}</div></fieldset>
-    <label class="field"><span>What should other agents know?</span><textarea id="rv-c-${id}" name="comment" placeholder="On time, easy to work with, the seller loved the result"></textarea></label>
+    <fieldset><legend class="legend">Rating for ${esc(bidName(b))}</legend><div class="stars">${[5,4,3,2,1].map(n=>`<input type="radio" id="rv-${u}-${n}" name="rating" value="${n}" required ${pre===n?"checked":""}><label for="rv-${u}-${n}" title="${n} star${n>1?"s":""}">★</label>`).join("")}</div></fieldset>
+    ${typeof aspectFields==="function"?aspectFields("rv-"+u):""}
+    <label class="field"><span>What should other agents know?</span><textarea id="rv-c-${u}" name="comment" placeholder="On time, easy to work with, the seller loved the result"></textarea></label>
     <div class="actions"><button class="btn" type="submit">Send review</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></form>`;
 }
 function vendorForm(){
@@ -2754,7 +2760,9 @@ document.addEventListener("submit",e=>{
     guard(async()=>{await col("bids").doc(b.id).update({status:"declined",declinedAt:now(),declineReason:rs,declineStage:f.dataset.stage||"chosen",declineNote:[rs==="Other"?"":rs,nt].filter(Boolean).join(". ")});
     if(f.dataset.stage!=="request")for(const o of bidsFor(b.projectId,b.category))if(o.status==="passed")await col("bids").doc(o.id).update({status:"submitted"});S.openForm=null},f.dataset.stage==="request"?"Thanks for letting Ashleigh know. It's off your list.":"Thanks for letting them know.")}
   else if(k==="review"){const b=S.bids.find(x=>x.id===f.dataset.id);const p=b&&projById(b.projectId);if(!b)return;
-    guard(async()=>{await col("reviews").add({vendorId:b.vendorId,projectId:b.projectId,bidId:b.id,agent:p?p.agent:"",rating:Number(fd.get("rating")),comment:(fd.get("comment")||"").trim(),approved:false,createdAt:now()});S.openForm=null},
+    const sc=typeof aspectScores==="function"?aspectScores(fd):{ok:true};
+    if(!sc.ok){toast("Rate each of the four areas, and say whether you'd hire them again.");return}
+    guard(async()=>{await col("reviews").add({vendorId:b.vendorId,projectId:b.projectId,bidId:b.id,agent:p?p.agent:"",rating:Number(fd.get("rating")),comment:(fd.get("comment")||"").trim(),scores:sc.scores,again:sc.again,approved:false,createdAt:now()});S.openForm=null},
       "Thanks! Your review shows on their profile once Ashleigh approves it.");S.preRating=0}
 });
 

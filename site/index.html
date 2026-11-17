@@ -3082,6 +3082,16 @@ document.addEventListener("change",e=>{const t=e.target;if(!t.matches||!t.matche
   if(!box.checked){box.checked=true;c.classList.add("on")}});
 // newer categories from the service list, so agents can ask for them on a project
 try{for(const c of taxCats("vendor"))if(!CATS.includes(c)&&!MORE_SERVICES.includes(c))MORE_SERVICES.push(c)}catch(_){}
+// picking a kind of work from search results clears the search, ready for the next one; Escape clears it too
+function taxReset(pk){const s=pk.querySelector(".taxsearch");if(s)s.value="";pk.classList.remove("searching");
+  pk.querySelectorAll(".taxcat").forEach(c=>{c.hidden=false;const sub=c.querySelector(".taxsubs");if(sub)sub.hidden=!c.querySelector('input[name="svc"]').checked});
+  pk.querySelectorAll(".tchip.hit").forEach(x=>x.classList.remove("hit"));pk.querySelectorAll(".taxgrp").forEach(g=>g.hidden=false);pk.querySelector(".taxnone").hidden=true}
+document.addEventListener("change",e=>{const t=e.target;if(!t.matches||!t.matches('.taxcat input[name="svc"]')||!t.checked)return;const pk=t.closest(".taxpick");
+  if(!pk.classList.contains("searching"))return;taxReset(pk);const s=pk.querySelector(".taxsearch");if(s)s.focus({preventScroll:true})});
+document.addEventListener("keydown",e=>{if(e.key!=="Escape"||!e.target.classList||!e.target.classList.contains("taxsearch"))return;const pk=e.target.closest(".taxpick");if(pk.classList.contains("searching")){e.preventDefault();taxReset(pk)}});
+// Enter in the search never submits the form; if one kind of work matches, it picks it
+document.addEventListener("keydown",e=>{if(e.key!=="Enter"||!e.target.classList||!e.target.classList.contains("taxsearch"))return;e.preventDefault();const pk=e.target.closest(".taxpick");
+  const vis=[...pk.querySelectorAll(".taxcat:not([hidden])")];if(pk.classList.contains("searching")&&vis.length===1){const b=vis[0].querySelector('input[name="svc"]');if(!b.checked){b.checked=true;b.dispatchEvent(new Event("change",{bubbles:true}))}}});
 
 /* =====================================================================
    Orbyt portal: live data layer (Supabase)

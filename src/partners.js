@@ -65,7 +65,7 @@ function partnerSignupView(){
     <h1>Closing services</h1>
     <p class="small" style="margin:0">For lenders, title, escrow, insurance, inspectors, appraisers, notaries and home warranty companies. List your business in Orbyt's closing partner directory for San Diego agents. Your first 90 days are free, then it's $20 a month for your marketing listing. Cancel anytime.</p>
     <form class="authform" data-proto="signup" data-kind="partner" novalidate>
-      <div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> It takes about 2 minutes. Next, you'll add your license number and years in business${S.billPublic?", then your card":""}. Every field is required unless it says optional.</div>
+      <div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> It takes about 2 minutes. Then you'll go straight to your dashboard, where Get listed asks for your license number and years in business${S.billPublic?", then your card":""}. Every field is required unless it says optional.</div>
       <div class="grid"><label class="field"><span>Legal entity name</span><input type="text" id="su-legal" name="legal" data-bizname required><small class="small">As it appears on your license or insurance</small></label>
         <label class="field"><span>Business name agents see (optional)</span><input type="text" id="su-dba" name="dba" placeholder="Your DBA, if it's different"></label></div><input type="hidden" id="su-company" name="company">
       <div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
@@ -111,13 +111,14 @@ function partnerView(v){
   const st=listingStatus(v),past=(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.vendor_id===v.id),live=v.approved!==false;
   const sec=(id,n,title,sub,right,body)=>`<section class="psec" data-fold="${id}"><div class="psechead"><div><div class="eyebrow">${n}</div><h2>${title}</h2>${sub?`<p class="small">${sub}</p>`:""}</div>${right?`<div>${right}</div>`:""}</div><div class="psecbody">${body}</div></section>`;
   let h=`<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>
-    ${live?"":`<p class="banner" style="margin-top:10px">Thanks for joining. I'll check your license and let you know when your listing is live.</p>`}</div>
+    ${live?"":`<p class="banner" style="margin-top:10px">Welcome to Orbyt. Finish the steps under Get listed below, and I'll check your license and publish your listing.</p>`}</div>
     <div class="hellore">${ratingHtml(v.id)}${typeof msgAshBtn==="function"&&msgOn()?msgAshBtn(unreadTotal()?`Messages from Ashleigh (${unreadTotal()})`:"Message Ashleigh","btn ghost sm"):""}</div></section>`;
   if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function"&&live)h+=setupCard();
+  if(!live&&typeof approvalSec==="function")h+=approvalSec(v);
   h+=sec("listing","1 · Your listing","How agents see you",live?"Agents in the network find you in the Orbyt closing partner directory and on their buyers' projects.":"Once it's live, agents in the network can find your listing in the Orbyt closing partner directory.",
     live?`<span class="pill ${st.key==="due"||st.key==="canceled"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span>`:"",
     `${live&&typeof availToggle==="function"?availToggle(v):""}${partnerListing(v)}
-     <p class="small" style="margin:10px 0 0">Your first ${LISTING_FREE_DAYS} days are free with our launch offer, then your marketing listing is $${LISTING_FEE} a month. ${billingOn()?"Cancel anytime from Manage billing.":"Cancel anytime by emailing ashleigh@orbytconnect.com."} It also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p>${billingBlock(v)}`);
+     <p class="small" style="margin:10px 0 0">Your first ${LISTING_FREE_DAYS} days are free with our launch offer, then your marketing listing is $${LISTING_FEE} a month. ${billingOn()?"Cancel anytime from Manage billing.":"Cancel anytime by emailing ashleigh@orbytconnect.com."} It also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p>${live?billingBlock(v):""}`);
   h+=sec("port","2 · Your ad","Tell agents why to call you","This is your advertisement on your listing. Write it the way you'd pitch an agent over coffee.","",adCard(v));
   if(live){const sent=typeof rrFor==="function"?rrFor(v.id):[];
     h+=sec("myrev","3 · Reviews","What agents say about you","",myReviewsPill(v),

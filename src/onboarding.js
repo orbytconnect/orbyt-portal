@@ -77,6 +77,9 @@ function setupCard(){if(!S.canWrite||!S.session)return"";
 /* the Help page, written for each role */
 /* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
 const NEWS=[
+  {id:"2026-11-18a",date:"2026-11-18",roles:["vendor"],title:"Your fees, job by job",body:"Open the Profile tab to see what you owe Orbyt for each booked job, what's coming up, and what you've paid this year."},
+  {id:"2026-11-18b",date:"2026-11-18",roles:["vendor"],title:"A Profile tab",body:"Your profile, reviews, special offer and referral link now live on their own Profile tab, so Tasks shows just your work."},
+  {id:"2026-11-18c",date:"2026-11-18",roles:["vendor"],title:"A simpler timeline on requests",body:"On a bid request, the work before and after yours is folded away. Tap Before your work or After your work to see the details."},
   {id:"2026-11-17a",date:"2026-11-17",roles:["agent"],title:"Message vendors from the project",body:"Open a project and tap Message next to any vendor. The conversation opens right on the project page, and every thread for that home is listed under Messages about this home."},
   {id:"2026-11-17b",date:"2026-11-17",roles:["vendor"],title:"Messages on every request",body:"Your conversation with the agent now shows right on the request, before and after you're booked."},
   {id:"2026-11-17c",date:"2026-11-17",roles:["agent","vendor"],title:"Project IDs",body:"Every project now has a short ID, like CA-1042, next to its address. Use it when you need to refer to a job."},
@@ -161,7 +164,9 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="getap
   if(a==="setupdone"){if(t.dataset.id==="setup-hide")S.setupOpen=false;guard(()=>setupMark(t.dataset.id),t.dataset.id==="setup-hide"?"Hidden. Bring it back anytime with Show the checklist, or from Help.":"Checked off");return}
   if(a==="setupshow"){S.help=false;S.setupOpen=true;guard(()=>setupUnmark("setup-hide"));setTimeout(()=>document.querySelector(".setup,.setupback")?.scrollIntoView({behavior:"smooth",block:"center"}),300);return}
   const openFold=k=>{const d=document.querySelector(`[data-fold="${k}"]`);if(d){if(d.tagName==="DETAILS")d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"});return true}return false};
-  if(a==="gofold"){if(!openFold(t.dataset.fold))toast("You'll find it under Your profile once you're approved.");return}
+  if(a==="gofold"){if(openFold(t.dataset.fold))return;
+    if(kind()==="vendor"&&S.tab!=="profile"&&!(typeof isPartner==="function"&&isPartner(vendorById(roleVal())))){S.tab="profile";render();setTimeout(()=>{if(!openFold(t.dataset.fold))toast("You'll find it under Profile once you're approved.")},40);return}
+    toast("You'll find it under Your profile once you're approved.");return}
   if(a==="setupref"){S.refWho=t.dataset.who;render();setTimeout(()=>openFold("refer"),30)}},true);
 // sending a referral (copy, email or text) checks off the matching step
 document.addEventListener("click",e=>{const t=e.target.closest('.refcard [data-act="refcopy"], .refcard a.btn');if(!t||kind()!=="agent")return;

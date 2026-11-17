@@ -296,7 +296,7 @@ function authView(){
   if(m==="pending")return card("Almost there",`Thanks${S.pendingName?", "+esc(S.pendingName):""}`,`<p>${S.setupV?"Your profile is complete. ":""}I review every new account before the first introduction, usually within a day. You'll get an email as soon as you're in.</p><p class="small">Ashleigh at Orbyt</p>
     <div class="actions"><button class="btn ghost" data-act="signout">Sign out</button></div>`);
   if(m==="declined")return card("Account","This account isn't active",`<p>Reach out to ashleigh@orbytconnect.com with any questions.</p><div class="actions"><button class="btn ghost" data-act="signout">Sign out</button></div>`);
-  if(m==="checkemail")return card("One more step","Check your email",`<p>I sent a confirmation link to <span class="strong">${esc(S.pendingEmail||"your inbox")}</span>. Click it, then sign in here${S.pendingPartner?" to add your card and finish signing up":S.pendingVendor?" for step 2: a few business details and 2 to 3 agent references":""}.</p>
+  if(m==="checkemail")return card("One more step","Check your email",`<p>I sent a confirmation link to <span class="strong">${esc(S.pendingEmail||"your inbox")}</span>. Click it, then sign in here${S.pendingPartner?" to finish your listing under Get listed":S.pendingVendor?". Your dashboard opens right away, and Get approved lists the few details I need before your first introduction":""}.</p>
     <div class="actions"><button class="btn" data-act="authmode" data-m="signin">Back to sign in</button></div>`);
   if(m==="forgot")return card("Password","Reset your password",`<form class="authform" data-proto="forgot" novalidate>
       <label class="field"><span>Email</span><input type="email" id="fp-email" name="email" autocomplete="email" required></label>${err}
@@ -332,7 +332,7 @@ function signupView(m){
     <h1>${m==="agent"?"The right team for every listing":"More of the work you're good at"}</h1>
     <p class="small" style="margin:0">${m==="agent"?"Orbyt is free for agents. Tell me where you list and I'll start lining up vendors matched to your homes.":"I'll check your references and reach out before your first introduction."}</p>
     <form class="authform" data-proto="signup" data-kind="${m}" novalidate>
-      ${m==="agent"?"":`<div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> It takes about 2 minutes. Next, you'll add a few business details and 2 to 3 agent references. Every field is required unless it says optional.</div>`}
+      ${m==="agent"?"":`<div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> It takes about 2 minutes. Then you'll go straight to your dashboard, where Get approved asks for a few business details and 2 to 3 agent references. Every field is required unless it says optional.</div>`}
       ${m==="vendor"?`<div class="grid"><label class="field"><span>Legal entity name</span><input type="text" id="su-legal" name="legal" data-bizname required><small class="small">As it appears on your license or insurance</small></label>
         <label class="field"><span>Business name agents see (optional)</span><input type="text" id="su-dba" name="dba" placeholder="Your DBA, if it's different"></label></div><input type="hidden" id="su-company" name="company">`:""}
       <div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
@@ -705,7 +705,7 @@ const agreementPill=v=>v.userId&&v.approved!==false&&Array.isArray(D.terms_accep
 const agentTermsLine=uid=>{if(!uid)return"";const t=currentAcceptance(uid,"agent");
   return t?`<div class="small">Agreed to terms ${esc(fmtStamp(t.accepted_at))}</div>`:`<div class="small warntext">Hasn't agreed to terms yet</div>`};
 const myAgreementBtn=()=>{const r=myRole();if(!r)return"";const old=r==="vendor"&&agreementsFor(myVendorId())[0];
-  return `<button class="linkbtn" data-act="mydetails">My details</button><a class="linkbtn" href="${esc(termsUrl(r))}" target="_blank" rel="noopener">Terms of Use</a>${old?`<button class="linkbtn" data-act="agview" data-id="${esc(old.id)}">Signed agreement</button>`:""}`};
+  return `<button class="linkbtn" data-act="mydetails">My details</button>${old?`<button class="linkbtn" data-act="agview" data-id="${esc(old.id)}">Signed agreement</button>`:""}`};
 function printAgreement(html){
   const w=window.open("","_blank");if(!w){toast("Allow pop-ups for this site to print the agreement.");return}
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Orbyt Vendor Network Agreement</title><style>body{font:15px/1.55 Georgia,serif;max-width:760px;margin:40px auto;padding:0 20px;color:#111}
@@ -776,7 +776,7 @@ Thank you!
 ${who.join("\n")}`}
 const INS_PILL={needed:["Certificate needed","late"],fix:["Needs a fix","late"],checking:["Ashleigh is checking it",""],verified:["Confirmed","set"],expiring:["Renews soon","late"],expired:["Expired","late"]};
 function insuranceCard(v){
-  if(!v||v.approved===false)return"";
+  if(!v)return"";
   const st=insState(v),[pl,pc]=INS_PILL[st.state],open=!["verified","checking"].includes(st.state);
   const subj="Certificate of insurance for Orbyt LLC",body=insEmailText(v,st);
   const form=`<form class="form inner" data-form="insupload" novalidate><div class="grid">
@@ -1085,6 +1085,8 @@ function vendorFolds(v,mine){
     rv.push(fold("lost","Why quotes didn't win",`<span class="pill">${k}</span>`,"What agents told you",lc,false))}}
   const stats=vendorStats(v,mine||[]);
   if(stats||rv.length)out.push(psec("results",num(),"Reviews and results","How agents rate you and how your bids are doing.","",stats+(rv.length?`<div class="folds">${rv.join("")}</div>`:"")));
+  // fees owed, one row per booked job
+  if(ok&&typeof vendorFeesCard==="function"){const fc=vendorFeesCard(v);if(fc)out.push(psec("fees",num(),"Orbyt fees","What you owe Orbyt, job by job.",fc.pill,fc.body))}
   // 3 special offer
   if(ok){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
     out.push(psec("promo",num(),"Special offer","Share a deal with Orbyt clients, $20 for up to 30 days.",on?`<span class="pill featured">Live until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"",promoCard(v)))}
@@ -1281,7 +1283,9 @@ const SETUP_FIELDS=[["years","years in business"],["team","team size"],["leadTim
 function setupMissing(v,card){if(!v)return[];
   if((typeof isPartner==="function"&&isPartner(v))||v.kind==="closing")return[String(v.license||"").trim().length<3?"license number":"",!v.years?"years in business":"",
     card&&typeof billingOn==="function"&&billingOn()&&typeof hasCard==="function"&&!hasCard(billingOf(v.id))?"card on file":""].filter(Boolean);
-  return SETUP_FIELDS.filter(([k])=>k==="references"?String(v.references||"").trim().length<10:!v[k]).map(([,l])=>l)}
+  const out=SETUP_FIELDS.filter(([k])=>k==="references"?String(v.references||"").trim().length<10:!v[k]).map(([,l])=>l);
+  if(v.services&&typeof insGroup==="function"&&insGroup(vsv(v))==="high"&&!((v.insurance||{}).path))out.push("certificate of insurance");
+  return out}
 async function loadSetupV(uid){try{
   const{data:v}=await sb.from("vendors").select("id,name,kind,years_in_business,team_size,lead_time,website,instagram,portfolio_url,license_number").eq("user_id",uid).maybeSingle();
   if(!v){S.setupV=null;return}
@@ -1309,10 +1313,14 @@ document.addEventListener("submit",async e=>{const f=e.target.closest('form[data
     [g("references").length<10,"Add 2 to 3 agent references, with names and phone numbers or emails.","#fs-refs"]].find(c=>c[0]);
   if(hit)return show(hit[1],hit[2]);
   btn.disabled=true;show("");
-  try{const v=S.setupV;
-    let r=await sb.from("vendors").update({years_in_business:g("years"),team_size:g("team"),lead_time:g("lead"),website:g("web")||null,instagram:igHandle(fd.get("instagram"))||null,portfolio_url:g("portfolio")||null}).eq("id",v.id);
+  try{const inDash=!!(S.session&&S.db),v=inDash?vendorById(myVendorId()):S.setupV;
+    const up={years_in_business:g("years"),team_size:g("team"),lead_time:g("lead")};
+    if(!inDash)Object.assign(up,{website:g("web")||null,instagram:igHandle(fd.get("instagram"))||null,portfolio_url:g("portfolio")||null});
+    if(fd.has("license"))up.license_number=g("license")||null;
+    let r=await sb.from("vendors").update(up).eq("id",v.id);
     if(r.error)throw r.error;
     r=await sb.from("vendor_private").update({references_text:g("references")}).eq("vendor_id",v.id);if(r.error)throw r.error;
+    if(inDash){await S.db.reload();render();toast("Saved. Thanks!");return}
     await loadSetupV(S.uid);render();window.scrollTo(0,0)
   }catch(x){console.error(x);btn.disabled=false;show("That didn't save. Check your connection and try again.")}},true);
 
@@ -1349,9 +1357,10 @@ document.addEventListener("submit",async e=>{const f=e.target.closest('form[data
   const hit=[[g("license").length<3,"Add your license, commission or certification number.","#fp-license"],[!g("years"),"Choose your years in business.","#fp-years"]].find(c=>c[0]);
   if(hit)return show(hit[1],hit[2]);
   btn.disabled=true;show("");
-  try{const v=S.setupV;
+  try{const inDash=!!(S.session&&S.db),v=inDash?vendorById(myVendorId()):S.setupV;
     let r=await sb.from("vendors").update({license_number:g("license"),years_in_business:g("years"),website:g("web")||null}).eq("id",v.id);if(r.error)throw r.error;
     if(g("references")){r=await sb.from("vendor_private").update({references_text:g("references")}).eq("vendor_id",v.id);if(r.error)throw r.error}
+    if(inDash){await S.db.reload();render();toast("Saved. Thanks!");return}
     await loadSetupV(S.uid);render();window.scrollTo(0,0)
   }catch(x){console.error(x);btn.disabled=false;show("That didn't save. Check your connection and try again.")}},true);
 
@@ -1365,3 +1374,56 @@ const bizFieldsLite=(pre,v)=>{v=v||{};return `<div class="grid"><label class="fi
 document.addEventListener("input",e=>{const f=e.target.closest&&e.target.closest('form[data-proto="signup"]');if(!f)return;const c=f.querySelector('input[type="hidden"][name="company"]');if(!c)return;
   const l=f.querySelector('[name="legal"]'),d=f.querySelector('[name="dba"]');c.value=((d&&d.value.trim())||(l&&l.value.trim())||"")},true);
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act="feetoggle"]');if(!b)return;e.preventDefault();e.stopPropagation();const x=document.getElementById("su-fees");if(!x)return;x.hidden=!x.hidden;b.textContent=x.hidden?"See the fee structure":"Hide the fee structure"},true);
+
+/* ---------- Get approved: the first section of a new vendor's or closing partner's dashboard ---------- */
+function approvalSec(v){if(!v||v.approved!==false||kind()!=="vendor")return"";
+  const cp=typeof isPartner==="function"&&isPartner(v),miss=setupMissing(v,true),pill=(ok,txt)=>`<span class="pill ${ok?"set":"late"}">${esc(txt)}</span>`;
+  const sel=(id,label,list,val)=>`<label class="field"><span>${label}</span><select id="fs-${id}" name="${id}"><option value="">Choose one</option>${list.map(x=>`<option ${x===val?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`;
+  const rows=[];
+  if(cp){const done=!miss.includes("license number")&&!miss.includes("years in business");
+    rows.push(fold("apdet","License and business details",pill(done,done?"Added":"Needed"),"Your license or certification number and years in business",
+      `<form class="form inner" data-form="finishpartner" novalidate>
+        <label class="field"><span>License or certification number</span><input type="text" id="fp-license" name="license" value="${esc(v.license)}" placeholder="NMLS, DRE, DFPI, Dept. of Insurance, Pest Control Board, BREA, notary commission or inspector certification"></label>
+        <div class="grid"><label class="field"><span>Years in business</span><select id="fp-years" name="years"><option value="">Choose one</option>${YEARS.map(x=>`<option ${x===v.years?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
+          <label class="field"><span>Website (optional)</span><input type="text" id="fp-web" name="web" value="${esc(v.web)}" placeholder="yourbusiness.com"></label></div>
+        <label class="field"><span>Agents you've worked with (optional)</span><textarea id="fp-refs" name="references" placeholder="Names and phone numbers or emails. I can invite them to review you.">${esc(v.references)}</textarea></label>
+        <p class="autherr small warntext" role="alert" hidden></p><div class="actions"><button class="btn sm" type="submit">Save</button></div></form>`,!done));
+    if(billingOn()){const card=hasCard(billingOf(v.id));
+      rows.push(fold("apcard","Card for your listing",pill(card,card?"Saved":"Needed"),`Nothing is charged during your ${LISTING_FREE_DAYS}-day launch offer`,billingBlock(v),!card))}
+  }else{const det=["years in business","team size","typical lead time"].every(x=>!miss.includes(x)),refs=!miss.includes("agent references");
+    rows.push(fold("apdet","Business details and references",pill(det&&refs,det&&refs?"Added":"Needed"),"Years in business, team size, lead time and 2 to 3 agent references",
+      `<form class="form inner" data-form="finishsetup" novalidate>
+        <div class="grid">${sel("years","Years in business",YEARS,v.years)}${sel("team","Team size",TEAM,v.team)}${sel("lead","Typical lead time",LEAD,v.leadTime)}</div>
+        <label class="field"><span>Agent references (2 to 3 names and numbers)</span><textarea id="fs-refs" name="references" placeholder="Names and phone numbers or emails">${esc(v.references)}</textarea></label>
+        <p class="small" style="margin:0">Agents you've done work for. I'll reach out to them before your first introduction.</p>
+        <label class="field"><span>License number (if your trade is licensed)</span><input type="text" id="fs-license" name="license" value="${esc(v.license)}" placeholder="CSLB, Pest Control Board or other license"></label>
+        <p class="autherr small warntext" role="alert" hidden></p><div class="actions"><button class="btn sm" type="submit">Save</button></div></form>`,!(det&&refs)));
+    const st=insState(v),need=st.g==="high",has=!!(v.insurance||{}).path;
+    rows.push(fold("ins","Insurance certificate",pill(has||!need,has?INS_PILL[st.state][0]:need?"Needed":"Due after approval"),need?"Needed before your first introduction":st.g==="mid"?"Due within 30 days of approval":"Requested, not required to start",insuranceCard(v),need&&!has))}
+  const left=miss.length;
+  const foot=`<p class="small" style="margin:12px 0 0">${left?`Still needed: ${esc(miss.join(", "))}. `:`<span class="strong">Everything's in.</span> `}${cp?"I check every license before a listing goes live, usually within a day. You'll get an email when you're listed.":"Once it's all in, I call your references and approve you, usually within a day or two. You'll get an email as soon as you're approved."}</p>`;
+  return `<div class="vsecs approvesec">${psec("approve","Start here",cp?"Get listed":"Get approved",cp?"A few details so I can check your license and publish your listing.":"A few details so I can check your business and start introducing you to agents.",
+    left?pill(false,left+" to go"):pill(true,"Ready for review"),`<div class="folds">${rows.join("")}</div>${foot}`)}</div>`}
+
+/* ---------- a vendor's Orbyt fees, each tied to its job ---------- */
+function vendorFeesCard(v){if(typeof invRow!=="function")return null;
+  const rows=S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected"&&projById(b.projectId)).map(invRow).filter(r=>r.type!=="waived"||r.status==="paid");
+  if(!rows.length)return null;
+  const owed=rows.filter(r=>r.status==="invoiced"),soon=rows.filter(r=>["ready","needsconfirm","needsfinal","disputed"].includes(r.status)&&r.doneAt),paid=rows.filter(r=>r.status==="paid");
+  const sum=l=>l.reduce((t,r)=>t+r.fee,0),yr=String(new Date().getFullYear()),paidYr=paid.filter(r=>String(r.inv.paidAt||"").startsWith(yr));
+  const st=r=>r.status==="paid"?`<span class="pill set">Paid ${esc(fmtDate(isoDay(new Date(r.inv.paidAt))))}</span>`
+    :r.status==="invoiced"?`<span class="pill ${r.overdue?"late":"comparing"}">${r.overdue?"Overdue":"Due "+esc(fmtDate(r.due))}</span>`
+    :!r.doneAt?`<span class="pill">Job in progress</span>`
+    :r.status==="needsfinal"?`<span class="pill late">Send your final amount</span>`
+    :r.status==="disputed"?`<span class="pill">Agent is checking</span>`
+    :`<span class="pill">Invoice coming${r.due?", due "+esc(fmtDate(r.due)):""}</span>`;
+  const order=r=>({invoiced:0,needsfinal:1,disputed:2,needsconfirm:3,ready:3,paid:5})[r.status]??4;
+  const list=[...rows].sort((a,b)=>order(a)-order(b)||String(b.doneAt||"").localeCompare(String(a.doneAt||"")));
+  const tile=(l,amt,n)=>`<div class="stat static"><span class="eyebrow">${l}</span><b class="num">${money2(amt)}</b><span class="small">${n} ${n===1?"job":"jobs"}</span></div>`;
+  const body=`<div class="stats feestats" style="--n:3;margin-bottom:12px">${tile("Owed now",sum(owed),owed.length)}${tile("Coming up",sum(soon),soon.length)}${tile("Paid in "+yr,sum(paidYr),paidYr.length)}</div>
+    <div class="tablewrap"><table><thead><tr><th>Job</th><th>Service</th><th class="num">Final amount</th><th class="num">Orbyt fee</th><th>Status</th></tr></thead><tbody>
+    ${list.map(r=>`<tr><td class="strong">${esc(r.p.address)}${typeof refTag==="function"?refTag(r.p):""}${r.inv.number?`<div class="small">Invoice ${esc(r.inv.number)}</div>`:""}</td><td>${esc(r.b.category)}</td>
+      <td class="money">${r.b.finalAmount!=null?money2(r.value):`<span class="small">Bid ${money2(r.value)}</span>`}</td>
+      <td class="money">${r.type==="waived"?"Waived":money2(r.fee)}<div class="small">${r.type==="repeat"?"Repeat job":r.type==="waived"?"":"First job with this agent"}</div></td><td>${st(r)}</td></tr>`).join("")}</tbody></table></div>
+    <p class="small" style="margin:8px 0 0">Fees are based on your final invoice amount and due ${PAY_DAYS} days after a job wraps. Questions about a fee? Message Ashleigh.</p>`;
+  return{pill:owed.length?`<span class="pill ${owed.some(r=>r.overdue)?"late":"comparing"}">${money2(sum(owed))} owed</span>`:"",body}}

@@ -65,25 +65,17 @@ function partnerSignupView(){
     <h1>Closing services</h1>
     <p class="small" style="margin:0">For lenders, title, escrow, insurance, inspectors, appraisers, notaries and home warranty companies. List your business in Orbyt's closing partner directory for San Diego agents. Your first 90 days are free, then it's $20 a month for your marketing listing. Cancel anytime.</p>
     <form class="authform" data-proto="signup" data-kind="partner" novalidate>
-      <div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> It takes about 2 minutes. Then you'll go straight to your dashboard, where Get listed asks for your license number and years in business${S.billPublic?", then your card":""}. Every field is required unless it says optional.</div>
-      <div class="grid"><label class="field"><span>Legal entity name</span><input type="text" id="su-legal" name="legal" data-bizname required><small class="small">As it appears on your license or insurance</small></label>
-        <label class="field"><span>Business name agents see (optional)</span><input type="text" id="su-dba" name="dba" placeholder="Your DBA, if it's different"></label></div><input type="hidden" id="su-company" name="company">
-      <div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
-        <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
-        <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
-        <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label></div>
-      <div class="field"><span>What do you offer?</span><small class="small">Pick your line of work. You'll choose your exact services on your dashboard next.</small>${svcPicker("partner","su-svc",[],[],CLOSING_HINT,true)}</div>
-      <div class="field"><span>Where do you work?</span>${ck("area",AREAS)}</div>
-      <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>
-      <div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
-        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}
-      <div class="reviewagree"><div class="eyebrow">Review and agree</div>
-        <h2>Your marketing listing</h2><p class="small" style="margin:0">Free for your first 90 days, then $20 a month, billed monthly. It covers your directory listing, rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events. The fee is flat and never depends on contacts, loans, policies or closings. Cancel anytime.<span id="su-cardnote">${S.billPublic?CARD_NOTE:""}</span></p>
-        ${keyHighlights("partner")}
-        <h2>Your business</h2>${bizFieldsLite("su")}
-        <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink("partner")}.</span></label>
-        ${authorityBox("su")}
-        <label class="checkrow top"><input type="checkbox" id="su-optout" name="optout"> <span class="small" style="font-weight:300">If you'd rather not receive Orbyt updates and announcements, tick this box.</span></label></div>
+      <div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> About 2 minutes. Then you'll go straight to your dashboard, where Get listed asks for your exact services, license number and years in business${S.billPublic?", then your card":""}. Every field is required unless it says optional.</div>
+      ${suSec(1,"About you",suPerson())}
+      ${suSec(2,"Your business",suBiz())}
+      ${suSec(3,"What you offer",`<small class="small">Pick your line of work. You'll choose your exact services on your dashboard next.</small>${svcPicker("partner","su-svc",[],[],CLOSING_HINT,true)}`)}
+      ${suSec(4,"Where you work",ck("area",AREAS))}
+      <div class="knowbox"><div class="eyebrow">Good to know before you join</div>
+        <div class="knowrow"><span class="knowico" aria-hidden="true">$</span><div><span class="strong">Your marketing listing.</span> Free for your first 90 days, then $20 a month, billed monthly. It covers your directory listing, rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events. The fee is flat and never depends on contacts, loans, policies or closings. Cancel anytime.<span id="su-cardnote">${S.billPublic?CARD_NOTE:""}</span>
+          ${keyHighlights("partner")}</div></div></div>
+      ${suSec(5,"Your login",`<div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
+        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}`)}
+      ${suSec(6,"Agree and join",suAgree("partner"))}
       <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",portalHome()).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>${authMsg()}
       <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
     </form></div></section>`}
@@ -94,7 +86,7 @@ async function partnerSignup(f,fd,email,pass,pass2,done,btn){
     [!svcs.length,"Pick what you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[!areas.length,"Pick at least one area you work in.","#su-area-0"],
     [!!pwProblem(pass),pwProblem(pass),"#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
     [!g("legal"),"Add your legal business name.","#su-legal"],[!fd.get("btype"),"Choose your business type.","#su-btype"],[!g("title"),"Add your title.","#su-title"],
-    [!fd.get("terms"),`Check the box to agree to the ${TERMS.partner.title}.`,"#su-terms"],[!fd.get("authority"),"Check the box to confirm you have authority to agree for the business.","#su-auth"]];
+    [!fd.get("terms"),`Check the box to agree to the ${TERMS.partner.title}.`,"#su-terms"]];
   const hit=checks.find(c=>c[0]);
   if(hit){done(hit[1]);const el=f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}
   const meta={ref:S.ref||"",role:"vendor",partner_kind:"closing",license:g("license"),full_name:first+" "+last,phone:g("phone"),areas,terms_version:TERMS.partner.version,user_agent:navigator.userAgent.slice(0,300),

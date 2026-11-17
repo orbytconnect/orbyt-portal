@@ -337,7 +337,7 @@ function signupView(m){
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
         <label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label></div>
-      <div class="field"><span>Where do you list homes?</span>${ck("area",AREAS)}</div>
+      <div class="field"><span>Where do you list homes?</span>${ck("area",AREAS)}<label class="field" style="margin-top:8px"><span>Other areas (optional, separate with commas)</span><input type="text" id="su-otherarea" name="otherarea" placeholder="Anywhere not listed, like Temecula"></label></div>
       <div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}
       <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>`
@@ -353,7 +353,7 @@ function signupView(m){
             <button class="btn sm" type="button" id="su-cwgo" data-act="cwswitch">Continue as a closing partner</button></div>
           <div id="su-cwsome" hidden><label class="field"><span>Which of your services are part of closings?</span><input type="text" id="su-cwnote" name="cwnote" maxlength="200" placeholder="Termite reports for escrow"></label>
             <p class="small" style="margin:4px 0 0">Those jobs won't come through Orbyt introductions, so there's never a fee on them. You're welcome to list that work in the closing partner directory too.</p></div></div>`)}
-      ${suSec(4,"Where you work",ck("area",AREAS))}
+      ${suSec(4,"Where you work",ck("area",AREAS)+suOtherArea())}
       <div class="knowbox"><div class="eyebrow">Good to know before you join</div>
         <div class="knowrow"><span class="knowico" aria-hidden="true">$</span><div><span class="strong">Fees.</span> Orbyt is free to join. You only pay a fee when an introduction turns into a paid job, and the client pays you directly, the same as always. <button class="linkbtn" type="button" data-act="feetoggle">See the fee structure</button>
           <div id="su-fees" hidden>${signupFees()}${keyHighlights("vendor")}</div></div></div>
@@ -463,14 +463,14 @@ document.addEventListener("submit",async e=>{
     if(kindOf==="newpass"){if(pwProblem(pass))return done(pwProblem(pass));if(pass!==pass2)return done("Those passwords don't match. Type them again.");
       const{data,error}=await sb.auth.updateUser({password:pass});if(error)return done(friendlyAuthError(error));toast("Password saved");S.recovering=false;S.authMode="signin";try{history.replaceState(null,"",location.pathname)}catch(_){}await enter(data.user);return}
     if(kindOf==="signup"&&f.dataset.kind==="partner"&&typeof partnerSignup==="function")return await partnerSignup(f,fd,email,pass,pass2,done,btn);
-    if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
+    if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=[...fd.getAll("area"),...otherAreas(fd)];
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
       const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,""),tp=null;
       // [problem, message, field to jump to]
       const checks=[[V&&!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
         [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[digits.length<10,"Add a mobile phone number, with area code.","#su-phone"],
         [!V&&!g("brokerage"),"Add your brokerage.","#su-brokerage"],
-        [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[!areas.length,V?"Pick at least one area you work in.":"Pick at least one area where you list homes.","#su-area-0"],
+        [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[!areas.length,V?"Pick or type at least one area you work in.":"Pick or type at least one area where you list homes.","#su-area-0"],
         [V&&!fd.get("closingwork"),"Tell me whether any of your work is part of a home sale's closing.","#su-cw-0"],
         [V&&fd.get("closingwork")==="yes","Your work is part of closings, so it's listed in the closing partner directory instead. Tap Continue as a closing partner.","#su-cwgo"],
         [V&&fd.get("closingwork")==="some"&&g("cwnote").length<3,"Tell me which of your services are part of closings.","#su-cwnote"],
@@ -814,7 +814,7 @@ document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest('fo
   if(e.target.name==="closingwork"){const v=e.target.value,y=document.getElementById("su-cwyes"),so=document.getElementById("su-cwsome");if(y)y.hidden=v!=="yes";if(so)so.hidden=v!=="some"}});
 // "Yes, that's my main business": move to closing partner sign-up, keeping what they typed
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act="cwswitch"]');if(!b)return;e.preventDefault();e.stopPropagation();
-  const f=b.closest("form"),keep={};["legal","dba","company","btype","title","first","last","email","phone","web","heard"].forEach(k=>{const el=f.querySelector(`[name="${k}"]`);if(el)keep[k]=el.value});
+  const f=b.closest("form"),keep={};["legal","dba","company","btype","title","first","last","email","phone","web","heard","otherarea"].forEach(k=>{const el=f.querySelector(`[name="${k}"]`);if(el)keep[k]=el.value});
   keep.areas=[...f.querySelectorAll('input[name="area"]:checked')].map(x=>x.value);
   S.authMode="partner";S.authErr="";render();window.scrollTo(0,0);
   const g=document.querySelector('form[data-kind="partner"]');if(!g)return;
@@ -1489,3 +1489,6 @@ const suBiz=()=>`<div class="grid"><label class="field"><span>Legal entity name<
 const suAgree=kind=>`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink(kind)}${kind==="vendor"?", including the fee structure,":""} and I have authority to agree on behalf of <b class="bizname">[Legal business name]</b>.</span></label><input type="hidden" id="su-auth" name="authority" value="1">
   <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>
   <label class="checkrow top optoutrow"><input type="checkbox" id="su-optout" name="optout"> <span>Prefer not to get Orbyt updates and announcements? Tick this box to opt out.</span></label>`;
+// areas not on the list, typed in by hand
+const suOtherArea=()=>`<label class="field" style="margin-top:8px"><span>Other areas (optional, separate with commas)</span><input type="text" id="su-otherarea" name="otherarea" placeholder="Anywhere not listed, like Temecula"></label>`;
+const otherAreas=fd=>[...new Set(String(fd.get("otherarea")||"").split(",").map(x=>x.trim().replace(/\s+/g," ")).filter(x=>x.length>1).map(x=>x.slice(0,60)))].slice(0,10);

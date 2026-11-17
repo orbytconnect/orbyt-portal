@@ -69,7 +69,7 @@ function partnerSignupView(){
       ${suSec(1,"About you",suPerson())}
       ${suSec(2,"Your business",suBiz())}
       ${suSec(3,"What you offer",`<small class="small">Pick your line of work. You'll choose your exact services on your dashboard next.</small>${svcPicker("partner","su-svc",[],[],CLOSING_HINT,true)}`)}
-      ${suSec(4,"Where you work",ck("area",AREAS))}
+      ${suSec(4,"Where you work",ck("area",AREAS)+suOtherArea())}
       <div class="knowbox"><div class="eyebrow">Good to know before you join</div>
         <div class="knowrow"><span class="knowico" aria-hidden="true">$</span><div><span class="strong">Your marketing listing.</span> Free for your first 90 days, then $20 a month, billed monthly. It covers your directory listing, rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events. The fee is flat and never depends on contacts, loans, policies or closings. Cancel anytime.<span id="su-cardnote">${S.billPublic?CARD_NOTE:""}</span>
           ${keyHighlights("partner")}</div></div></div>
@@ -80,10 +80,10 @@ function partnerSignupView(){
       <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
     </form></div></section>`}
 async function partnerSignup(f,fd,email,pass,pass2,done,btn){
-  const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=fd.getAll("area").map(String),tp=null;
+  const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=[...fd.getAll("area").map(String),...otherAreas(fd)],tp=null;
   const checks=[[!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
     [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[g("phone").replace(/\D/g,"").length<10,"Add a mobile phone number, with area code.","#su-phone"],
-    [!svcs.length,"Pick what you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[!areas.length,"Pick at least one area you work in.","#su-area-0"],
+    [!svcs.length,"Pick what you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[!areas.length,"Pick or type at least one area you work in.","#su-area-0"],
     [!!pwProblem(pass),pwProblem(pass),"#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
     [!g("legal"),"Add your legal business name.","#su-legal"],[!g("title"),"Add your title.","#su-title"],
     [!fd.get("terms"),`Check the box to agree to the ${TERMS.partner.title}.`,"#su-terms"]];

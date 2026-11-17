@@ -398,6 +398,21 @@ table.mini{min-width:0}
 .stepnote{background:var(--surface-2);border-left:4px solid var(--gold,#A8871F);border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.5}
 .setuppanel{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}.setupmiss{display:block;margin-top:2px}
 .didlist{margin:12px 0}
+.sitefoot{margin:48px 0 24px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-70,#2C4260);display:grid;gap:6px}
+.sitefoot nav{display:flex;flex-wrap:wrap;gap:6px 18px}.sitefoot a{color:inherit}
+.iconbtn{position:relative;display:inline-grid;place-items:center;width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink,#18314F);cursor:pointer}
+.bdot{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#A8871F;color:#fff;font-size:11px;line-height:18px;text-align:center}
+.menuwrap{position:relative;display:inline-block}.menupop{position:absolute;right:0;top:calc(100% + 6px);z-index:50;min-width:190px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(24,49,79,.14);padding:6px;display:grid}
+.menupop button,.menupop a{all:unset;cursor:pointer;padding:9px 12px;border-radius:8px;font-size:15px;color:var(--ink,#18314F)}.menupop button:hover,.menupop a:hover,.menupop button:focus-visible,.menupop a:focus-visible{background:var(--surface-2)}
+details.faq{border-top:1px solid var(--line);padding:8px 0}details.faq summary{cursor:pointer;font-weight:500}details.faq p{margin:6px 0 0}
+.refcode{font-size:12px;font-weight:400;color:var(--ink-70,#2C4260);letter-spacing:.04em;white-space:nowrap}.refline{letter-spacing:.04em;margin-top:2px}
+.psearch{margin:0 0 8px}.psearch input{width:100%}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.projmsgs{margin-top:24px;border-top:1px solid var(--line);padding-top:18px}.pmgrid{display:grid;grid-template-columns:minmax(200px,280px) 1fr;gap:14px;align-items:start}
+@media (max-width:760px){.pmgrid{grid-template-columns:1fr}}
+.msginline{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}.msginline .mhead{padding:12px 14px;border-bottom:1px solid var(--line)}
+.msginline .mlist{max-height:340px;min-height:120px;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px}.msginline .mform{padding:10px 14px;border-top:1px solid var(--line)}.msginline .mnote{padding:0 14px 10px;margin:0}
+.setuplist li.done{opacity:.55}.setuplist li.done .strong{font-weight:400}
 .vsecs{margin-top:28px}.psecbody .vst{background:var(--surface-2)}.psecbody>.folds{margin:0}.psecbody .vstats{margin-bottom:14px}.updfold{margin:10px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 @media (max-width:720px){.vstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .feebox{border-left:3px solid var(--gold)}
@@ -615,6 +630,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
     <div class="as" id="who"></div>
   </header>
   <main id="app"></main>
+  <footer class="sitefoot" id="sitefoot"></footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
@@ -955,12 +971,17 @@ const isEditing=()=>!!document.querySelector("#app form[data-dirty]");
 function schedule(){if(isEditing())return;render()}
 
 function renderRoleSelect(){
-  const el=$("#who");if(!el)return;
+  renderFooter();const el=$("#who");if(!el)return;
   if(!S.session){el.innerHTML="";return}
   const k=kind(),v=k==="vendor"?vendorById(roleVal()):null;
   const name=k==="orbyt"?"Ashleigh Stumler":k==="agent"?roleVal():(v?v.name:"Vendor");
-  el.innerHTML=`<span class="whoname"><span class="strong">${esc(name)}</span><span class="small">${k==="orbyt"?"Orbyt admin":k==="agent"?"Agent":typeof isPartner==="function"&&isPartner(vendorById(roleVal()))?"Closing partner":"Vendor partner"}</span></span>${typeof myAgreementBtn==="function"?myAgreementBtn():""}${typeof appView==="function"&&!isStandalone()?`<button class="btn ghost sm" data-act="getapp">Get the app</button>`:""}${typeof helpView==="function"?`<button class="btn ghost sm" data-act="help">Help</button>`:""}<button class="btn ghost sm" data-act="signout">Sign out</button>`;
+  el.innerHTML=`<span class="whoname"><span class="strong">${esc(name)}</span><span class="small">${k==="orbyt"?"Orbyt admin":k==="agent"?"Agent":typeof isPartner==="function"&&isPartner(vendorById(roleVal()))?"Closing partner":"Vendor partner"}</span></span>${typeof myAgreementBtn==="function"?myAgreementBtn():""}${typeof appView==="function"&&!isStandalone()?`<button class="btn ghost sm" data-act="getapp">Get the app</button>`:""}${typeof headerTools==="function"?headerTools():typeof helpView==="function"?`<button class="btn ghost sm" data-act="help">Help</button>`:""}<button class="btn ghost sm" data-act="signout">Sign out</button>`;
 }
+function renderFooter(){const el=$("#sitefoot");if(!el)return;const r=S.session&&typeof setupRole==="function"?setupRole():"";
+  const terms=typeof termsUrl!=="function"?"":r&&r!=="orbyt"?`<a href="${esc(termsUrl(r==="partner"?"partner":r))}" target="_blank" rel="noopener">Terms of Use</a>`
+    :`<span>Terms of Use: <a href="${esc(termsUrl("agent"))}" target="_blank" rel="noopener">agents</a>, <a href="${esc(termsUrl("vendor"))}" target="_blank" rel="noopener">vendors</a>, <a href="${esc(termsUrl("partner"))}" target="_blank" rel="noopener">closing partners</a></span>`;
+  el.innerHTML=`<nav aria-label="Legal">${terms}<a href="${esc(new URL("privacy.html",typeof portalHome==="function"?portalHome():location.href).href)}" target="_blank" rel="noopener">Privacy Policy</a></nav>
+    <div>© ${new Date().getFullYear()} Orbyt LLC · 711 S Nardo Ave, Solana Beach, CA 92075 · <a href="mailto:ashleigh@orbytconnect.com">ashleigh@orbytconnect.com</a></div>`}
 const allLoaded=()=>["vendors","projects","bids","reviews","mytasks","taskstate","favorites","settings"].every(k=>S.loaded[k]);
 
 function render(){
@@ -973,6 +994,7 @@ function render(){
   else if(S.agreementView&&S.session)h+=agreementViewer();
   else if(S.myDetails&&S.session&&typeof myDetailsView==="function")h+=myDetailsView();
   else if(S.help&&S.session&&typeof helpView==="function")h+=helpView();
+  else if(S.newsOpen&&S.session&&typeof newsPanel==="function")h+=newsPanel();
   else if(S.appInfo&&S.session&&typeof appView==="function")h+=appView();
   else if(S.vendorCard)h+=vendorCard(vendorById(S.vendorCard));
   else if(S.nudge&&kind()==="orbyt")h+=nudgeDialog();
@@ -1263,7 +1285,7 @@ function requestDetail(b){
   const reqDate=b.requestedAt?new Date(b.requestedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"";
   let h=`<article class="panel"><div class="dhead"><div style="min-width:0">
       <div class="eyebrow">${esc(b.category)} bid ${b.status==="requested"?'<span class="pill requested">Requested</span>':statusPill(b)} ${late?'<span class="pill late">Overdue</span>':""}</div>
-      <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>
+      <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>${p.refCode?`<div class="small refline">Project ${esc(p.refCode)}</div>`:""}
       <div class="facts"><span>${b.introducedBy==="auto"?"Matched by":"Introduced by"} <b>${b.introducedBy==="auto"?"Orbyt":"Ashleigh at Orbyt"}</b>, for ${esc(p.agent)}</span><span>Area <b>${esc(p.area)}</b></span>${p.sqft?`<span>Size <b>${Number(p.sqft).toLocaleString("en-US")} sq ft</b></span>`:""}<span>Requested <b>${esc(reqDate)}</b> (${ago(b.requestedAt)})</span><span>For a <b>${p.clientType==="Buyer"?"buyer move-in":p.clientType==="Both"?"listing and buyer":"listing"}</b></span></div></div>
     <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>
     ${p.notes||(p.addedServices||{})[b.category]?.note?`<div class="reqsec"><h3>Notes from the agent</h3>${p.notes?`<p class="note" style="margin-top:8px">${esc(p.notes)}</p>`:""}${(p.addedServices||{})[b.category]?.note?`<p class="note" style="margin-top:8px"><span class="strong">About ${esc(b.category.toLowerCase())}:</span> ${esc(p.addedServices[b.category].note)}</p>`:""}</div>`:""}
@@ -1271,8 +1293,9 @@ function requestDetail(b){
         <p class="small" style="margin:4px 0 8px">Here's everything ${esc(firstName(p.agent))} needs done, ${hasCustomOrder(p)?"in the order "+esc(firstName(p.agent))+" set":"in the usual order"}. You'll only see your own bid, not the other vendors' names or prices.</p>${timingBlock(p,b.category)}</div>
       <div class="reqsec"><h3>Agent</h3><div class="strong" style="margin:8px 0">${esc(p.agent)}</div>${b.status==="selected"||typeof msgBtn!=="function"||!msgOn()?`<div class="clines">${cl("Phone",p.agentPhone)}${cl("Email",p.agentEmail)}</div>
         ${!p.agentPhone&&!p.agentEmail?`<p class="small" style="margin:0">This agent's contact info isn't on file yet. Ashleigh can connect you.</p>`:""}`
-        :`<p class="small" style="margin:0 0 8px">Questions about the job? Message ${esc(firstName(p.agent))} here. Contact details show once you're booked.</p>${msgBtn(p.id,b.vendorId,"Message "+firstName(p.agent),"btn sm")}`}
+        :`<p class="small" style="margin:0 0 8px">Questions about the job? Message ${esc(firstName(p.agent))} below. Contact details show once you're booked.</p>`}
         ${(p.members||[]).length?`<div class="small" style="margin-top:8px"><span class="strong">Shared with:</span> ${(p.members||[]).map(m=>esc(m.name)+" ("+esc(m.role)+(m.email&&(b.status==="selected"||!msgOn())?", "+esc(m.email):"")+")").join("; ")}</div>`:""}</div></div>
+    ${typeof msgInline==="function"&&msgOn()?`<div class="reqsec">${msgInline(p.id,b.vendorId,{title:"Messages with "+firstName(p.agent)})}</div>`:""}
     <div class="reqsec"><h3>Your bid</h3>`;
   const sum=`<div class="bidsum"><div><span class="eyebrow">Amount</span><b class="num">${money(b.amount)}</b>${b.prevAmount&&b.prevAmount!==b.amount?`<div class="small num">Was ${money(b.prevAmount)}</div>`:""}</div><div><span class="eyebrow">Timeline</span><b>${esc(workDays(b)||"Not given")}</b>${b.availableFrom?`<div class="small">Can start ${esc(fmtDate(b.availableFrom))}</div>`:""}</div>
       <div><span class="eyebrow">Sent</span><b>${b.submittedAt?ago(b.submittedAt):""}</b></div><div><span class="eyebrow">PDF</span>${pdfLink(b)}</div></div>${b.note?`<p class="note">${esc(b.note)}</p>`:""}`;
@@ -1335,8 +1358,9 @@ function orbytView(){
   const hand=matchMode()==="hand";
   h+=`<div class="modebar"><div class="seg" role="group" aria-label="Matching mode"><span class="eyebrow">Matching</span><button data-act="mode" data-v="hand" aria-pressed="${hand}" ${S.canWrite?"":"disabled"}>Hand-picked</button><button data-act="mode" data-v="auto" aria-pressed="${!hand}" ${S.canWrite?"":"disabled"}>Automatic</button></div>
     <span class="small">${hand?"Nothing reaches a vendor until you introduce them.":"New projects get their top 3 matches introduced automatically. You can still add more by hand."}</span></div>`;
-  return h+`<div class="desk"><nav class="plist" aria-label="Projects">${ps.map(p=>{const[st,cls]=projStatus(p);const d=daysTo(p.targetDate);
-    return `<button class="pitem" data-act="open" data-id="${esc(p.id)}" aria-current="${p.id===S.openProject}"><div class="row"><span class="addr">${esc(p.address)}</span><span class="pill ${cls}">${st}</span></div>
+  const pq=(S.projQ||"").trim().toLowerCase(),shown=pq?ps.filter(p=>projSearchText(p).includes(pq)):ps;
+  return h+`<div class="desk"><nav class="plist" aria-label="Projects"><label class="field psearch"><span class="sr-only">Search projects</span><input type="search" id="proj-q" data-projq value="${esc(S.projQ||"")}" placeholder="Search by ID, address, agent or client"></label>${pq&&!shown.length?`<p class="small" style="margin:8px 4px">No projects match.</p>`:""}${shown.map(p=>{const[st,cls]=projStatus(p);const d=daysTo(p.targetDate);
+    return `<button class="pitem" data-act="open" data-id="${esc(p.id)}" aria-current="${p.id===S.openProject}"><div class="row"><span class="addr">${esc(p.address)}${p.refCode?` <span class="refcode">${esc(p.refCode)}</span>`:""}</span><span class="pill ${cls}">${st}</span></div>
       <div class="meta">${esc(p.agent||"")}${client(p)?" · "+esc(client(p)):""}${d!==null&&!p.listed?` · <span class="num">${d<0?"date passed":"lists in "+d+"d"}</span>`:""}</div>
       ${needsCats(p).length?`<div class="meta warntext">Needs matching: ${esc(needsCats(p).join(", "))}</div>`:""}
       <div class="prog" aria-hidden="true">${(p.categories||[]).map(c=>{const bs=bidsFor(p.id,c);return `<i class="${bs.some(b=>b.status==="selected")?"on":bs.some(b=>["submitted","chosen","changes"].includes(b.status))?"mid":""}"></i>`}).join("")}</div></button>`}).join("")}
@@ -1836,7 +1860,7 @@ function pmInvoicing(){
     <div class="tablewrap"><table><thead><tr><th>Project</th><th>Quoted vendors</th><th>Upfront fee</th><th>Final vendors</th><th>Adjustment</th><th>Status</th></tr></thead><tbody>${ps.map(p=>{
       const team=(p.categories||[]).map(c=>teamBid(p.id,c)).filter(Boolean),quoted=team.reduce((a,b)=>a+(b.amount||0),0),final=team.reduce((a,b)=>a+(b.finalAmount!=null?b.finalAmount:b.amount||0),0);
       const up=Math.max(500,cents(quoted*0.1)),over=final-quoted>1000,adj=over?Math.max(500,cents(final*0.1))-up:0,inv=p.pmInvoice||{};
-      return `<tr><td><span class="strong">${esc(p.address)}</span><div class="small">${esc(p.agent)}${p.brokerage?" · "+esc(p.brokerage):""}</div></td><td class="money">${money(quoted)}</td><td class="money">${money2(up)}</td><td class="money">${money(final)}</td>
+      return `<tr><td><span class="strong">${esc(p.address)}</span>${refTag(p)}<div class="small">${esc(p.agent)}${p.brokerage?" · "+esc(p.brokerage):""}</div></td><td class="money">${money(quoted)}</td><td class="money">${money2(up)}</td><td class="money">${money(final)}</td>
         <td class="small">${over?`<span class="warntext">${money2(adj)} more, final costs are ${money(final-quoted)} over quotes</span>`:"None"}</td>
         <td style="white-space:nowrap">${inv.status==="paid"?`<span class="pill set">Paid</span>`:inv.status==="invoiced"?`<span class="pill comparing">Invoiced</span> ${S.canWrite?`<button class="linkbtn" data-act="pmpaid" data-id="${esc(p.id)}">Mark paid</button>`:""}`:S.canWrite?`<button class="btn sm" data-act="pminvoiced" data-id="${esc(p.id)}">Mark invoiced</button>`:""}</td></tr>`}).join("")}</tbody></table></div></section>`;
 }
@@ -2025,7 +2049,7 @@ function pipeStage(p){const c=p.categories||[];if(p.completed)return"done";
 const SVCLBL=["Not matched","Waiting on bids","Bids in","Picked","Booked","Done"];
 function pipeCard(p){
   const d=daysTo(p.targetDate),late=!p.listed&&d!==null&&d<=DATE_WINDOW,val=bidsFor(p.id).filter(b=>ONTEAM.includes(b.status)).reduce((t,b)=>t+bidVal(b),0);
-  return `<button class="pcard" data-act="openmatch" data-id="${esc(p.id)}"><div class="row"><span class="strong">${esc(p.address)}</span>${PM_ON&&p.pm?'<span class="pill comparing">PM</span>':""}</div>
+  return `<button class="pcard" data-act="openmatch" data-id="${esc(p.id)}"><div class="row"><span class="strong">${esc(p.address)}</span>${refTag(p)}${PM_ON&&p.pm?'<span class="pill comparing">PM</span>':""}</div>
     <div class="small">${esc(p.agent)}${client(p)?" · "+esc(client(p)):""}</div>
     <div class="small ${late?"warntext":""}">${esc(listWhen(p))}${p.clientType==="Buyer"?" · buyer":""}</div>
     <div class="svcchips">${(p.categories||[]).map(c=>{const st=svcStage(p,c);return `<span class="chip s${st}" title="${esc(c)}: ${SVCLBL[st]}">${esc(c)}</span>`}).join("")}</div>
@@ -2051,7 +2075,7 @@ function pipelineView(){
   return h+`</section>`;
 }
 function needCard(p){
-  return `<div class="needcard"><div class="row"><button class="addrbtn" data-act="openmatch" data-id="${esc(p.id)}">${esc(p.address)}</button><span class="small num">${esc(listWhen(p))}</span></div>
+  return `<div class="needcard"><div class="row"><button class="addrbtn" data-act="openmatch" data-id="${esc(p.id)}">${esc(p.address)}</button>${refTag(p)}<span class="small num">${esc(listWhen(p))}</span></div>
     <div class="small">${esc(p.agent)} · ${esc(ctLabel(p))} ${esc(client(p))}${p.budget?" · "+BUDGETS[p.budget]:""}${p.source?" · "+esc(p.source):""}</div>
     ${PM_ON&&!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<div class="small warntext">${esc(PMI[p.pmInterest])}</div>`:""}
     <ul class="needlist">${needsCats(p).map(c=>{const r=openOptReq(p,c);const v=r&&r.vendorId&&vendorById(r.vendorId);
@@ -2070,7 +2094,7 @@ function pmCard(p){
 }
 function projOverview(p){
   const[st,cls]=projStatus(p);
-  return `<article class="ov"><div class="ovhead"><div style="min-width:0"><button class="addrbtn" data-act="openmatch" data-id="${esc(p.id)}">${esc(p.address)}</button>
+  return `<article class="ov"><div class="ovhead"><div style="min-width:0"><button class="addrbtn" data-act="openmatch" data-id="${esc(p.id)}">${esc(p.address)}</button>${refTag(p)}
       <div class="small">${esc(p.agent)} · ${esc(ctLabel(p))} ${esc(client(p))} · ${esc(listWhen(p))}</div></div>
       <div class="actions">${PM_ON&&p.pm?'<span class="pill comparing">Managing</span>':""}<span class="pill ${cls}">${st}</span></div></div>
     <div class="svc" role="table" aria-label="Bids for ${esc(p.address)}"><div class="svcrow svchead" role="row"><span role="columnheader">Service</span><span role="columnheader">Bids from</span><span role="columnheader">Booked</span></div>
@@ -2266,12 +2290,17 @@ function listDateForm(p){const today=new Date().toISOString().slice(0,10);
 document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="listdate"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
   const v=String(new FormData(f).get("date")||"");if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){toast("Pick a date");return}
   guard(async()=>{await col("projects").doc(f.dataset.id).update({targetDate:v});S.openForm=null},"List date updated")},true);
+const projMsgBtn=(pid,vid)=>{const t=typeof msgThreads==="function"?msgThreads().find(x=>x.project_id===pid&&x.vendor_id===vid):null,n=t?unreadOf(t):0;
+  return `<button class="linkbtn" type="button" data-act="projmsg" data-key="${esc(pid+"|"+vid)}">Message${n?` <span class="count">${n}</span>`:""}</button>`};
+const refTag=p=>p&&p.refCode?` <span class="refcode">${esc(p.refCode)}</span>`:"";
+const projSearchText=p=>[p.refCode,p.address,p.agent,typeof client==="function"?client(p):"",p.area].filter(Boolean).join(" ").toLowerCase();
+document.addEventListener("input",e=>{if(!e.target.matches||!e.target.matches("input[data-projq]"))return;S.projQ=e.target.value;const pos=e.target.selectionStart;render();const el=document.getElementById("proj-q");if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(_){}}});
 function projectDetail(p,mode){
   if(!p)return"";
   const isOrbyt=mode==="orbyt";const[st,cls]=projStatus(p);const d=daysTo(p.targetDate);
   let h=`<article class="panel"><div class="dhead"><div style="min-width:0">
     <div class="eyebrow">${esc(p.area||"San Diego")} ${p.sample?'<span class="pill example">Example</span>':""} ${p.source?`<span class="pill">${esc(p.source)}</span>`:""}</div>
-    <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>
+    <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>${p.refCode?`<div class="small refline">Project ${esc(p.refCode)}</div>`:""}
     <div class="facts"><span>Agent <b>${esc(p.agent||"Not set")}</b></span><span>${esc(ctLabel(p))} <b>${esc(client(p)||"Not set")}</b></span>${p.sqft?`<span>Size <b>${Number(p.sqft).toLocaleString("en-US")} sq ft</b></span>`:""}${p.listPrice?`<span>Expected list price <b>${money(p.listPrice)}</b></span>`:""}
       ${isOrbyt&&S.canWrite?`<label class="inlinesel"><span>Budget</span><select id="pb-${esc(p.id)}" data-budget="${esc(p.id)}"><option value="">Not sure</option>${TIERS.map(t=>`<option value="${t}" ${p.budget===t?"selected":""}>${BUDGETS[t]}</option>`).join("")}</select></label>`:p.budget?`<span>Budget <b>${BUDGETS[p.budget]}</b></span>`:""}
       <span class="pill ${cls}">${st}</span>${PM_ON&&isOrbyt&&!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<span class="pill comparing">${esc(PMI[p.pmInterest])}</span>`:""}</div>
@@ -2306,7 +2335,7 @@ function projectDetail(p,mode){
     const shown=bids;
     if(shown.length){
       h+=`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Bid</th><th>Timeline</th><th>Notes</th><th>PDF</th><th></th></tr></thead><tbody>${shown.map(b=>{const v=vendorById(b.vendorId);
-        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}${typeof lostTag==="function"?lostTag(b):""}${!isOrbyt&&typeof msgBtn==="function"&&b.vendorId?`<div>${msgBtn(p.id,b.vendorId)}</div>`:""}
+        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}${typeof lostTag==="function"?lostTag(b):""}${!isOrbyt&&typeof msgBtn==="function"&&b.vendorId&&msgOn()?`<div>${projMsgBtn(p.id,b.vendorId)}</div>`:""}
           ${b.introNote?`<div class="intronote">${b.introducedBy==="auto"?"":isOrbyt?"Your note: ":"From Ashleigh: "}“${esc(b.introNote)}”</div>`:""}
           ${b.availChecked&&b.status==="requested"?`<div class="small">${isOrbyt?"Availability checked":"Ashleigh confirmed they're available"}</div>`:""}</td>
         <td class="money">${b.status==="requested"?'<span class="small">Waiting</span>':money(b.amount)}</td>
@@ -2339,6 +2368,7 @@ function projectDetail(p,mode){
     ${PM_ON&&isOrbyt?`<button class="btn ghost sm" data-act="pm" data-id="${esc(p.id)}">${p.pm?"Remove project management":"Add project management"}</button>`:""}
     ${isOrbyt||(kind()==="agent"&&p.agentId&&p.agentId===S.uid)?(isOrbyt||!picks.length?`<button class="btn ghost sm dangerbtn" data-act="delproject" data-id="${esc(p.id)}">Delete project</button>`:`<span class="small" style="align-self:center">Has a booked vendor, so it can't be deleted</span>`):""}</div>`;
   if(S.openForm==="addsvc:"+p.id)h+=addServiceForm(p,isOrbyt);
+  if(mode!=="vendor"&&typeof projectMsgs==="function")h+=projectMsgs(p);
   if(isOrbyt&&S.canWrite){const hrs=S.timelog.filter(e=>e.projectId===p.id).reduce((t,e)=>t+(+e.hours||0),0);
     h+=S.openForm==="logtime:"+p.id?`<form class="form" data-form="timelog" data-p="${esc(p.id)}"><div class="grid"><label class="field"><span>Hours on this project</span><input type="number" id="pl-h-${esc(p.id)}" name="hours" min="0.25" step="0.25" required></label>
       <label class="field"><span>What for?</span><input type="text" id="pl-n-${esc(p.id)}" name="note" placeholder="Vendor calls, walkthrough"></label></div><input type="hidden" name="date" value="${isoDay(new Date())}"><label class="field" style="max-width:260px"><span>Type</span><select id="pl-t-${esc(p.id)}" name="type">${LOGTYPES.map(([v,l])=>`<option value="${v}" ${(p.pm?"pm":"matching")===v?"selected":""}>${l}</option>`).join("")}</select></label><input type="hidden" name="projectId" value="${esc(p.id)}">
@@ -3050,7 +3080,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
 function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D.project_admin,"project_id");
   return(D.projects||[]).map(p=>{const pp=PP[p.id]||{},pa=PA[p.id]||{};
     return{id:p.id,agent:p.agent_name,agentId:p.agent_id,agentEmail:p.agent_email||"",agentPhone:p.agent_phone||"",brokerage:p.brokerage||"",
-      address:p.address,area:normArea(p.area||""),clientType:p.client_type,targetDate:p.target_date||"",categories:p.categories||[],notes:p.notes||"",
+      address:p.address,refCode:p.ref_code||"",area:normArea(p.area||""),clientType:p.client_type,targetDate:p.target_date||"",categories:p.categories||[],notes:p.notes||"",
       addedServices:p.added_services||{},closing:p.closing||[],listed:!!p.listed,listedAt:p.listed_at,workOrder:p.work_order||null,source:p.source||"",createdBy:p.created_by||"",createdAt:p.created_at,
       client:pp.client_name||"",clientEmail:pp.client_email||"",clientPhone:pp.client_phone||"",budget:pp.budget||"",listPrice:pp.list_price==null?null:Number(pp.list_price),sqft:p.sqft||null,pmInterest:pp.pm_interest||"",optionRequests:pp.option_requests||{},
       pm:!!pa.pm,pmInvoice:pa.pm_invoice||null,completed:!!pa.completed,completedAt:pa.completed_at,
@@ -3271,7 +3301,7 @@ function friendlyAuthError(e){const m=String((e&&e.message)||e||"");
   if(/invalid login/i.test(m))return"That email and password don't match. Try again, or reset your password.";
   if(/not confirmed/i.test(m))return"Confirm your email first. Check your inbox for the link from Orbyt.";
   if(/already registered|already exists/i.test(m))return"That email already has an account. Try signing in instead.";
-  if(/password/i.test(m)&&/least|short|weak/i.test(m))return"Use a password with at least 8 characters.";
+  if(/password/i.test(m)&&/least|short|weak|contain|character/i.test(m))return PW_RULE+".";
   if(/rate limit|too many/i.test(m))return"Too many tries. Wait a minute, then try again.";
   return m||"Something went wrong. Try again."}
 function protoBanner(){return""}
@@ -3305,7 +3335,7 @@ function authView(){
       <p class="small authnote" role="status" style="margin:0" ${S.authNote?"":"hidden"}>${esc(S.authNote||"")}</p>
       <div class="actions"><button class="btn" type="submit">Email me a reset link</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div></form>`);
   if(m==="newpass")return card("Password","Choose a new password",`<form class="authform" data-proto="newpass" novalidate>
-      <label class="field"><span>New password (8+ characters)</span><input type="password" id="np-pass" name="password" autocomplete="new-password" required></label>
+      <label class="field"><span>New password</span><input type="password" id="np-pass" name="password" autocomplete="new-password" required></label>${pwRules()}
       <label class="field"><span>Type it again</span><input type="password" id="np-pass2" name="password2" autocomplete="new-password" required></label>${showPw("np-show")}${err}
       <button class="btn" type="submit">Save password</button></form>`);
   if(m==="agent"||m==="vendor")return signupView(m);
@@ -3335,7 +3365,8 @@ function signupView(m){
     <p class="small" style="margin:0">${m==="agent"?"Orbyt is free for agents. Tell me where you list and I'll start lining up vendors matched to your homes.":"I'll check your references and reach out before your first introduction."}</p>
     <form class="authform" data-proto="signup" data-kind="${m}" novalidate>
       ${m==="agent"?"":`<div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> It takes about 2 minutes. Next, you'll add a few business details and 2 to 3 agent references. Every field is required unless it says optional.</div>`}
-      ${m==="vendor"?`<label class="field"><span>Company name</span><input type="text" id="su-company" name="company" required></label>`:""}
+      ${m==="vendor"?`<div class="grid"><label class="field"><span>Legal entity name</span><input type="text" id="su-legal" name="legal" data-bizname required><small class="small">As it appears on your license or insurance</small></label>
+        <label class="field"><span>Business name agents see (optional)</span><input type="text" id="su-dba" name="dba" placeholder="Your DBA, if it's different"></label></div><input type="hidden" id="su-company" name="company">`:""}
       <div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
@@ -3353,13 +3384,13 @@ function signupView(m){
             <p class="small" style="margin:4px 0 0">Those jobs won't come through Orbyt introductions, so there's never a fee on them. You're welcome to list that work in the closing partner directory too.</p></div></div>`:""}
       <div class="field"><span>${m==="agent"?"Where do you list homes?":"Where do you work?"}</span>${ck("area",AREAS)}</div>
       ${m==="vendor"?`<label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>`:""}
-      <div class="grid"><label class="field"><span>Create a password (8+ characters)</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
-        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}
+      <div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
+        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}
       ${m==="vendor"?`<div class="reviewagree"><div class="eyebrow">Review and agree</div>
-        <h2>Your fees</h2><p class="small" style="margin:0">You only pay when an introduction turns into a paid job. The client pays you directly, the same as always.</p>${signupFees()}
-        ${keyHighlights("vendor")}
-        <h2>Your business</h2>${bizFields("su")}
-        <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink("vendor")}, including the fees above.</span></label>
+        <p style="margin:0"><span class="strong">Orbyt is free to join.</span> You only pay a fee when an introduction turns into a paid job, and the client pays you directly, the same as always. <button class="linkbtn" type="button" data-act="feetoggle">See the fee structure</button></p>
+        <div id="su-fees" hidden>${signupFees()}${keyHighlights("vendor")}</div>
+        <h2>Your business</h2>${bizFieldsLite("su")}
+        <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink("vendor")}, including the fee structure.</span></label>
         ${authorityBox("su")}
         <label class="checkrow top"><input type="checkbox" id="su-optout" name="optout"> <span class="small" style="font-weight:300">If you'd rather not receive Orbyt updates and announcements, tick this box.</span></label></div>`
       :`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>`}
@@ -3462,21 +3493,21 @@ document.addEventListener("submit",async e=>{
     if(kindOf==="forgot"){if(!email)return done("Enter the email you signed up with.");
       const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:portalHome()});
       return done(error?friendlyAuthError(error):"","If that email has an account, a reset link is on its way.")}
-    if(kindOf==="newpass"){if(pass.length<8)return done("Use a password with at least 8 characters.");if(pass!==pass2)return done("Those passwords don't match. Type them again.");
+    if(kindOf==="newpass"){if(pwProblem(pass))return done(pwProblem(pass));if(pass!==pass2)return done("Those passwords don't match. Type them again.");
       const{data,error}=await sb.auth.updateUser({password:pass});if(error)return done(friendlyAuthError(error));toast("Password saved");S.recovering=false;S.authMode="signin";try{history.replaceState(null,"",location.pathname)}catch(_){}await enter(data.user);return}
     if(kindOf==="signup"&&f.dataset.kind==="partner"&&typeof partnerSignup==="function")return await partnerSignup(f,fd,email,pass,pass2,done,btn);
     if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
       const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,"");
       // [problem, message, field to jump to]
-      const checks=[[V&&!g("company"),"Add your company name.","#su-company"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
+      const checks=[[V&&!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
         [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[digits.length<10,"Add a mobile phone number, with area code.","#su-phone"],
         [!V&&!g("brokerage"),"Add your brokerage.","#su-brokerage"],
         [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!areas.length,V?"Pick at least one area you work in.":"Pick at least one area where you list homes.","#su-area-0"],
         [V&&!fd.get("closingwork"),"Tell me whether any of your work is part of a home sale's closing.","#su-cw-0"],
         [V&&fd.get("closingwork")==="yes","Your work is part of closings, so it's listed in the closing partner directory instead. Tap Continue as a closing partner.","#su-cwgo"],
         [V&&fd.get("closingwork")==="some"&&g("cwnote").length<3,"Tell me which of your services are part of closings.","#su-cwnote"],
-        [pass.length<8,"Use a password with at least 8 characters.","#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
+        [!!pwProblem(pass),pwProblem(pass),"#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
         [V&&!g("legal"),"Add your legal business name.","#su-legal"],[V&&!fd.get("btype"),"Choose your business type.","#su-btype"],[V&&!g("title"),"Add your title.","#su-title"],
         [!fd.get("terms"),`Check the box to agree to the ${TERMS[m].title}.`,"#su-terms"],[V&&!fd.get("authority"),"Check the box to confirm you have authority to agree for the business.","#su-auth"]];
       const hit=checks.find(c=>c[0]);
@@ -3816,7 +3847,7 @@ document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest('fo
   if(e.target.name==="closingwork"){const v=e.target.value,y=document.getElementById("su-cwyes"),so=document.getElementById("su-cwsome");if(y)y.hidden=v!=="yes";if(so)so.hidden=v!=="some"}});
 // "Yes, that's my main business": move to closing partner sign-up, keeping what they typed
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act="cwswitch"]');if(!b)return;e.preventDefault();e.stopPropagation();
-  const f=b.closest("form"),keep={};["company","first","last","email","phone","web"].forEach(k=>{const el=f.querySelector(`[name="${k}"]`);if(el)keep[k]=el.value});
+  const f=b.closest("form"),keep={};["legal","dba","company","first","last","email","phone","web"].forEach(k=>{const el=f.querySelector(`[name="${k}"]`);if(el)keep[k]=el.value});
   keep.areas=[...f.querySelectorAll('input[name="area"]:checked')].map(x=>x.value);
   S.authMode="partner";S.authErr="";render();window.scrollTo(0,0);
   const g=document.querySelector('form[data-kind="partner"]');if(!g)return;
@@ -4356,6 +4387,17 @@ document.addEventListener("submit",async e=>{const f=e.target.closest('form[data
     await loadSetupV(S.uid);render();window.scrollTo(0,0)
   }catch(x){console.error(x);btn.disabled=false;show("That didn't save. Check your connection and try again.")}},true);
 
+/* password rules (match Supabase: 8+ characters with lowercase, uppercase, a number and a symbol) */
+const PW_RULE="Use at least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol";
+function pwProblem(p){p=String(p||"");return p.length<8||!/[a-z]/.test(p)||!/[A-Z]/.test(p)||!/\d/.test(p)||!/[^A-Za-z0-9]/.test(p)?PW_RULE+".":""}
+const pwRules=()=>`<p class="small pwrules" style="margin:0">At least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol (like ! or #).</p>`;
+const bizFieldsLite=(pre,v)=>{v=v||{};return `<div class="grid"><label class="field"><span>Business type</span><select id="${pre}-btype" name="btype"><option value="">Choose one</option>${BIZ_TYPES.map(x=>`<option ${v.businessType===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
+    <label class="field"><span>Your title</span><input type="text" id="${pre}-title" name="title" value="${esc(v.signerTitle||"")}" placeholder="Owner, manager, partner"></label></div>`};
+// the hidden company name is the DBA if they gave one, otherwise the legal entity name
+document.addEventListener("input",e=>{const f=e.target.closest&&e.target.closest('form[data-proto="signup"]');if(!f)return;const c=f.querySelector('input[type="hidden"][name="company"]');if(!c)return;
+  const l=f.querySelector('[name="legal"]'),d=f.querySelector('[name="dba"]');c.value=((d&&d.value.trim())||(l&&l.value.trim())||"")},true);
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="feetoggle"]');if(!b)return;e.preventDefault();e.stopPropagation();const x=document.getElementById("su-fees");if(!x)return;x.hidden=!x.hidden;b.textContent=x.hidden?"See the fee structure":"Hide the fee structure"},true);
+
 
 /* ---------- home team cards: a printable card agents give buyer clients, and the request page behind its QR code ---------- */
 // services worth putting in front of buyers, in the order they come up after a move
@@ -4628,7 +4670,8 @@ function partnerSignupView(){
     <p class="small" style="margin:0">For lenders, title, escrow, insurance, inspectors, appraisers, notaries and home warranty companies. List your business in Orbyt's closing partner directory for San Diego agents. Your first 90 days are free, then it's $20 a month for your marketing listing. Cancel anytime.</p>
     <form class="authform" data-proto="signup" data-kind="partner" novalidate>
       <div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> It takes about 2 minutes. Next, you'll add your license number and years in business${S.billPublic?", then your card":""}. Every field is required unless it says optional.</div>
-      <label class="field"><span>Company name</span><input type="text" id="su-company" name="company" required></label>
+      <div class="grid"><label class="field"><span>Legal entity name</span><input type="text" id="su-legal" name="legal" data-bizname required><small class="small">As it appears on your license or insurance</small></label>
+        <label class="field"><span>Business name agents see (optional)</span><input type="text" id="su-dba" name="dba" placeholder="Your DBA, if it's different"></label></div><input type="hidden" id="su-company" name="company">
       <div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
@@ -4636,12 +4679,12 @@ function partnerSignupView(){
       <div class="field"><span>What do you offer?</span>${ck("svc",CLOSING,CLOSING_HINT)}</div>
       <div class="field"><span>Where do you work?</span>${ck("area",AREAS)}</div>
       <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>
-      <div class="grid"><label class="field"><span>Create a password (8+ characters)</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
-        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}
+      <div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
+        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}
       <div class="reviewagree"><div class="eyebrow">Review and agree</div>
         <h2>Your marketing listing</h2><p class="small" style="margin:0">Free for your first 90 days, then $20 a month, billed monthly. It covers your directory listing, rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events. The fee is flat and never depends on contacts, loans, policies or closings. Cancel anytime.<span id="su-cardnote">${S.billPublic?CARD_NOTE:""}</span></p>
         ${keyHighlights("partner")}
-        <h2>Your business</h2>${bizFields("su")}
+        <h2>Your business</h2>${bizFieldsLite("su")}
         <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink("partner")}.</span></label>
         ${authorityBox("su")}
         <label class="checkrow top"><input type="checkbox" id="su-optout" name="optout"> <span class="small" style="font-weight:300">If you'd rather not receive Orbyt updates and announcements, tick this box.</span></label></div>
@@ -4650,10 +4693,10 @@ function partnerSignupView(){
     </form></div></section>`}
 async function partnerSignup(f,fd,email,pass,pass2,done,btn){
   const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=fd.getAll("area").map(String);
-  const checks=[[!g("company"),"Add your company name.","#su-company"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
+  const checks=[[!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
     [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[g("phone").replace(/\D/g,"").length<10,"Add a mobile phone number, with area code.","#su-phone"],
     [!svcs.length,"Pick what you offer.","#su-svc-0"],[!areas.length,"Pick at least one area you work in.","#su-area-0"],
-    [pass.length<8,"Use a password with at least 8 characters.","#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
+    [!!pwProblem(pass),pwProblem(pass),"#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
     [!g("legal"),"Add your legal business name.","#su-legal"],[!fd.get("btype"),"Choose your business type.","#su-btype"],[!g("title"),"Add your title.","#su-title"],
     [!fd.get("terms"),`Check the box to agree to the ${TERMS.partner.title}.`,"#su-terms"],[!fd.get("authority"),"Check the box to confirm you have authority to agree for the business.","#su-auth"]];
   const hit=checks.find(c=>c[0]);
@@ -4945,12 +4988,16 @@ function setupCard(){if(!S.canWrite||!S.session)return"";
   return `<section class="setup" aria-label="Get set up"><div class="setuphead"><div><div class="eyebrow">Get set up</div><h2>${!left.length?"All done. Nice work.":n?`${n} of ${items.length} done`:"A few quick steps to get the most out of Orbyt"}</h2></div>
       <div class="actions"><button class="linkbtn" type="button" data-act="help">How Orbyt works</button><button class="linkbtn" type="button" data-act="setupdone" data-id="setup-hide">Hide this</button></div></div>
     <div class="setupbar" role="progressbar" aria-valuemin="0" aria-valuemax="${items.length}" aria-valuenow="${n}"><span style="width:${Math.round(n/items.length*100)}%"></span></div>
-    <ol class="setuplist">${items.map(x=>`<li class="${x.done?"done":""}"><span class="setupdot" aria-hidden="true">${x.done?"✓":""}</span><div class="setuptext"><span class="strong">${esc(x.label)}</span>${x.done?"":`<div class="small">${esc(x.hint)}</div>`}</div>${x.done?`<span class="small">Done</span>`:`<div>${x.act}</div>`}</li>`).join("")}</ol>
+    <ol class="setuplist">${[...left,...items.filter(x=>x.done)].map(x=>`<li class="${x.done?"done":""}"><span class="setupdot" aria-hidden="true">${x.done?"✓":""}</span><div class="setuptext"><span class="strong">${esc(x.label)}</span>${x.done?"":`<div class="small">${esc(x.hint)}</div>`}</div>${x.done?`<span class="small">Done</span>`:`<div>${x.act}</div>`}</li>`).join("")}</ol>
     <p class="small" style="margin:10px 0 0">${contactLine()}</p></section>`}
 
 /* the Help page, written for each role */
 /* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
 const NEWS=[
+  {id:"2026-11-17a",date:"2026-11-17",roles:["agent"],title:"Message vendors from the project",body:"Open a project and tap Message next to any vendor. The conversation opens right on the project page, and every thread for that home is listed under Messages about this home."},
+  {id:"2026-11-17b",date:"2026-11-17",roles:["vendor"],title:"Messages on every request",body:"Your conversation with the agent now shows right on the request, before and after you're booked."},
+  {id:"2026-11-17c",date:"2026-11-17",roles:["agent","vendor"],title:"Project IDs",body:"Every project now has a short ID, like CA-1042, next to its address. Use it when you need to refer to a job."},
+  {id:"2026-11-17d",date:"2026-11-17",roles:["agent","vendor","partner"],title:"Updates live under the bell",body:"New features now show up under the bell at the top of the page, and Help has a menu with how Orbyt works, FAQs and your Terms of Use."},
   {id:"2026-11-13a",date:"2026-11-13",roles:["agent"],title:"Inspectors, appraisers and notaries",body:"Home inspectors, termite inspectors, appraisers, notaries and home warranty companies now live in the closing partner directory, next to lenders, title, escrow and insurance. Pick them under Closing partners when you start a project."},
   {id:"2026-11-13b",date:"2026-11-13",roles:["vendor"],title:"Closing work is listed separately",body:"Inspections or reports required for a sale, appraisals, notary work and home warranties are now in the closing partner directory, with no fee per introduction. Everything else works the same."},
   {id:"2026-11-13c",date:"2026-11-13",roles:["partner"],title:"More closing services",body:"The directory now includes home inspectors, termite inspectors, appraisers, notaries and home warranty companies, so agents can find every closing service in one place."},
@@ -4966,7 +5013,7 @@ const NEWS=[
 const newsFor=r=>NEWS.filter(n=>r==="orbyt"||n.roles.includes(r));
 const NEWS_ROLE={agent:"Agents",vendor:"Vendors",partner:"Closing partners"};
 function newsSeen(){try{return localStorage.getItem("orbyt-news-"+S.uid)||""}catch(_){return S.newsSeen||""}}
-function newsCard(){if(!S.session)return"";const r=setupRole(),seen=S.newsSeen??newsSeen();
+function newsCard(){return"";const r=setupRole(),seen=S.newsSeen??newsSeen();
   const cutoff=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
   const items=newsFor(r).filter(n=>seen?n.id>seen:n.date>=cutoff).slice(0,3);if(!items.length)return"";
   return `<section class="newscard" aria-label="What's new"><div class="newshead"><div><div class="eyebrow">What's new</div><h2>${items.length===1?"One update":items.length+" updates"} since you were last here</h2></div>
@@ -5014,7 +5061,7 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
       sec("7. Updates and setup",p("Setup steps, SQL updates and what each email means are in your Orbyt runbook in Google Drive. Never paste a secret key into a chat; keys go only into Supabase or Netlify."))]}[r]||[];
   return `<div class="scrim" data-act="helpclose"></div><div class="vcard wide helpcard" role="dialog" aria-modal="true" aria-labelledby="hp-title">
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">${r==="orbyt"?"Running Orbyt":"How Orbyt works"}</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
-    <div class="helpbody">${S.helpNews?newsHelp(r):""}${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}${S.helpNews?"":newsHelp(r)}
+    <div class="helpbody">${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}${faqHelp(r)}
       ${pushKey()&&S.pushState&&S.pushState!=="unsupported"?sec("Notifications",`<p>${esc(pushHint())}</p>${pushButton()?`<p style="margin-top:8px">${pushButton()}</p>`:""}<p class="small" style="margin-top:6px">You get a notification for the same things Orbyt emails you about. Turn them on separately on each phone or computer you use.</p>`):""}
       ${sec(r==="orbyt"?"Emails you'll get":"Emails to expect",`<p>Orbyt emails come from <span class="strong">${HELP_EMAIL}</span>. Add it to your contacts so nothing lands in spam.</p><ul>${emails.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`)}
       ${sec("Get the Orbyt app",`<p>Orbyt works like an app on your phone, with no app store needed. ${esc(appSteps())}</p><p style="margin-top:8px"><button class="btn sm" type="button" data-act="getapp">Get the app</button></p><p class="small" style="margin-top:6px">The first time you open it from your home screen, sign in once. Links in Orbyt emails open in your browser.</p>`)}
@@ -5026,7 +5073,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="getap
   if(a==="appclose"){S.appInfo=false;render();return}
   if(a==="installapp"){const ev=S.installEvt;if(!ev){toast("Use your browser's menu to install Orbyt.");return}
     ev.prompt();ev.userChoice.then(c=>{S.installEvt=null;if(c&&c.outcome==="accepted")setupMark("setup-bookmark").then(()=>render()).catch(()=>{});else render()}).catch(()=>{});return}
-  if(a==="help"){S.help=true;S.helpNews=false;render();if(kind()!=="orbyt"&&S.canWrite&&!setupDone("setup-help"))setupMark("setup-help").catch(()=>{});return}
+  if(a==="help"){S.help=true;S.helpNews=false;S.helpMenu=false;render();if(kind()!=="orbyt"&&S.canWrite&&!setupDone("setup-help"))setupMark("setup-help").catch(()=>{});return}
   if(a==="helpclose"){S.help=false;render();return}
   if(a==="setupdone"){if(t.dataset.id==="setup-hide")S.setupOpen=false;guard(()=>setupMark(t.dataset.id),t.dataset.id==="setup-hide"?"Hidden. Bring it back anytime with Show the checklist, or from Help.":"Checked off");return}
   if(a==="setupshow"){S.help=false;S.setupOpen=true;guard(()=>setupUnmark("setup-hide"));setTimeout(()=>document.querySelector(".setup,.setupback")?.scrollIntoView({behavior:"smooth",block:"center"}),300);return}
@@ -5084,6 +5131,49 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="pusho
   else if(a==="pushoff")guard(pushOff,"Notifications are off for this device.");
   else guard(async()=>{await pushSetup();await pushCheck()},"Push notifications are set up. Turn them on for this device next.")},true);
 if(typeof window!=="undefined"){setTimeout(()=>{pushCheck()},800);document.addEventListener("visibilitychange",()=>{if(!document.hidden)pushCheck()})}
+
+/* ---------- FAQs (in Help) ---------- */
+const FAQ={
+  agent:[["Is Orbyt free for agents?","Yes. There's no cost to join or use Orbyt as an agent."],
+    ["How are vendors checked?","Every vendor carries insurance, holds a license where their trade needs one, and joins with references from agents they've worked with."],
+    ["Who pays the vendors?","Your client pays the vendor directly, the same as always. Orbyt isn't part of the payment."],
+    ["Do we have to book who Orbyt introduces?","No. Compare quotes, ask a vendor for changes, ask me for another option, or send the quotes to your client. Your client usually makes the final call."],
+    ["Can I change the list date?","Yes. Open the project and tap Change date. Vendors quoting or booked on the home get the new date."],
+    ["What are closing partners?","Lenders, title, escrow, insurance, inspectors, appraisers, notaries and home warranty companies listed in an open directory. You and your clients contact them directly."]],
+  vendor:[["What does Orbyt cost?","It's free to join, with no monthly fee. You only pay a fee when an introduction turns into a paid job. On your first job with a new agent, it's 12% of the first $1,000, 8% of the next $4,000 and 5% above $5,000, with a $25 minimum and a $600 cap. Repeat jobs with that agent or their clients are 2%, with a $15 minimum and a $100 cap."],
+    ["How do I pay Orbyt's fee?","After the agent confirms the final amount for a job, Orbyt invoices you for that job."],
+    ["Who pays me for the work?","The client pays you directly, under your own agreement. You run the job your way."],
+    ["When will I get introductions?","Once your insurance and agent references are in and I've approved your profile, I'll introduce you to homes in your areas that need what you do. Keep Taking new work switched on."],
+    ["Do I have to take every request?","No. Tap Can't take it and I'll line up someone else."],
+    ["Why do you need agent references?","Agents put their name behind every vendor they bring to a client, so every vendor joins with references from agents they've worked with."],
+    ["What's a special offer?","A deal for Orbyt clients that shows on your listing. It's $20 for up to 30 days, and you pick the end date."]],
+  partner:[["What does a listing cost?","Your first 90 days are free with the launch offer. After that it's $20 a month for your marketing listing. Use Manage billing on your dashboard to update your card or cancel."],
+    ["Will Orbyt refer clients to me?","No. Federal rules (RESPA) don't allow paying for referrals of closing business, so your fee pays for a marketing listing in an open directory. Agents and their clients choose who to contact."],
+    ["Who sees my listing?","Agents in the Orbyt network, in the closing partner directory and on their buyer projects."],
+    ["How do I make my listing stand out?","Write your ad (a headline, a short pitch, your logo and a flyer), and invite agents you've worked with to review you."]]};
+function faqHelp(r){const l=FAQ[r];if(!l)return"";
+  return `<div class="helpsec" id="help-faq"><h3>FAQs</h3>${l.map(([q,a])=>`<details class="faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</div>`}
+
+/* ---------- Help menu and What's new bell (header) ---------- */
+function newsUnseen(){const r=setupRole(),seen=S.newsSeen??newsSeen();const cutoff=new Date(Date.now()-21*864e5).toISOString().slice(0,10);
+  return newsFor(r).filter(n=>seen?n.id>seen:n.date>=cutoff)}
+function headerTools(){if(!S.session)return"";const n=newsUnseen().length;
+  return `<button class="iconbtn bell" type="button" data-act="newsopen" aria-label="What's new${n?`, ${n} new`:""}"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>${n?`<span class="bdot">${n>9?"9+":n}</span>`:""}</button>
+    <div class="menuwrap"><button class="btn ghost sm" type="button" data-act="helpmenu" aria-haspopup="true" aria-expanded="${S.helpMenu?"true":"false"}">Help <span aria-hidden="true">▾</span></button>
+    ${S.helpMenu?`<div class="menupop" role="menu"><button role="menuitem" type="button" data-act="help">How Orbyt works</button><button role="menuitem" type="button" data-act="helpfaq">FAQs</button>${setupRole()!=="orbyt"&&typeof termsUrl==="function"?`<a role="menuitem" href="${esc(termsUrl(setupRole()==="partner"?"partner":setupRole()))}" target="_blank" rel="noopener">Terms of Use</a>`:""}</div>`:""}</div>`}
+function newsPanel(){const r=setupRole(),l=newsFor(r),unseen=new Set((S.newsWas||[]));
+  return `<div class="scrim" data-act="newsclose"></div><div class="vcard wide helpcard" role="dialog" aria-modal="true" aria-labelledby="nw-title">
+    <div class="vchead"><div style="min-width:0"><div class="eyebrow">Orbyt updates</div><h2 id="nw-title" style="font-weight:500;margin-top:4px">What's new</h2></div><button class="xbtn" data-act="newsclose" aria-label="Close">×</button></div>
+    <div class="helpbody">${l.length?`<ul class="newslist">${l.map(n=>`<li>${unseen.has(n.id)?'<span class="pill comparing">New</span> ':""}<span class="small num">${esc(fmtDate(n.date))}</span> <span class="strong">${esc(n.title)}</span>${r==="orbyt"?` <span class="pill">${n.roles.map(x=>NEWS_ROLE[x]).join(", ")}</span>`:""}<p class="small">${esc(n.body)}</p></li>`).join("")}</ul>`:`<p>Nothing new yet.</p>`}</div></div>`}
+document.addEventListener("click",e=>{
+  const t=e.target.closest('[data-act="newsopen"],[data-act="newsclose"],[data-act="helpmenu"],[data-act="helpfaq"]');
+  if(!t){if(S.helpMenu&&!e.target.closest(".menuwrap")){S.helpMenu=false;render()}return}
+  e.preventDefault();e.stopImmediatePropagation();const a=t.dataset.act;
+  if(a==="helpmenu"){S.helpMenu=!S.helpMenu;render();return}
+  if(a==="helpfaq"){S.helpMenu=false;S.help=true;render();setTimeout(()=>{const x=document.getElementById("help-faq");if(x)x.scrollIntoView({block:"start"})},60);return}
+  if(a==="newsopen"){S.helpMenu=false;S.newsWas=newsUnseen().map(n=>n.id);const top=NEWS.map(n=>n.id).sort().pop()||"";S.newsSeen=top;try{localStorage.setItem("orbyt-news-"+S.uid,top)}catch(_){}S.newsOpen=true;render();return}
+  if(a==="newsclose"){S.newsOpen=false;render()}},true);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(S.newsOpen||S.helpMenu)){S.newsOpen=false;S.helpMenu=false;render()}});
 
 /* ---------- messages ----------
    Job threads: one per vendor on a project, labeled with the property address, between the agent's side (the agent
@@ -5216,6 +5306,32 @@ document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form=
     if(error){btn.disabled=false;btn.textContent="Send";toast(error.message||"That didn't send. Try again.");return}
     S.msgText[msgKey(f)]="";msgRefresh().then(()=>{setTimeout(()=>{msgScroll();const el=document.getElementById("msg-body");if(el)el.focus()},0)})})},true);
 S.msgText=S.msgText||{};
+
+/* ---------- messages inside a project (agent side) and inside a request (vendor side) ---------- */
+// the thread for one vendor on one project, with a composer; also linked from the Messages tab
+function msgInline(pid,vid,opts){if(!msgOn()||!pid||!vid)return"";opts=opts||{};msgLive();
+  const p=projById(pid),v=vendorById(vid);if(!p||!v||(typeof isPartner==="function"&&isPartner(v)))return"";
+  const t=msgThreads().find(x=>x.project_id===pid&&x.vendor_id===vid),msgs=t?t.msgs:[],admin=kind()==="orbyt";
+  if(t&&t.id&&unreadOf(t)&&S.canWrite)msgMarkRead(t);
+  const sk=pid+"|"+vid+"|"+msgs.length;if(S.msgInlineSeen!==sk){S.msgInlineSeen=sk;setTimeout(()=>{document.querySelectorAll(".msginline .mlist").forEach(el=>el.scrollTop=el.scrollHeight)},0)}
+  const mine=m=>admin?m.sender_side!=="vendor":String(m.sender_email||"").toLowerCase()===myEmail();
+  const who=kind()==="vendor"?firstName(p.agent):v.name,canSend=S.canWrite&&!admin,fkey=pid+"|"+vid;
+  return `<div class="msginline"><div class="mhead"><div class="eyebrow">Messages</div><h3 style="margin:2px 0 0">${esc(opts.title||(kind()==="vendor"?"You and "+who:who))}</h3>
+      <div class="small">${esc(p.address)}${p.refCode?" · "+esc(p.refCode):""} · <button class="linkbtn" type="button" data-act="msgopen" data-p="${esc(pid)}" data-v="${esc(vid)}">Open in Messages</button>${opts.close?` · <button class="linkbtn" type="button" data-act="projmsg" data-key="">Close</button>`:""}</div></div>
+    <div class="mlist" id="mlist">${msgs.length?msgs.map(m=>`<div class="mmsg ${mine(m)?"mine":""}"><div class="mbody">${esc(m.body).replace(/\n/g,"<br>")}</div><div class="mmeta">${esc(m.sender_name||"")} · ${esc(msgTime(m.created_at))}</div></div>`).join("")
+      :`<p class="small" style="margin:auto;text-align:center">${admin?"No messages yet.":"Start the conversation about "+esc(p.address)+"."}</p>`}</div>
+    ${canSend?`<form class="mform" data-form="msg" data-p="${esc(pid)}" data-v="${esc(vid)}"><textarea id="msg-body" name="body" aria-label="Message" rows="2" maxlength="4000" placeholder="Write a message">${esc(S.msgText[fkey]||"")}</textarea><button class="btn" type="submit">Send</button></form>
+      <p class="small mnote">${esc(who)} gets a notification right away.</p>`:admin?`<p class="small mnote">Read only.</p>`:""}</div>`}
+// the agent's list of conversations on one project, opening inline
+function projectMsgs(p){if(!msgOn()||!p||kind()==="vendor")return"";
+  const vids=[...new Set(S.bids.filter(b=>b.projectId===p.id&&b.vendorId&&!["declined"].includes(b.status)).map(b=>b.vendorId))].filter(id=>{const v=vendorById(id);return v&&!(typeof isPartner==="function"&&isPartner(v))});
+  if(!vids.length)return"";const open=S.projMsg&&S.projMsg.startsWith(p.id+"|")?S.projMsg.split("|")[1]:"";
+  const rows=vids.map(id=>{const v=vendorById(id),t=msgThreads().find(x=>x.project_id===p.id&&x.vendor_id===id),n=t?unreadOf(t):0,last=t&&t.msgs[t.msgs.length-1];
+    return `<button class="mthread ${open===id?"on":""} ${n?"unread":""}" type="button" data-act="projmsg" data-key="${esc(p.id+"|"+id)}"><span class="mtop"><span class="maddr">${esc(v.name)}</span><span class="small num">${last?ago(last.created_at):""}</span></span>
+      <span class="small msnip">${n?`<span class="count">${n}</span> `:""}${last?esc((last.sender_name?last.sender_name+": ":"")+String(last.body).slice(0,90)):"No messages yet"}</span></button>`}).join("");
+  return `<section class="projmsgs"><h2 style="margin:0 0 8px">Messages about this home</h2><div class="pmgrid"><div class="mside inline">${rows}</div>${open?`<div>${msgInline(p.id,open,{close:true})}</div>`:`<p class="small" style="margin:8px 0">${kind()==="orbyt"?"Pick a vendor to read their thread with the agent.":"Pick a vendor to message them. Everything about the job stays in one place."}</p>`}</div></section>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="projmsg"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  S.projMsg=t.dataset.key||"";render();if(S.projMsg)setTimeout(()=>{msgScroll();const box=document.querySelector(".projmsgs .msginline");if(box)box.scrollIntoView({block:"nearest"});const el=document.getElementById("msg-body");if(el&&kind()!=="orbyt")el.focus({preventScroll:true})},0)},true);
 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.quoteView){S.quoteView=null;render()}});
 liveBoot();

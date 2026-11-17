@@ -129,3 +129,29 @@ document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form=
     if(error){btn.disabled=false;btn.textContent="Send";toast(error.message||"That didn't send. Try again.");return}
     S.msgText[msgKey(f)]="";msgRefresh().then(()=>{setTimeout(()=>{msgScroll();const el=document.getElementById("msg-body");if(el)el.focus()},0)})})},true);
 S.msgText=S.msgText||{};
+
+/* ---------- messages inside a project (agent side) and inside a request (vendor side) ---------- */
+// the thread for one vendor on one project, with a composer; also linked from the Messages tab
+function msgInline(pid,vid,opts){if(!msgOn()||!pid||!vid)return"";opts=opts||{};msgLive();
+  const p=projById(pid),v=vendorById(vid);if(!p||!v||(typeof isPartner==="function"&&isPartner(v)))return"";
+  const t=msgThreads().find(x=>x.project_id===pid&&x.vendor_id===vid),msgs=t?t.msgs:[],admin=kind()==="orbyt";
+  if(t&&t.id&&unreadOf(t)&&S.canWrite)msgMarkRead(t);
+  const sk=pid+"|"+vid+"|"+msgs.length;if(S.msgInlineSeen!==sk){S.msgInlineSeen=sk;setTimeout(()=>{document.querySelectorAll(".msginline .mlist").forEach(el=>el.scrollTop=el.scrollHeight)},0)}
+  const mine=m=>admin?m.sender_side!=="vendor":String(m.sender_email||"").toLowerCase()===myEmail();
+  const who=kind()==="vendor"?firstName(p.agent):v.name,canSend=S.canWrite&&!admin,fkey=pid+"|"+vid;
+  return `<div class="msginline"><div class="mhead"><div class="eyebrow">Messages</div><h3 style="margin:2px 0 0">${esc(opts.title||(kind()==="vendor"?"You and "+who:who))}</h3>
+      <div class="small">${esc(p.address)}${p.refCode?" · "+esc(p.refCode):""} · <button class="linkbtn" type="button" data-act="msgopen" data-p="${esc(pid)}" data-v="${esc(vid)}">Open in Messages</button>${opts.close?` · <button class="linkbtn" type="button" data-act="projmsg" data-key="">Close</button>`:""}</div></div>
+    <div class="mlist" id="mlist">${msgs.length?msgs.map(m=>`<div class="mmsg ${mine(m)?"mine":""}"><div class="mbody">${esc(m.body).replace(/\n/g,"<br>")}</div><div class="mmeta">${esc(m.sender_name||"")} · ${esc(msgTime(m.created_at))}</div></div>`).join("")
+      :`<p class="small" style="margin:auto;text-align:center">${admin?"No messages yet.":"Start the conversation about "+esc(p.address)+"."}</p>`}</div>
+    ${canSend?`<form class="mform" data-form="msg" data-p="${esc(pid)}" data-v="${esc(vid)}"><textarea id="msg-body" name="body" aria-label="Message" rows="2" maxlength="4000" placeholder="Write a message">${esc(S.msgText[fkey]||"")}</textarea><button class="btn" type="submit">Send</button></form>
+      <p class="small mnote">${esc(who)} gets a notification right away.</p>`:admin?`<p class="small mnote">Read only.</p>`:""}</div>`}
+// the agent's list of conversations on one project, opening inline
+function projectMsgs(p){if(!msgOn()||!p||kind()==="vendor")return"";
+  const vids=[...new Set(S.bids.filter(b=>b.projectId===p.id&&b.vendorId&&!["declined"].includes(b.status)).map(b=>b.vendorId))].filter(id=>{const v=vendorById(id);return v&&!(typeof isPartner==="function"&&isPartner(v))});
+  if(!vids.length)return"";const open=S.projMsg&&S.projMsg.startsWith(p.id+"|")?S.projMsg.split("|")[1]:"";
+  const rows=vids.map(id=>{const v=vendorById(id),t=msgThreads().find(x=>x.project_id===p.id&&x.vendor_id===id),n=t?unreadOf(t):0,last=t&&t.msgs[t.msgs.length-1];
+    return `<button class="mthread ${open===id?"on":""} ${n?"unread":""}" type="button" data-act="projmsg" data-key="${esc(p.id+"|"+id)}"><span class="mtop"><span class="maddr">${esc(v.name)}</span><span class="small num">${last?ago(last.created_at):""}</span></span>
+      <span class="small msnip">${n?`<span class="count">${n}</span> `:""}${last?esc((last.sender_name?last.sender_name+": ":"")+String(last.body).slice(0,90)):"No messages yet"}</span></button>`}).join("");
+  return `<section class="projmsgs"><h2 style="margin:0 0 8px">Messages about this home</h2><div class="pmgrid"><div class="mside inline">${rows}</div>${open?`<div>${msgInline(p.id,open,{close:true})}</div>`:`<p class="small" style="margin:8px 0">${kind()==="orbyt"?"Pick a vendor to read their thread with the agent.":"Pick a vendor to message them. Everything about the job stays in one place."}</p>`}</div></section>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="projmsg"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  S.projMsg=t.dataset.key||"";render();if(S.projMsg)setTimeout(()=>{msgScroll();const box=document.querySelector(".projmsgs .msginline");if(box)box.scrollIntoView({block:"nearest"});const el=document.getElementById("msg-body");if(el&&kind()!=="orbyt")el.focus({preventScroll:true})},0)},true);

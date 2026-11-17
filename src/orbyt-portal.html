@@ -363,6 +363,21 @@ table.mini{min-width:0}
 .stepnote{background:var(--surface-2);border-left:4px solid var(--gold,#A8871F);border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.5}
 .setuppanel{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}.setupmiss{display:block;margin-top:2px}
 .didlist{margin:12px 0}
+.sitefoot{margin:48px 0 24px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-70,#2C4260);display:grid;gap:6px}
+.sitefoot nav{display:flex;flex-wrap:wrap;gap:6px 18px}.sitefoot a{color:inherit}
+.iconbtn{position:relative;display:inline-grid;place-items:center;width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink,#18314F);cursor:pointer}
+.bdot{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#A8871F;color:#fff;font-size:11px;line-height:18px;text-align:center}
+.menuwrap{position:relative;display:inline-block}.menupop{position:absolute;right:0;top:calc(100% + 6px);z-index:50;min-width:190px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(24,49,79,.14);padding:6px;display:grid}
+.menupop button,.menupop a{all:unset;cursor:pointer;padding:9px 12px;border-radius:8px;font-size:15px;color:var(--ink,#18314F)}.menupop button:hover,.menupop a:hover,.menupop button:focus-visible,.menupop a:focus-visible{background:var(--surface-2)}
+details.faq{border-top:1px solid var(--line);padding:8px 0}details.faq summary{cursor:pointer;font-weight:500}details.faq p{margin:6px 0 0}
+.refcode{font-size:12px;font-weight:400;color:var(--ink-70,#2C4260);letter-spacing:.04em;white-space:nowrap}.refline{letter-spacing:.04em;margin-top:2px}
+.psearch{margin:0 0 8px}.psearch input{width:100%}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.projmsgs{margin-top:24px;border-top:1px solid var(--line);padding-top:18px}.pmgrid{display:grid;grid-template-columns:minmax(200px,280px) 1fr;gap:14px;align-items:start}
+@media (max-width:760px){.pmgrid{grid-template-columns:1fr}}
+.msginline{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}.msginline .mhead{padding:12px 14px;border-bottom:1px solid var(--line)}
+.msginline .mlist{max-height:340px;min-height:120px;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px}.msginline .mform{padding:10px 14px;border-top:1px solid var(--line)}.msginline .mnote{padding:0 14px 10px;margin:0}
+.setuplist li.done{opacity:.55}.setuplist li.done .strong{font-weight:400}
 .vsecs{margin-top:28px}.psecbody .vst{background:var(--surface-2)}.psecbody>.folds{margin:0}.psecbody .vstats{margin-bottom:14px}.updfold{margin:10px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 @media (max-width:720px){.vstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .feebox{border-left:3px solid var(--gold)}
@@ -519,6 +534,7 @@ fieldset{border:0;padding:0;margin:0;min-width:0}
     <div class="as" id="who"></div>
   </header>
   <main id="app"></main>
+  <footer class="sitefoot" id="sitefoot"></footer>
 </div>
 
 <script>
@@ -854,12 +870,17 @@ const isEditing=()=>!!document.querySelector("#app form[data-dirty]");
 function schedule(){if(isEditing())return;render()}
 
 function renderRoleSelect(){
-  const el=$("#who");if(!el)return;
+  renderFooter();const el=$("#who");if(!el)return;
   if(!S.session){el.innerHTML="";return}
   const k=kind(),v=k==="vendor"?vendorById(roleVal()):null;
   const name=k==="orbyt"?"Ashleigh Stumler":k==="agent"?roleVal():(v?v.name:"Vendor");
-  el.innerHTML=`<span class="whoname"><span class="strong">${esc(name)}</span><span class="small">${k==="orbyt"?"Orbyt admin":k==="agent"?"Agent":typeof isPartner==="function"&&isPartner(vendorById(roleVal()))?"Closing partner":"Vendor partner"}</span></span>${typeof myAgreementBtn==="function"?myAgreementBtn():""}${typeof appView==="function"&&!isStandalone()?`<button class="btn ghost sm" data-act="getapp">Get the app</button>`:""}${typeof helpView==="function"?`<button class="btn ghost sm" data-act="help">Help</button>`:""}<button class="btn ghost sm" data-act="signout">Sign out</button>`;
+  el.innerHTML=`<span class="whoname"><span class="strong">${esc(name)}</span><span class="small">${k==="orbyt"?"Orbyt admin":k==="agent"?"Agent":typeof isPartner==="function"&&isPartner(vendorById(roleVal()))?"Closing partner":"Vendor partner"}</span></span>${typeof myAgreementBtn==="function"?myAgreementBtn():""}${typeof appView==="function"&&!isStandalone()?`<button class="btn ghost sm" data-act="getapp">Get the app</button>`:""}${typeof headerTools==="function"?headerTools():typeof helpView==="function"?`<button class="btn ghost sm" data-act="help">Help</button>`:""}<button class="btn ghost sm" data-act="signout">Sign out</button>`;
 }
+function renderFooter(){const el=$("#sitefoot");if(!el)return;const r=S.session&&typeof setupRole==="function"?setupRole():"";
+  const terms=typeof termsUrl!=="function"?"":r&&r!=="orbyt"?`<a href="${esc(termsUrl(r==="partner"?"partner":r))}" target="_blank" rel="noopener">Terms of Use</a>`
+    :`<span>Terms of Use: <a href="${esc(termsUrl("agent"))}" target="_blank" rel="noopener">agents</a>, <a href="${esc(termsUrl("vendor"))}" target="_blank" rel="noopener">vendors</a>, <a href="${esc(termsUrl("partner"))}" target="_blank" rel="noopener">closing partners</a></span>`;
+  el.innerHTML=`<nav aria-label="Legal">${terms}<a href="${esc(new URL("privacy.html",typeof portalHome==="function"?portalHome():location.href).href)}" target="_blank" rel="noopener">Privacy Policy</a></nav>
+    <div>© ${new Date().getFullYear()} Orbyt LLC · 711 S Nardo Ave, Solana Beach, CA 92075 · <a href="mailto:ashleigh@orbytconnect.com">ashleigh@orbytconnect.com</a></div>`}
 const allLoaded=()=>["vendors","projects","bids","reviews","mytasks","taskstate","favorites","settings"].every(k=>S.loaded[k]);
 
 function render(){
@@ -1158,7 +1179,7 @@ function requestDetail(b){
   const reqDate=b.requestedAt?new Date(b.requestedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"";
   let h=`<article class="panel"><div class="dhead"><div style="min-width:0">
       <div class="eyebrow">${esc(b.category)} bid ${b.status==="requested"?'<span class="pill requested">Requested</span>':statusPill(b)} ${late?'<span class="pill late">Overdue</span>':""}</div>
-      <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>
+      <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>${p.refCode?`<div class="small refline">Project ${esc(p.refCode)}</div>`:""}
       <div class="facts"><span>${b.introducedBy==="auto"?"Matched by":"Introduced by"} <b>${b.introducedBy==="auto"?"Orbyt":"Ashleigh at Orbyt"}</b>, for ${esc(p.agent)}</span><span>Area <b>${esc(p.area)}</b></span>${p.sqft?`<span>Size <b>${Number(p.sqft).toLocaleString("en-US")} sq ft</b></span>`:""}<span>Requested <b>${esc(reqDate)}</b> (${ago(b.requestedAt)})</span><span>For a <b>${p.clientType==="Buyer"?"buyer move-in":p.clientType==="Both"?"listing and buyer":"listing"}</b></span></div></div>
     <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>
     ${p.notes||(p.addedServices||{})[b.category]?.note?`<div class="reqsec"><h3>Notes from the agent</h3>${p.notes?`<p class="note" style="margin-top:8px">${esc(p.notes)}</p>`:""}${(p.addedServices||{})[b.category]?.note?`<p class="note" style="margin-top:8px"><span class="strong">About ${esc(b.category.toLowerCase())}:</span> ${esc(p.addedServices[b.category].note)}</p>`:""}</div>`:""}
@@ -1166,8 +1187,9 @@ function requestDetail(b){
         <p class="small" style="margin:4px 0 8px">Here's everything ${esc(firstName(p.agent))} needs done, ${hasCustomOrder(p)?"in the order "+esc(firstName(p.agent))+" set":"in the usual order"}. You'll only see your own bid, not the other vendors' names or prices.</p>${timingBlock(p,b.category)}</div>
       <div class="reqsec"><h3>Agent</h3><div class="strong" style="margin:8px 0">${esc(p.agent)}</div>${b.status==="selected"||typeof msgBtn!=="function"||!msgOn()?`<div class="clines">${cl("Phone",p.agentPhone)}${cl("Email",p.agentEmail)}</div>
         ${!p.agentPhone&&!p.agentEmail?`<p class="small" style="margin:0">This agent's contact info isn't on file yet. Ashleigh can connect you.</p>`:""}`
-        :`<p class="small" style="margin:0 0 8px">Questions about the job? Message ${esc(firstName(p.agent))} here. Contact details show once you're booked.</p>${msgBtn(p.id,b.vendorId,"Message "+firstName(p.agent),"btn sm")}`}
+        :`<p class="small" style="margin:0 0 8px">Questions about the job? Message ${esc(firstName(p.agent))} below. Contact details show once you're booked.</p>`}
         ${(p.members||[]).length?`<div class="small" style="margin-top:8px"><span class="strong">Shared with:</span> ${(p.members||[]).map(m=>esc(m.name)+" ("+esc(m.role)+(m.email&&(b.status==="selected"||!msgOn())?", "+esc(m.email):"")+")").join("; ")}</div>`:""}</div></div>
+    ${typeof msgInline==="function"&&msgOn()?`<div class="reqsec">${msgInline(p.id,b.vendorId,{title:"Messages with "+firstName(p.agent)})}</div>`:""}
     <div class="reqsec"><h3>Your bid</h3>`;
   const sum=`<div class="bidsum"><div><span class="eyebrow">Amount</span><b class="num">${money(b.amount)}</b>${b.prevAmount&&b.prevAmount!==b.amount?`<div class="small num">Was ${money(b.prevAmount)}</div>`:""}</div><div><span class="eyebrow">Timeline</span><b>${esc(workDays(b)||"Not given")}</b>${b.availableFrom?`<div class="small">Can start ${esc(fmtDate(b.availableFrom))}</div>`:""}</div>
       <div><span class="eyebrow">Sent</span><b>${b.submittedAt?ago(b.submittedAt):""}</b></div><div><span class="eyebrow">PDF</span>${pdfLink(b)}</div></div>${b.note?`<p class="note">${esc(b.note)}</p>`:""}`;
@@ -1229,8 +1251,9 @@ function orbytView(){
   const hand=matchMode()==="hand";
   h+=`<div class="modebar"><div class="seg" role="group" aria-label="Matching mode"><span class="eyebrow">Matching</span><button data-act="mode" data-v="hand" aria-pressed="${hand}" ${S.canWrite?"":"disabled"}>Hand-picked</button><button data-act="mode" data-v="auto" aria-pressed="${!hand}" ${S.canWrite?"":"disabled"}>Automatic</button></div>
     <span class="small">${hand?"Nothing reaches a vendor until you introduce them.":"New projects get their top 3 matches introduced automatically. You can still add more by hand."}</span></div>`;
-  return h+`<div class="desk"><nav class="plist" aria-label="Projects">${ps.map(p=>{const[st,cls]=projStatus(p);const d=daysTo(p.targetDate);
-    return `<button class="pitem" data-act="open" data-id="${esc(p.id)}" aria-current="${p.id===S.openProject}"><div class="row"><span class="addr">${esc(p.address)}</span><span class="pill ${cls}">${st}</span></div>
+  const pq=(S.projQ||"").trim().toLowerCase(),shown=pq?ps.filter(p=>projSearchText(p).includes(pq)):ps;
+  return h+`<div class="desk"><nav class="plist" aria-label="Projects"><label class="field psearch"><span class="sr-only">Search projects</span><input type="search" id="proj-q" data-projq value="${esc(S.projQ||"")}" placeholder="Search by ID, address, agent or client"></label>${pq&&!shown.length?`<p class="small" style="margin:8px 4px">No projects match.</p>`:""}${shown.map(p=>{const[st,cls]=projStatus(p);const d=daysTo(p.targetDate);
+    return `<button class="pitem" data-act="open" data-id="${esc(p.id)}" aria-current="${p.id===S.openProject}"><div class="row"><span class="addr">${esc(p.address)}${p.refCode?` <span class="refcode">${esc(p.refCode)}</span>`:""}</span><span class="pill ${cls}">${st}</span></div>
       <div class="meta">${esc(p.agent||"")}${client(p)?" · "+esc(client(p)):""}${d!==null&&!p.listed?` · <span class="num">${d<0?"date passed":"lists in "+d+"d"}</span>`:""}</div>
       ${needsCats(p).length?`<div class="meta warntext">Needs matching: ${esc(needsCats(p).join(", "))}</div>`:""}
       <div class="prog" aria-hidden="true">${(p.categories||[]).map(c=>{const bs=bidsFor(p.id,c);return `<i class="${bs.some(b=>b.status==="selected")?"on":bs.some(b=>["submitted","chosen","changes"].includes(b.status))?"mid":""}"></i>`}).join("")}</div></button>`}).join("")}
@@ -1730,7 +1753,7 @@ function pmInvoicing(){
     <div class="tablewrap"><table><thead><tr><th>Project</th><th>Quoted vendors</th><th>Upfront fee</th><th>Final vendors</th><th>Adjustment</th><th>Status</th></tr></thead><tbody>${ps.map(p=>{
       const team=(p.categories||[]).map(c=>teamBid(p.id,c)).filter(Boolean),quoted=team.reduce((a,b)=>a+(b.amount||0),0),final=team.reduce((a,b)=>a+(b.finalAmount!=null?b.finalAmount:b.amount||0),0);
       const up=Math.max(500,cents(quoted*0.1)),over=final-quoted>1000,adj=over?Math.max(500,cents(final*0.1))-up:0,inv=p.pmInvoice||{};
-      return `<tr><td><span class="strong">${esc(p.address)}</span><div class="small">${esc(p.agent)}${p.brokerage?" · "+esc(p.brokerage):""}</div></td><td class="money">${money(quoted)}</td><td class="money">${money2(up)}</td><td class="money">${money(final)}</td>
+      return `<tr><td><span class="strong">${esc(p.address)}</span>${refTag(p)}<div class="small">${esc(p.agent)}${p.brokerage?" · "+esc(p.brokerage):""}</div></td><td class="money">${money(quoted)}</td><td class="money">${money2(up)}</td><td class="money">${money(final)}</td>
         <td class="small">${over?`<span class="warntext">${money2(adj)} more, final costs are ${money(final-quoted)} over quotes</span>`:"None"}</td>
         <td style="white-space:nowrap">${inv.status==="paid"?`<span class="pill set">Paid</span>`:inv.status==="invoiced"?`<span class="pill comparing">Invoiced</span> ${S.canWrite?`<button class="linkbtn" data-act="pmpaid" data-id="${esc(p.id)}">Mark paid</button>`:""}`:S.canWrite?`<button class="btn sm" data-act="pminvoiced" data-id="${esc(p.id)}">Mark invoiced</button>`:""}</td></tr>`}).join("")}</tbody></table></div></section>`;
 }
@@ -1919,7 +1942,7 @@ function pipeStage(p){const c=p.categories||[];if(p.completed)return"done";
 const SVCLBL=["Not matched","Waiting on bids","Bids in","Picked","Booked","Done"];
 function pipeCard(p){
   const d=daysTo(p.targetDate),late=!p.listed&&d!==null&&d<=DATE_WINDOW,val=bidsFor(p.id).filter(b=>ONTEAM.includes(b.status)).reduce((t,b)=>t+bidVal(b),0);
-  return `<button class="pcard" data-act="openmatch" data-id="${esc(p.id)}"><div class="row"><span class="strong">${esc(p.address)}</span>${PM_ON&&p.pm?'<span class="pill comparing">PM</span>':""}</div>
+  return `<button class="pcard" data-act="openmatch" data-id="${esc(p.id)}"><div class="row"><span class="strong">${esc(p.address)}</span>${refTag(p)}${PM_ON&&p.pm?'<span class="pill comparing">PM</span>':""}</div>
     <div class="small">${esc(p.agent)}${client(p)?" · "+esc(client(p)):""}</div>
     <div class="small ${late?"warntext":""}">${esc(listWhen(p))}${p.clientType==="Buyer"?" · buyer":""}</div>
     <div class="svcchips">${(p.categories||[]).map(c=>{const st=svcStage(p,c);return `<span class="chip s${st}" title="${esc(c)}: ${SVCLBL[st]}">${esc(c)}</span>`}).join("")}</div>
@@ -1945,7 +1968,7 @@ function pipelineView(){
   return h+`</section>`;
 }
 function needCard(p){
-  return `<div class="needcard"><div class="row"><button class="addrbtn" data-act="openmatch" data-id="${esc(p.id)}">${esc(p.address)}</button><span class="small num">${esc(listWhen(p))}</span></div>
+  return `<div class="needcard"><div class="row"><button class="addrbtn" data-act="openmatch" data-id="${esc(p.id)}">${esc(p.address)}</button>${refTag(p)}<span class="small num">${esc(listWhen(p))}</span></div>
     <div class="small">${esc(p.agent)} · ${esc(ctLabel(p))} ${esc(client(p))}${p.budget?" · "+BUDGETS[p.budget]:""}${p.source?" · "+esc(p.source):""}</div>
     ${PM_ON&&!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<div class="small warntext">${esc(PMI[p.pmInterest])}</div>`:""}
     <ul class="needlist">${needsCats(p).map(c=>{const r=openOptReq(p,c);const v=r&&r.vendorId&&vendorById(r.vendorId);
@@ -1964,7 +1987,7 @@ function pmCard(p){
 }
 function projOverview(p){
   const[st,cls]=projStatus(p);
-  return `<article class="ov"><div class="ovhead"><div style="min-width:0"><button class="addrbtn" data-act="openmatch" data-id="${esc(p.id)}">${esc(p.address)}</button>
+  return `<article class="ov"><div class="ovhead"><div style="min-width:0"><button class="addrbtn" data-act="openmatch" data-id="${esc(p.id)}">${esc(p.address)}</button>${refTag(p)}
       <div class="small">${esc(p.agent)} · ${esc(ctLabel(p))} ${esc(client(p))} · ${esc(listWhen(p))}</div></div>
       <div class="actions">${PM_ON&&p.pm?'<span class="pill comparing">Managing</span>':""}<span class="pill ${cls}">${st}</span></div></div>
     <div class="svc" role="table" aria-label="Bids for ${esc(p.address)}"><div class="svcrow svchead" role="row"><span role="columnheader">Service</span><span role="columnheader">Bids from</span><span role="columnheader">Booked</span></div>
@@ -2160,12 +2183,17 @@ function listDateForm(p){const today=new Date().toISOString().slice(0,10);
 document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="listdate"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
   const v=String(new FormData(f).get("date")||"");if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){toast("Pick a date");return}
   guard(async()=>{await col("projects").doc(f.dataset.id).update({targetDate:v});S.openForm=null},"List date updated")},true);
+const projMsgBtn=(pid,vid)=>{const t=typeof msgThreads==="function"?msgThreads().find(x=>x.project_id===pid&&x.vendor_id===vid):null,n=t?unreadOf(t):0;
+  return `<button class="linkbtn" type="button" data-act="projmsg" data-key="${esc(pid+"|"+vid)}">Message${n?` <span class="count">${n}</span>`:""}</button>`};
+const refTag=p=>p&&p.refCode?` <span class="refcode">${esc(p.refCode)}</span>`:"";
+const projSearchText=p=>[p.refCode,p.address,p.agent,typeof client==="function"?client(p):"",p.area].filter(Boolean).join(" ").toLowerCase();
+document.addEventListener("input",e=>{if(!e.target.matches||!e.target.matches("input[data-projq]"))return;S.projQ=e.target.value;const pos=e.target.selectionStart;render();const el=document.getElementById("proj-q");if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(_){}}});
 function projectDetail(p,mode){
   if(!p)return"";
   const isOrbyt=mode==="orbyt";const[st,cls]=projStatus(p);const d=daysTo(p.targetDate);
   let h=`<article class="panel"><div class="dhead"><div style="min-width:0">
     <div class="eyebrow">${esc(p.area||"San Diego")} ${p.sample?'<span class="pill example">Example</span>':""} ${p.source?`<span class="pill">${esc(p.source)}</span>`:""}</div>
-    <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>
+    <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>${p.refCode?`<div class="small refline">Project ${esc(p.refCode)}</div>`:""}
     <div class="facts"><span>Agent <b>${esc(p.agent||"Not set")}</b></span><span>${esc(ctLabel(p))} <b>${esc(client(p)||"Not set")}</b></span>${p.sqft?`<span>Size <b>${Number(p.sqft).toLocaleString("en-US")} sq ft</b></span>`:""}${p.listPrice?`<span>Expected list price <b>${money(p.listPrice)}</b></span>`:""}
       ${isOrbyt&&S.canWrite?`<label class="inlinesel"><span>Budget</span><select id="pb-${esc(p.id)}" data-budget="${esc(p.id)}"><option value="">Not sure</option>${TIERS.map(t=>`<option value="${t}" ${p.budget===t?"selected":""}>${BUDGETS[t]}</option>`).join("")}</select></label>`:p.budget?`<span>Budget <b>${BUDGETS[p.budget]}</b></span>`:""}
       <span class="pill ${cls}">${st}</span>${PM_ON&&isOrbyt&&!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<span class="pill comparing">${esc(PMI[p.pmInterest])}</span>`:""}</div>
@@ -2200,7 +2228,7 @@ function projectDetail(p,mode){
     const shown=bids;
     if(shown.length){
       h+=`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Bid</th><th>Timeline</th><th>Notes</th><th>PDF</th><th></th></tr></thead><tbody>${shown.map(b=>{const v=vendorById(b.vendorId);
-        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}${typeof lostTag==="function"?lostTag(b):""}${!isOrbyt&&typeof msgBtn==="function"&&b.vendorId?`<div>${msgBtn(p.id,b.vendorId)}</div>`:""}
+        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}${typeof lostTag==="function"?lostTag(b):""}${!isOrbyt&&typeof msgBtn==="function"&&b.vendorId&&msgOn()?`<div>${projMsgBtn(p.id,b.vendorId)}</div>`:""}
           ${b.introNote?`<div class="intronote">${b.introducedBy==="auto"?"":isOrbyt?"Your note: ":"From Ashleigh: "}“${esc(b.introNote)}”</div>`:""}
           ${b.availChecked&&b.status==="requested"?`<div class="small">${isOrbyt?"Availability checked":"Ashleigh confirmed they're available"}</div>`:""}</td>
         <td class="money">${b.status==="requested"?'<span class="small">Waiting</span>':money(b.amount)}</td>
@@ -2233,6 +2261,7 @@ function projectDetail(p,mode){
     ${PM_ON&&isOrbyt?`<button class="btn ghost sm" data-act="pm" data-id="${esc(p.id)}">${p.pm?"Remove project management":"Add project management"}</button>`:""}
     ${isOrbyt||(kind()==="agent"&&p.agentId&&p.agentId===S.uid)?(isOrbyt||!picks.length?`<button class="btn ghost sm dangerbtn" data-act="delproject" data-id="${esc(p.id)}">Delete project</button>`:`<span class="small" style="align-self:center">Has a booked vendor, so it can't be deleted</span>`):""}</div>`;
   if(S.openForm==="addsvc:"+p.id)h+=addServiceForm(p,isOrbyt);
+  if(mode!=="vendor"&&typeof projectMsgs==="function")h+=projectMsgs(p);
   if(isOrbyt&&S.canWrite){const hrs=S.timelog.filter(e=>e.projectId===p.id).reduce((t,e)=>t+(+e.hours||0),0);
     h+=S.openForm==="logtime:"+p.id?`<form class="form" data-form="timelog" data-p="${esc(p.id)}"><div class="grid"><label class="field"><span>Hours on this project</span><input type="number" id="pl-h-${esc(p.id)}" name="hours" min="0.25" step="0.25" required></label>
       <label class="field"><span>What for?</span><input type="text" id="pl-n-${esc(p.id)}" name="note" placeholder="Vendor calls, walkthrough"></label></div><input type="hidden" name="date" value="${isoDay(new Date())}"><label class="field" style="max-width:260px"><span>Type</span><select id="pl-t-${esc(p.id)}" name="type">${LOGTYPES.map(([v,l])=>`<option value="${v}" ${(p.pm?"pm":"matching")===v?"selected":""}>${l}</option>`).join("")}</select></label><input type="hidden" name="projectId" value="${esc(p.id)}">

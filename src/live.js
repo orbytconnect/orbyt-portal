@@ -48,7 +48,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
 function appProjects(){const PP=byKey(D.project_private,"project_id"),PA=byKey(D.project_admin,"project_id");
   return(D.projects||[]).map(p=>{const pp=PP[p.id]||{},pa=PA[p.id]||{};
     return{id:p.id,agent:p.agent_name,agentId:p.agent_id,agentEmail:p.agent_email||"",agentPhone:p.agent_phone||"",brokerage:p.brokerage||"",
-      address:p.address,area:normArea(p.area||""),clientType:p.client_type,targetDate:p.target_date||"",categories:p.categories||[],notes:p.notes||"",
+      address:p.address,refCode:p.ref_code||"",area:normArea(p.area||""),clientType:p.client_type,targetDate:p.target_date||"",categories:p.categories||[],notes:p.notes||"",
       addedServices:p.added_services||{},closing:p.closing||[],listed:!!p.listed,listedAt:p.listed_at,workOrder:p.work_order||null,source:p.source||"",createdBy:p.created_by||"",createdAt:p.created_at,
       client:pp.client_name||"",clientEmail:pp.client_email||"",clientPhone:pp.client_phone||"",budget:pp.budget||"",listPrice:pp.list_price==null?null:Number(pp.list_price),sqft:p.sqft||null,pmInterest:pp.pm_interest||"",optionRequests:pp.option_requests||{},
       pm:!!pa.pm,pmInvoice:pa.pm_invoice||null,completed:!!pa.completed,completedAt:pa.completed_at,
@@ -269,7 +269,7 @@ function friendlyAuthError(e){const m=String((e&&e.message)||e||"");
   if(/invalid login/i.test(m))return"That email and password don't match. Try again, or reset your password.";
   if(/not confirmed/i.test(m))return"Confirm your email first. Check your inbox for the link from Orbyt.";
   if(/already registered|already exists/i.test(m))return"That email already has an account. Try signing in instead.";
-  if(/password/i.test(m)&&/least|short|weak/i.test(m))return"Use a password with at least 8 characters.";
+  if(/password/i.test(m)&&/least|short|weak|contain|character/i.test(m))return PW_RULE+".";
   if(/rate limit|too many/i.test(m))return"Too many tries. Wait a minute, then try again.";
   return m||"Something went wrong. Try again."}
 function protoBanner(){return""}
@@ -303,7 +303,7 @@ function authView(){
       <p class="small authnote" role="status" style="margin:0" ${S.authNote?"":"hidden"}>${esc(S.authNote||"")}</p>
       <div class="actions"><button class="btn" type="submit">Email me a reset link</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div></form>`);
   if(m==="newpass")return card("Password","Choose a new password",`<form class="authform" data-proto="newpass" novalidate>
-      <label class="field"><span>New password (8+ characters)</span><input type="password" id="np-pass" name="password" autocomplete="new-password" required></label>
+      <label class="field"><span>New password</span><input type="password" id="np-pass" name="password" autocomplete="new-password" required></label>${pwRules()}
       <label class="field"><span>Type it again</span><input type="password" id="np-pass2" name="password2" autocomplete="new-password" required></label>${showPw("np-show")}${err}
       <button class="btn" type="submit">Save password</button></form>`);
   if(m==="agent"||m==="vendor")return signupView(m);
@@ -333,7 +333,8 @@ function signupView(m){
     <p class="small" style="margin:0">${m==="agent"?"Orbyt is free for agents. Tell me where you list and I'll start lining up vendors matched to your homes.":"I'll check your references and reach out before your first introduction."}</p>
     <form class="authform" data-proto="signup" data-kind="${m}" novalidate>
       ${m==="agent"?"":`<div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> It takes about 2 minutes. Next, you'll add a few business details and 2 to 3 agent references. Every field is required unless it says optional.</div>`}
-      ${m==="vendor"?`<label class="field"><span>Company name</span><input type="text" id="su-company" name="company" required></label>`:""}
+      ${m==="vendor"?`<div class="grid"><label class="field"><span>Legal entity name</span><input type="text" id="su-legal" name="legal" data-bizname required><small class="small">As it appears on your license or insurance</small></label>
+        <label class="field"><span>Business name agents see (optional)</span><input type="text" id="su-dba" name="dba" placeholder="Your DBA, if it's different"></label></div><input type="hidden" id="su-company" name="company">`:""}
       <div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
@@ -351,13 +352,13 @@ function signupView(m){
             <p class="small" style="margin:4px 0 0">Those jobs won't come through Orbyt introductions, so there's never a fee on them. You're welcome to list that work in the closing partner directory too.</p></div></div>`:""}
       <div class="field"><span>${m==="agent"?"Where do you list homes?":"Where do you work?"}</span>${ck("area",AREAS)}</div>
       ${m==="vendor"?`<label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>`:""}
-      <div class="grid"><label class="field"><span>Create a password (8+ characters)</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
-        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${showPw("su-show")}
+      <div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
+        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}
       ${m==="vendor"?`<div class="reviewagree"><div class="eyebrow">Review and agree</div>
-        <h2>Your fees</h2><p class="small" style="margin:0">You only pay when an introduction turns into a paid job. The client pays you directly, the same as always.</p>${signupFees()}
-        ${keyHighlights("vendor")}
-        <h2>Your business</h2>${bizFields("su")}
-        <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink("vendor")}, including the fees above.</span></label>
+        <p style="margin:0"><span class="strong">Orbyt is free to join.</span> You only pay a fee when an introduction turns into a paid job, and the client pays you directly, the same as always. <button class="linkbtn" type="button" data-act="feetoggle">See the fee structure</button></p>
+        <div id="su-fees" hidden>${signupFees()}${keyHighlights("vendor")}</div>
+        <h2>Your business</h2>${bizFieldsLite("su")}
+        <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink("vendor")}, including the fee structure.</span></label>
         ${authorityBox("su")}
         <label class="checkrow top"><input type="checkbox" id="su-optout" name="optout"> <span class="small" style="font-weight:300">If you'd rather not receive Orbyt updates and announcements, tick this box.</span></label></div>`
       :`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>`}
@@ -460,21 +461,21 @@ document.addEventListener("submit",async e=>{
     if(kindOf==="forgot"){if(!email)return done("Enter the email you signed up with.");
       const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:portalHome()});
       return done(error?friendlyAuthError(error):"","If that email has an account, a reset link is on its way.")}
-    if(kindOf==="newpass"){if(pass.length<8)return done("Use a password with at least 8 characters.");if(pass!==pass2)return done("Those passwords don't match. Type them again.");
+    if(kindOf==="newpass"){if(pwProblem(pass))return done(pwProblem(pass));if(pass!==pass2)return done("Those passwords don't match. Type them again.");
       const{data,error}=await sb.auth.updateUser({password:pass});if(error)return done(friendlyAuthError(error));toast("Password saved");S.recovering=false;S.authMode="signin";try{history.replaceState(null,"",location.pathname)}catch(_){}await enter(data.user);return}
     if(kindOf==="signup"&&f.dataset.kind==="partner"&&typeof partnerSignup==="function")return await partnerSignup(f,fd,email,pass,pass2,done,btn);
     if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
       const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,"");
       // [problem, message, field to jump to]
-      const checks=[[V&&!g("company"),"Add your company name.","#su-company"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
+      const checks=[[V&&!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
         [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[digits.length<10,"Add a mobile phone number, with area code.","#su-phone"],
         [!V&&!g("brokerage"),"Add your brokerage.","#su-brokerage"],
         [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!areas.length,V?"Pick at least one area you work in.":"Pick at least one area where you list homes.","#su-area-0"],
         [V&&!fd.get("closingwork"),"Tell me whether any of your work is part of a home sale's closing.","#su-cw-0"],
         [V&&fd.get("closingwork")==="yes","Your work is part of closings, so it's listed in the closing partner directory instead. Tap Continue as a closing partner.","#su-cwgo"],
         [V&&fd.get("closingwork")==="some"&&g("cwnote").length<3,"Tell me which of your services are part of closings.","#su-cwnote"],
-        [pass.length<8,"Use a password with at least 8 characters.","#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
+        [!!pwProblem(pass),pwProblem(pass),"#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
         [V&&!g("legal"),"Add your legal business name.","#su-legal"],[V&&!fd.get("btype"),"Choose your business type.","#su-btype"],[V&&!g("title"),"Add your title.","#su-title"],
         [!fd.get("terms"),`Check the box to agree to the ${TERMS[m].title}.`,"#su-terms"],[V&&!fd.get("authority"),"Check the box to confirm you have authority to agree for the business.","#su-auth"]];
       const hit=checks.find(c=>c[0]);
@@ -814,7 +815,7 @@ document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest('fo
   if(e.target.name==="closingwork"){const v=e.target.value,y=document.getElementById("su-cwyes"),so=document.getElementById("su-cwsome");if(y)y.hidden=v!=="yes";if(so)so.hidden=v!=="some"}});
 // "Yes, that's my main business": move to closing partner sign-up, keeping what they typed
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act="cwswitch"]');if(!b)return;e.preventDefault();e.stopPropagation();
-  const f=b.closest("form"),keep={};["company","first","last","email","phone","web"].forEach(k=>{const el=f.querySelector(`[name="${k}"]`);if(el)keep[k]=el.value});
+  const f=b.closest("form"),keep={};["legal","dba","company","first","last","email","phone","web"].forEach(k=>{const el=f.querySelector(`[name="${k}"]`);if(el)keep[k]=el.value});
   keep.areas=[...f.querySelectorAll('input[name="area"]:checked')].map(x=>x.value);
   S.authMode="partner";S.authErr="";render();window.scrollTo(0,0);
   const g=document.querySelector('form[data-kind="partner"]');if(!g)return;
@@ -1353,3 +1354,14 @@ document.addEventListener("submit",async e=>{const f=e.target.closest('form[data
     if(g("references")){r=await sb.from("vendor_private").update({references_text:g("references")}).eq("vendor_id",v.id);if(r.error)throw r.error}
     await loadSetupV(S.uid);render();window.scrollTo(0,0)
   }catch(x){console.error(x);btn.disabled=false;show("That didn't save. Check your connection and try again.")}},true);
+
+/* password rules (match Supabase: 8+ characters with lowercase, uppercase, a number and a symbol) */
+const PW_RULE="Use at least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol";
+function pwProblem(p){p=String(p||"");return p.length<8||!/[a-z]/.test(p)||!/[A-Z]/.test(p)||!/\d/.test(p)||!/[^A-Za-z0-9]/.test(p)?PW_RULE+".":""}
+const pwRules=()=>`<p class="small pwrules" style="margin:0">At least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol (like ! or #).</p>`;
+const bizFieldsLite=(pre,v)=>{v=v||{};return `<div class="grid"><label class="field"><span>Business type</span><select id="${pre}-btype" name="btype"><option value="">Choose one</option>${BIZ_TYPES.map(x=>`<option ${v.businessType===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
+    <label class="field"><span>Your title</span><input type="text" id="${pre}-title" name="title" value="${esc(v.signerTitle||"")}" placeholder="Owner, manager, partner"></label></div>`};
+// the hidden company name is the DBA if they gave one, otherwise the legal entity name
+document.addEventListener("input",e=>{const f=e.target.closest&&e.target.closest('form[data-proto="signup"]');if(!f)return;const c=f.querySelector('input[type="hidden"][name="company"]');if(!c)return;
+  const l=f.querySelector('[name="legal"]'),d=f.querySelector('[name="dba"]');c.value=((d&&d.value.trim())||(l&&l.value.trim())||"")},true);
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="feetoggle"]');if(!b)return;e.preventDefault();e.stopPropagation();const x=document.getElementById("su-fees");if(!x)return;x.hidden=!x.hidden;b.textContent=x.hidden?"See the fee structure":"Hide the fee structure"},true);

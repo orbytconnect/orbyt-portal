@@ -71,12 +71,16 @@ function setupCard(){if(!S.canWrite||!S.session)return"";
   return `<section class="setup" aria-label="Get set up"><div class="setuphead"><div><div class="eyebrow">Get set up</div><h2>${!left.length?"All done. Nice work.":n?`${n} of ${items.length} done`:"A few quick steps to get the most out of Orbyt"}</h2></div>
       <div class="actions"><button class="linkbtn" type="button" data-act="help">How Orbyt works</button><button class="linkbtn" type="button" data-act="setupdone" data-id="setup-hide">Hide this</button></div></div>
     <div class="setupbar" role="progressbar" aria-valuemin="0" aria-valuemax="${items.length}" aria-valuenow="${n}"><span style="width:${Math.round(n/items.length*100)}%"></span></div>
-    <ol class="setuplist">${items.map(x=>`<li class="${x.done?"done":""}"><span class="setupdot" aria-hidden="true">${x.done?"✓":""}</span><div class="setuptext"><span class="strong">${esc(x.label)}</span>${x.done?"":`<div class="small">${esc(x.hint)}</div>`}</div>${x.done?`<span class="small">Done</span>`:`<div>${x.act}</div>`}</li>`).join("")}</ol>
+    <ol class="setuplist">${[...left,...items.filter(x=>x.done)].map(x=>`<li class="${x.done?"done":""}"><span class="setupdot" aria-hidden="true">${x.done?"✓":""}</span><div class="setuptext"><span class="strong">${esc(x.label)}</span>${x.done?"":`<div class="small">${esc(x.hint)}</div>`}</div>${x.done?`<span class="small">Done</span>`:`<div>${x.act}</div>`}</li>`).join("")}</ol>
     <p class="small" style="margin:10px 0 0">${contactLine()}</p></section>`}
 
 /* the Help page, written for each role */
 /* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
 const NEWS=[
+  {id:"2026-11-17a",date:"2026-11-17",roles:["agent"],title:"Message vendors from the project",body:"Open a project and tap Message next to any vendor. The conversation opens right on the project page, and every thread for that home is listed under Messages about this home."},
+  {id:"2026-11-17b",date:"2026-11-17",roles:["vendor"],title:"Messages on every request",body:"Your conversation with the agent now shows right on the request, before and after you're booked."},
+  {id:"2026-11-17c",date:"2026-11-17",roles:["agent","vendor"],title:"Project IDs",body:"Every project now has a short ID, like CA-1042, next to its address. Use it when you need to refer to a job."},
+  {id:"2026-11-17d",date:"2026-11-17",roles:["agent","vendor","partner"],title:"Updates live under the bell",body:"New features now show up under the bell at the top of the page, and Help has a menu with how Orbyt works, FAQs and your Terms of Use."},
   {id:"2026-11-13a",date:"2026-11-13",roles:["agent"],title:"Inspectors, appraisers and notaries",body:"Home inspectors, termite inspectors, appraisers, notaries and home warranty companies now live in the closing partner directory, next to lenders, title, escrow and insurance. Pick them under Closing partners when you start a project."},
   {id:"2026-11-13b",date:"2026-11-13",roles:["vendor"],title:"Closing work is listed separately",body:"Inspections or reports required for a sale, appraisals, notary work and home warranties are now in the closing partner directory, with no fee per introduction. Everything else works the same."},
   {id:"2026-11-13c",date:"2026-11-13",roles:["partner"],title:"More closing services",body:"The directory now includes home inspectors, termite inspectors, appraisers, notaries and home warranty companies, so agents can find every closing service in one place."},
@@ -92,7 +96,7 @@ const NEWS=[
 const newsFor=r=>NEWS.filter(n=>r==="orbyt"||n.roles.includes(r));
 const NEWS_ROLE={agent:"Agents",vendor:"Vendors",partner:"Closing partners"};
 function newsSeen(){try{return localStorage.getItem("orbyt-news-"+S.uid)||""}catch(_){return S.newsSeen||""}}
-function newsCard(){if(!S.session)return"";const r=setupRole(),seen=S.newsSeen??newsSeen();
+function newsCard(){return"";const r=setupRole(),seen=S.newsSeen??newsSeen();
   const cutoff=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
   const items=newsFor(r).filter(n=>seen?n.id>seen:n.date>=cutoff).slice(0,3);if(!items.length)return"";
   return `<section class="newscard" aria-label="What's new"><div class="newshead"><div><div class="eyebrow">What's new</div><h2>${items.length===1?"One update":items.length+" updates"} since you were last here</h2></div>
@@ -140,7 +144,7 @@ function helpView(){const r=setupRole(),sec=(t,b)=>`<div class="helpsec"><h3>${t
       sec("7. Updates and setup",p("Setup steps, SQL updates and what each email means are in your Orbyt runbook in Google Drive. Never paste a secret key into a chat; keys go only into Supabase or Netlify."))]}[r]||[];
   return `<div class="scrim" data-act="helpclose"></div><div class="vcard wide helpcard" role="dialog" aria-modal="true" aria-labelledby="hp-title">
     <div class="vchead"><div style="min-width:0"><div class="eyebrow">Help</div><h2 id="hp-title" style="font-weight:500;margin-top:4px">${r==="orbyt"?"Running Orbyt":"How Orbyt works"}</h2></div><button class="xbtn" data-act="helpclose" aria-label="Close">×</button></div>
-    <div class="helpbody">${S.helpNews?newsHelp(r):""}${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}${S.helpNews?"":newsHelp(r)}
+    <div class="helpbody">${S.canWrite&&setupItems().length?`<p style="margin:0"><button class="btn ghost sm" type="button" data-act="setupshow">Show my setup checklist</button></p>`:""}${body.join("")}${faqHelp(r)}
       ${pushKey()&&S.pushState&&S.pushState!=="unsupported"?sec("Notifications",`<p>${esc(pushHint())}</p>${pushButton()?`<p style="margin-top:8px">${pushButton()}</p>`:""}<p class="small" style="margin-top:6px">You get a notification for the same things Orbyt emails you about. Turn them on separately on each phone or computer you use.</p>`):""}
       ${sec(r==="orbyt"?"Emails you'll get":"Emails to expect",`<p>Orbyt emails come from <span class="strong">${HELP_EMAIL}</span>. Add it to your contacts so nothing lands in spam.</p><ul>${emails.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`)}
       ${sec("Get the Orbyt app",`<p>Orbyt works like an app on your phone, with no app store needed. ${esc(appSteps())}</p><p style="margin-top:8px"><button class="btn sm" type="button" data-act="getapp">Get the app</button></p><p class="small" style="margin-top:6px">The first time you open it from your home screen, sign in once. Links in Orbyt emails open in your browser.</p>`)}
@@ -152,7 +156,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="getap
   if(a==="appclose"){S.appInfo=false;render();return}
   if(a==="installapp"){const ev=S.installEvt;if(!ev){toast("Use your browser's menu to install Orbyt.");return}
     ev.prompt();ev.userChoice.then(c=>{S.installEvt=null;if(c&&c.outcome==="accepted")setupMark("setup-bookmark").then(()=>render()).catch(()=>{});else render()}).catch(()=>{});return}
-  if(a==="help"){S.help=true;S.helpNews=false;render();if(kind()!=="orbyt"&&S.canWrite&&!setupDone("setup-help"))setupMark("setup-help").catch(()=>{});return}
+  if(a==="help"){S.help=true;S.helpNews=false;S.helpMenu=false;render();if(kind()!=="orbyt"&&S.canWrite&&!setupDone("setup-help"))setupMark("setup-help").catch(()=>{});return}
   if(a==="helpclose"){S.help=false;render();return}
   if(a==="setupdone"){if(t.dataset.id==="setup-hide")S.setupOpen=false;guard(()=>setupMark(t.dataset.id),t.dataset.id==="setup-hide"?"Hidden. Bring it back anytime with Show the checklist, or from Help.":"Checked off");return}
   if(a==="setupshow"){S.help=false;S.setupOpen=true;guard(()=>setupUnmark("setup-hide"));setTimeout(()=>document.querySelector(".setup,.setupback")?.scrollIntoView({behavior:"smooth",block:"center"}),300);return}
@@ -210,3 +214,46 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="pusho
   else if(a==="pushoff")guard(pushOff,"Notifications are off for this device.");
   else guard(async()=>{await pushSetup();await pushCheck()},"Push notifications are set up. Turn them on for this device next.")},true);
 if(typeof window!=="undefined"){setTimeout(()=>{pushCheck()},800);document.addEventListener("visibilitychange",()=>{if(!document.hidden)pushCheck()})}
+
+/* ---------- FAQs (in Help) ---------- */
+const FAQ={
+  agent:[["Is Orbyt free for agents?","Yes. There's no cost to join or use Orbyt as an agent."],
+    ["How are vendors checked?","Every vendor carries insurance, holds a license where their trade needs one, and joins with references from agents they've worked with."],
+    ["Who pays the vendors?","Your client pays the vendor directly, the same as always. Orbyt isn't part of the payment."],
+    ["Do we have to book who Orbyt introduces?","No. Compare quotes, ask a vendor for changes, ask me for another option, or send the quotes to your client. Your client usually makes the final call."],
+    ["Can I change the list date?","Yes. Open the project and tap Change date. Vendors quoting or booked on the home get the new date."],
+    ["What are closing partners?","Lenders, title, escrow, insurance, inspectors, appraisers, notaries and home warranty companies listed in an open directory. You and your clients contact them directly."]],
+  vendor:[["What does Orbyt cost?","It's free to join, with no monthly fee. You only pay a fee when an introduction turns into a paid job. On your first job with a new agent, it's 12% of the first $1,000, 8% of the next $4,000 and 5% above $5,000, with a $25 minimum and a $600 cap. Repeat jobs with that agent or their clients are 2%, with a $15 minimum and a $100 cap."],
+    ["How do I pay Orbyt's fee?","After the agent confirms the final amount for a job, Orbyt invoices you for that job."],
+    ["Who pays me for the work?","The client pays you directly, under your own agreement. You run the job your way."],
+    ["When will I get introductions?","Once your insurance and agent references are in and I've approved your profile, I'll introduce you to homes in your areas that need what you do. Keep Taking new work switched on."],
+    ["Do I have to take every request?","No. Tap Can't take it and I'll line up someone else."],
+    ["Why do you need agent references?","Agents put their name behind every vendor they bring to a client, so every vendor joins with references from agents they've worked with."],
+    ["What's a special offer?","A deal for Orbyt clients that shows on your listing. It's $20 for up to 30 days, and you pick the end date."]],
+  partner:[["What does a listing cost?","Your first 90 days are free with the launch offer. After that it's $20 a month for your marketing listing. Use Manage billing on your dashboard to update your card or cancel."],
+    ["Will Orbyt refer clients to me?","No. Federal rules (RESPA) don't allow paying for referrals of closing business, so your fee pays for a marketing listing in an open directory. Agents and their clients choose who to contact."],
+    ["Who sees my listing?","Agents in the Orbyt network, in the closing partner directory and on their buyer projects."],
+    ["How do I make my listing stand out?","Write your ad (a headline, a short pitch, your logo and a flyer), and invite agents you've worked with to review you."]]};
+function faqHelp(r){const l=FAQ[r];if(!l)return"";
+  return `<div class="helpsec" id="help-faq"><h3>FAQs</h3>${l.map(([q,a])=>`<details class="faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</div>`}
+
+/* ---------- Help menu and What's new bell (header) ---------- */
+function newsUnseen(){const r=setupRole(),seen=S.newsSeen??newsSeen();const cutoff=new Date(Date.now()-21*864e5).toISOString().slice(0,10);
+  return newsFor(r).filter(n=>seen?n.id>seen:n.date>=cutoff)}
+function headerTools(){if(!S.session)return"";const n=newsUnseen().length;
+  return `<button class="iconbtn bell" type="button" data-act="newsopen" aria-label="What's new${n?`, ${n} new`:""}"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>${n?`<span class="bdot">${n>9?"9+":n}</span>`:""}</button>
+    <div class="menuwrap"><button class="btn ghost sm" type="button" data-act="helpmenu" aria-haspopup="true" aria-expanded="${S.helpMenu?"true":"false"}">Help <span aria-hidden="true">▾</span></button>
+    ${S.helpMenu?`<div class="menupop" role="menu"><button role="menuitem" type="button" data-act="help">How Orbyt works</button><button role="menuitem" type="button" data-act="helpfaq">FAQs</button>${setupRole()!=="orbyt"&&typeof termsUrl==="function"?`<a role="menuitem" href="${esc(termsUrl(setupRole()==="partner"?"partner":setupRole()))}" target="_blank" rel="noopener">Terms of Use</a>`:""}</div>`:""}</div>`}
+function newsPanel(){const r=setupRole(),l=newsFor(r),unseen=new Set((S.newsWas||[]));
+  return `<div class="scrim" data-act="newsclose"></div><div class="vcard wide helpcard" role="dialog" aria-modal="true" aria-labelledby="nw-title">
+    <div class="vchead"><div style="min-width:0"><div class="eyebrow">Orbyt updates</div><h2 id="nw-title" style="font-weight:500;margin-top:4px">What's new</h2></div><button class="xbtn" data-act="newsclose" aria-label="Close">×</button></div>
+    <div class="helpbody">${l.length?`<ul class="newslist">${l.map(n=>`<li>${unseen.has(n.id)?'<span class="pill comparing">New</span> ':""}<span class="small num">${esc(fmtDate(n.date))}</span> <span class="strong">${esc(n.title)}</span>${r==="orbyt"?` <span class="pill">${n.roles.map(x=>NEWS_ROLE[x]).join(", ")}</span>`:""}<p class="small">${esc(n.body)}</p></li>`).join("")}</ul>`:`<p>Nothing new yet.</p>`}</div></div>`}
+document.addEventListener("click",e=>{
+  const t=e.target.closest('[data-act="newsopen"],[data-act="newsclose"],[data-act="helpmenu"],[data-act="helpfaq"]');
+  if(!t){if(S.helpMenu&&!e.target.closest(".menuwrap")){S.helpMenu=false;render()}return}
+  e.preventDefault();e.stopImmediatePropagation();const a=t.dataset.act;
+  if(a==="helpmenu"){S.helpMenu=!S.helpMenu;render();return}
+  if(a==="helpfaq"){S.helpMenu=false;S.help=true;render();setTimeout(()=>{const x=document.getElementById("help-faq");if(x)x.scrollIntoView({block:"start"})},60);return}
+  if(a==="newsopen"){S.helpMenu=false;S.newsWas=newsUnseen().map(n=>n.id);const top=NEWS.map(n=>n.id).sort().pop()||"";S.newsSeen=top;try{localStorage.setItem("orbyt-news-"+S.uid,top)}catch(_){}S.newsOpen=true;render();return}
+  if(a==="newsclose"){S.newsOpen=false;render()}},true);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&(S.newsOpen||S.helpMenu)){S.newsOpen=false;S.helpMenu=false;render()}});

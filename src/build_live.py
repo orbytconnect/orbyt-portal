@@ -136,6 +136,7 @@ sub("""  if(S.quoteView&&S.session)h+=quoteViewer();""", """  if(S.quoteView&&S.
   else if(S.agreementView&&S.session)h+=agreementViewer();
   else if(S.myDetails&&S.session&&typeof myDetailsView==="function")h+=myDetailsView();
   else if(S.help&&S.session&&typeof helpView==="function")h+=helpView();
+  else if(S.newsOpen&&S.session&&typeof newsPanel==="function")h+=newsPanel();
   else if(S.appInfo&&S.session&&typeof appView==="function")h+=appView();""")
 # header links (My details, Terms of Use) now sit by the name in the source
 sub("""v.insured?"Insurance checked":"Insurance not checked"}</p>""", """v.insured?"Insurance checked":"Insurance not checked"}</p>${agreementLine(v)}${kind()==="orbyt"?insuranceAdminLine(v)+businessLine(v)+reviewReqLine(v):""}""")

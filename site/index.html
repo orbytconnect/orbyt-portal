@@ -1479,12 +1479,19 @@ function stalledItems(){
     if(b.status==="selected"&&b.confirmedAt&&!b.done&&age(b.confirmedAt)>=5&&!((b.steps||{}).agreement&&(b.steps||{}).paid))T.push({id:"stall-steps-"+b.id,who:"Agent",days:age(b.confirmedAt),title:`Agreement or payment not checked off for ${vn}`,meta:`${p.address} · ${p.agent} · ${b.category}`,pid:p.id,
       nudge:{to:aTo(p),subject:`${vn} at ${p.address}`,text:`Hi ${af}, quick check on ${p.address}. Have you and ${vn} signed the agreement and sorted payment for the ${c} work? Check those off in Orbyt once they're done so I can keep things moving. Thank you!`}});
   }
+  for(const p of S.projects.filter(p=>!p.listed)){
+    // one alert per job when the list date has passed, summarizing everything not booked
+    const open=(p.categories||[]).filter(c=>!teamBid(p.id,c));
+    if(open.length&&p.targetDate&&daysTo(p.targetDate)<0){const af=fn(p.agent),names=open.map(c=>c.toLowerCase()),list=names.length>1?names.slice(0,-1).join(", ")+" and "+names[names.length-1]:names[0];
+      T.push({id:"stall-date-"+p.id+"-"+[...open].sort().join("|"),who:"Project",days:-daysTo(p.targetDate),title:open.length===1?`List date passed and ${list} isn't booked`:`List date passed with ${open.length} services not booked`,
+        meta:`${p.address} · ${p.agent} · was ${fmtDate(p.targetDate)}${open.length>1?" · Not booked: "+open.join(", "):""}`,pid:p.id,
+        nudge:{to:aTo(p),subject:`${p.address} list date`,text:`Hi ${af}, I see ${p.address} was set to list ${fmtDate(p.targetDate)} and ${list} ${open.length===1?"isn't":"aren't"} booked yet. Is the date moving, or should I line up other options for you?`}})}
+  }
   for(const p of S.projects.filter(p=>!p.listed))for(const c of p.categories||[]){if(teamBid(p.id,c))continue;const af=fn(p.agent),lc=c.toLowerCase();
     const sub=bidsFor(p.id,c).filter(b=>b.status==="submitted"&&b.submittedAt).map(b=>b.submittedAt).sort();
     if(sub.length&&age(sub[0])>=5)T.push({id:"stall-pick-"+p.id+"-"+c,who:"Agent",days:age(sub[0]),title:`${af} hasn't picked a ${lc} vendor`,meta:`${p.address} · ${sub.length} ${sub.length===1?"bid":"bids"} waiting`,pid:p.id,
       nudge:{to:aTo(p),subject:`${c} quotes for ${p.address}`,text:`Hi ${af}, you have ${sub.length===1?"a":sub.length} ${lc} ${sub.length===1?"quote":"quotes"} ready for ${p.address} in Orbyt. Want to take a look and add one to your team? Happy to talk it through if that helps.`}});
-    if(p.targetDate&&daysTo(p.targetDate)<0)T.push({id:"stall-date-"+p.id+"-"+c,who:"Project",days:-daysTo(p.targetDate),title:`List date passed and ${lc} isn't booked`,meta:`${p.address} · ${p.agent} · was ${fmtDate(p.targetDate)}`,pid:p.id,
-      nudge:{to:aTo(p),subject:`${p.address} list date`,text:`Hi ${af}, I see ${p.address} was set to list ${fmtDate(p.targetDate)} and ${lc} isn't booked yet. Is the date moving, or should I line up another option for you?`}});}
+}
   const last={};S.projects.forEach(p=>{const d=p.createdAt||"";if(!last[p.agent]||d>last[p.agent].createdAt)last[p.agent]=p});
   for(const[ag,lp]of Object.entries(last)){const d=lp.createdAt;if(d&&age(d)>=60)T.push({id:"stall-cust-"+ag+"-"+d,who:"Customer",days:age(d),title:`${ag} hasn't sent a new request in ${age(d)} days`,meta:"Worth a check-in",pid:"",
     nudge:{to:aTo(lp),subject:"Anything coming up?",text:`Hi ${fn(ag)}, it's Ashleigh with Orbyt. Any listings coming up I can help with? I'd love to line up your vendors so you don't have to chase quotes.`}})}

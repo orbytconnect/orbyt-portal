@@ -77,6 +77,7 @@ function setupCard(){if(!S.canWrite||!S.session)return"";
 /* the Help page, written for each role */
 /* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
 const NEWS=[
+  {id:"2026-11-20a",date:"2026-11-20",roles:["vendor"],title:"Invite your team",body:"On your Profile tab, under Your team, invite the people who help with quotes or run your jobs. They get their own login, and you can tag who's handling each request."},
   {id:"2026-11-19a",date:"2026-11-19",roles:["agent"],title:"Message several vendors at once",body:"On a project, tap Message several vendors, pick who gets it (or everyone booked), and send. Each vendor gets it in their own thread with you."},
   {id:"2026-11-19b",date:"2026-11-19",roles:["agent"],title:"More detailed reviews",body:"Reviews now ask about quality of work, timing, communication and value, and whether you'd hire them again. Vendor profiles show the averages once there are three or more."},
   {id:"2026-11-19c",date:"2026-11-19",roles:["vendor","partner"],title:"Pick the services you actually offer",body:"Open Your services and tick exactly what you do in each kind of work, like vacant staging or move-out cleans. It helps me match you, and agents see it on your profile."},

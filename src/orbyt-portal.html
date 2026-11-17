@@ -241,6 +241,7 @@ textarea{resize:vertical;min-height:64px}
 .stat.static{cursor:default}
 .callout[hidden],.cwyes[hidden]{display:none!important}
 .optoutrow{margin-top:4px;align-items:flex-start}.optoutrow,.optoutrow *{font-weight:300!important;font-size:12.5px;color:var(--muted)}.optoutrow input{width:14px;height:14px;margin-top:2px;opacity:.75}
+.handled{display:flex;align-items:center;gap:8px;margin:0 0 10px}.handled select{width:auto;min-width:180px;padding:6px 10px}
 .susec{border:0;padding:0;margin:6px 0 0;display:grid;gap:12px;min-width:0}.suhead{display:flex;align-items:center;gap:10px;font-family:var(--serif,inherit);font-size:20px;color:var(--ink);padding:0 0 8px;margin-bottom:2px;border-bottom:1px solid var(--line);width:100%}.suhead .sn{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--bg);font-size:13px;font-family:inherit}
 .knowbox{border:1px solid var(--gold,#A8871F);border-radius:12px;padding:14px 16px;background:var(--surface);display:grid;gap:12px;margin-top:6px}.knowrow{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;font-size:14px;line-height:1.5}.knowico{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1px solid var(--gold,#A8871F);color:var(--gold,#A8871F);font-weight:600;font-size:13px}
 .taxsubs[hidden],.taxcat[hidden],.taxgrp[hidden]{display:none!important}.taxhint{margin:-4px 0 0}
@@ -1112,22 +1113,24 @@ function vendorView(){
   if(!v)return `<div class="emptystate" style="margin-top:28px"><h2>Pick a vendor</h2><p>Choose a vendor in "Viewing as" to see their requests.</p></div>`;
   if(typeof msgPending==="function")msgPending();
   if(!["tasks","projects","messages","profile"].includes(S.tab))S.tab="tasks";
-  const T=vendorTasks(v.id),ok=v.approved!==false;const openN=splitTasks(T).open.length;
+  const tm=!!S.teamMember,ok=v.approved!==false;
+  const T=vendorTasks(v.id).map(t=>t.bid&&t.bid.assignedTo&&typeof handledName==="function"?{...t,meta:t.meta+" · "+handledName(t.bid.assignedTo)}:t);const openN=splitTasks(T).open.length;
+  if(tm&&S.tab==="profile")S.tab="tasks";
   const mine=S.bids.filter(b=>b.vendorId===v.id&&projById(b.projectId));
-  let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""}</div><h1>Hi, ${esc(v.name)}</h1>${ok?"":`<p class="banner" style="margin-top:10px">Welcome to Orbyt. Finish the steps under Get approved below, and I'll check your references and approve you for introductions.</p>`}
+  let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""}</div><h1>Hi, ${esc(tm?(S.me&&firstName(S.me.full_name||"")||v.name):v.name)}</h1>${tm?`<p class="banner" style="margin-top:10px">You're on the ${esc(v.name)} team. ${esc(firstName(v.contactName||"")||"The owner")} manages the profile and billing.</p>`:ok?"":`<p class="banner" style="margin-top:10px">Welcome to Orbyt. Finish the steps under Get approved below, and I'll check your references and approve you for introductions.</p>`}
     <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
     <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
-  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function"&&ok)h+=setupCard();
+  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function"&&ok&&!tm)h+=setupCard();
   const folds=typeof vendorFolds==="function"?vendorFolds(v,mine):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
   // before approval: Get approved, then the profile, right on the dashboard. After: the profile lives on its own tab
-  const pre=!ok&&typeof approvalSec==="function"?approvalSec(v):"",foot=ok?"":folds;
+  const pre=!ok&&!tm&&typeof approvalSec==="function"?approvalSec(v):"",foot=ok||tm?"":folds;
   h+=statStrip([
     {key:"requested",label:"Bids requested",list:req,render:l=>bidTable(l,"vendor"),empty:"No open requests right now."},
     {key:"overdue",label:"Overdue",list:req.filter(b=>b.status==="requested"&&ageDays(b.requestedAt)>=REMIND_DAYS),render:l=>bidTable(l,"vendor"),empty:"Nothing overdue. Nice work."},
     {key:"sent",label:"Bids sent",list:mine.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"vendor"),empty:"No bids waiting on a decision."},
     {key:"accepted",label:"Bids accepted",list:mine.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"vendor"),empty:"No accepted bids yet."},...(typeof msgStat==="function"?msgStat():[])]);
-  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],["profile","Profile",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[])]);
+  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],...(tm?[]:[["profile","Profile",0]]),...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[])]);
   if(S.tab==="messages"&&typeof messagesView==="function")return h+messagesView();
   if(S.tab==="profile")return h+(ok?"":pre)+folds;
   const ob=S.openRequest&&mine.find(b=>b.id===S.openRequest);
@@ -1201,7 +1204,7 @@ function requestDetail(b){
   let h=`<article class="panel"><div class="dhead"><div style="min-width:0">
       <div class="eyebrow">${esc(b.category)} bid ${b.status==="requested"?'<span class="pill requested">Requested</span>':statusPill(b)} ${late?'<span class="pill late">Overdue</span>':""}</div>
       <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>${p.refCode?`<div class="small refline">Project ${esc(p.refCode)}</div>`:""}
-      <div class="facts"><span>${b.introducedBy==="auto"?"Matched by":"Introduced by"} <b>${b.introducedBy==="auto"?"Orbyt":"Ashleigh at Orbyt"}</b>, for ${esc(p.agent)}</span><span>Area <b>${esc(p.area)}</b></span>${p.sqft?`<span>Size <b>${Number(p.sqft).toLocaleString("en-US")} sq ft</b></span>`:""}<span>Requested <b>${esc(reqDate)}</b> (${ago(b.requestedAt)})</span><span>For a <b>${p.clientType==="Buyer"?"buyer move-in":p.clientType==="Both"?"listing and buyer":"listing"}</b></span></div></div>
+      ${typeof handledBy==="function"?handledBy(b):""}<div class="facts"><span>${b.introducedBy==="auto"?"Matched by":"Introduced by"} <b>${b.introducedBy==="auto"?"Orbyt":"Ashleigh at Orbyt"}</b>, for ${esc(p.agent)}</span><span>Area <b>${esc(p.area)}</b></span>${p.sqft?`<span>Size <b>${Number(p.sqft).toLocaleString("en-US")} sq ft</b></span>`:""}<span>Requested <b>${esc(reqDate)}</b> (${ago(b.requestedAt)})</span><span>For a <b>${p.clientType==="Buyer"?"buyer move-in":p.clientType==="Both"?"listing and buyer":"listing"}</b></span></div></div>
     <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>
     ${p.notes||(p.addedServices||{})[b.category]?.note?`<div class="reqsec"><h3>Notes from the agent</h3>${p.notes?`<p class="note" style="margin-top:8px">${esc(p.notes)}</p>`:""}${(p.addedServices||{})[b.category]?.note?`<p class="note" style="margin-top:8px"><span class="strong">About ${esc(b.category.toLowerCase())}:</span> ${esc(p.addedServices[b.category].note)}</p>`:""}</div>`:""}
     <div class="rgrid"><div class="reqsec"><h3>Timing on this home</h3>

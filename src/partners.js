@@ -85,7 +85,7 @@ async function partnerSignup(f,fd,email,pass,pass2,done,btn){
     [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[g("phone").replace(/\D/g,"").length<10,"Add a mobile phone number, with area code.","#su-phone"],
     [!svcs.length,"Pick what you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[!areas.length,"Pick at least one area you work in.","#su-area-0"],
     [!!pwProblem(pass),pwProblem(pass),"#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
-    [!g("legal"),"Add your legal business name.","#su-legal"],[!fd.get("btype"),"Choose your business type.","#su-btype"],[!g("title"),"Add your title.","#su-title"],
+    [!g("legal"),"Add your legal business name.","#su-legal"],[!g("title"),"Add your title.","#su-title"],
     [!fd.get("terms"),`Check the box to agree to the ${TERMS.partner.title}.`,"#su-terms"]];
   const hit=checks.find(c=>c[0]);
   if(hit){done(hit[1]);const el=f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}

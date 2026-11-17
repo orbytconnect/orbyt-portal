@@ -475,7 +475,7 @@ document.addEventListener("submit",async e=>{
         [V&&fd.get("closingwork")==="yes","Your work is part of closings, so it's listed in the closing partner directory instead. Tap Continue as a closing partner.","#su-cwgo"],
         [V&&fd.get("closingwork")==="some"&&g("cwnote").length<3,"Tell me which of your services are part of closings.","#su-cwnote"],
         [!!pwProblem(pass),pwProblem(pass),"#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
-        [V&&!g("legal"),"Add your legal business name.","#su-legal"],[V&&!fd.get("btype"),"Choose your business type.","#su-btype"],[V&&!g("title"),"Add your title.","#su-title"],
+        [V&&!g("legal"),"Add your legal business name.","#su-legal"],[V&&!g("title"),"Add your title.","#su-title"],
         [!fd.get("terms"),`Check the box to agree to the ${TERMS[m].title}.`,"#su-terms"],[false]];
       const hit=checks.find(c=>c[0]);
       if(hit){done(hit[1]);const el=hit[2]&&f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}
@@ -1484,8 +1484,7 @@ const suPerson=()=>`<div class="grid"><label class="field"><span>First name</spa
   <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label></div>
   <label class="field"><span>Email</span><input type="email" id="su-email" name="email" autocomplete="email" required></label>`;
 const suBiz=()=>`<div class="grid"><label class="field"><span>Legal entity name</span><input type="text" id="su-legal" name="legal" data-bizname required><small class="small">As it appears on your license or insurance</small></label>
-  <label class="field"><span>Business name agents see (optional)</span><input type="text" id="su-dba" name="dba" placeholder="Your DBA, if it's different"></label>
-  <label class="field"><span>Business type</span><select id="su-btype" name="btype"><option value="">Choose one</option>${BIZ_TYPES.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label></div><input type="hidden" id="su-company" name="company">`;
+  <label class="field"><span>Business name agents see (optional)</span><input type="text" id="su-dba" name="dba" placeholder="Your DBA, if it's different"></label></div><input type="hidden" id="su-company" name="company">`;
 // agreeing to the terms and confirming authority is one checkbox; the authority flag rides along with it
 const suAgree=kind=>`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink(kind)}${kind==="vendor"?", including the fee structure,":""} and I have authority to agree on behalf of <b class="bizname">[Legal business name]</b>.</span></label><input type="hidden" id="su-auth" name="authority" value="1">
   <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>

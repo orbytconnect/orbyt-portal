@@ -3431,15 +3431,15 @@ function signupView(m){
     <h1>${m==="agent"?"The right team for every listing":"More of the work you're good at"}</h1>
     <p class="small" style="margin:0">${m==="agent"?"Orbyt is free for agents. Tell me where you list and I'll start lining up vendors matched to your homes.":"I'll check your references and reach out before your first introduction."}</p>
     <form class="authform" data-proto="signup" data-kind="${m}" novalidate>
-      ${m==="agent"?`<div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
-        <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
-        <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
+      ${m==="agent"?`${suSec(1,"About you",`<div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" autocomplete="given-name" required></label>
+        <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" autocomplete="family-name" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
-        <label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label></div>
-      <div class="field"><span>Where do you list homes?</span>${ck("area",AREAS)}<label class="field" style="margin-top:8px"><span>Other areas (optional, separate with commas)</span><input type="text" id="su-otherarea" name="otherarea" placeholder="Anywhere not listed, like Temecula"></label></div>
-      <div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
-        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}
-      <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>`
+        <label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" autocomplete="organization" required></label></div>
+        <label class="field"><span>Email</span><input type="email" id="su-email" name="email" autocomplete="email" required></label>`)}
+      ${suSec(2,"Where you list homes",ck("area",AREAS)+suOtherArea())}
+      ${suSec(3,"Your login",`<div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
+        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}`)}
+      ${suSec(4,"Agree and join",`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>`)}`
       :`<div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> About 2 minutes. Then you'll go straight to your dashboard, where Get approved asks for your exact services, a few business details and 2 to 3 agent references. Every field is required unless it says optional.</div>
       ${suSec(1,"About you",suPerson())}
       ${suSec(2,"Your business",suBiz())}

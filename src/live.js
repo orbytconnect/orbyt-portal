@@ -340,7 +340,7 @@ function signupView(m){
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
         ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label>`:""}</div>
-      ${m==="vendor"?`<div class="field"><span>Services you offer</span><small class="small">Tick each kind of work you do, then the services you actually offer in it.</small>${svcPicker("vendor","su-svc")}</div>
+      ${m==="vendor"?`<div class="field"><span>Services you offer</span><small class="small">Pick each kind of work you do. You'll choose your exact services on your dashboard next.</small>${svcPicker("vendor","su-svc",[],[],null,true)}</div>
         <label class="field"><span>Request a category (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything you offer that isn't listed"></label>
         <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>
         <div class="field cwq" id="su-cw"><span>Is any of your work part of a home sale's closing?</span>
@@ -466,7 +466,7 @@ document.addEventListener("submit",async e=>{
     if(kindOf==="signup"&&f.dataset.kind==="partner"&&typeof partnerSignup==="function")return await partnerSignup(f,fd,email,pass,pass2,done,btn);
     if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
-      const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,""),tp=V?taxProblem(f):null;
+      const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,""),tp=null;
       // [problem, message, field to jump to]
       const checks=[[V&&!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
         [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[digits.length<10,"Add a mobile phone number, with area code.","#su-phone"],
@@ -1072,7 +1072,7 @@ function vendorFolds(v,mine){
   const prof=[];
   if(ok){const st=insState(v),[pl,pc]=INS_PILL[st.state];
     prof.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
-  {const sd=(v.serviceDetails||[]).length,need=vsv(v).filter(c=>taxSvcs("vendor",c).length&&!(v.serviceDetails||[]).some(x=>taxCatOf(x)===c)).length;
+  if(ok){const sd=(v.serviceDetails||[]).length,need=vsv(v).filter(c=>taxSvcs("vendor",c).length&&!(v.serviceDetails||[]).some(x=>taxCatOf(x)===c)).length;
     prof.push(fold("svcs","Your services",sd?`<span class="pill ${need?"late":"set"}">${sd} picked</span>`:'<span class="pill late">Pick yours</span>',need?"Pick the services you offer, so I can match you to the right jobs":"What you offer in each kind of work",svcEditCard(v,"vendor"),!sd))}
   const c=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf,v.overviewPdf].filter(Boolean).length;
   prof.push(fold("port","Business overview and portfolio",c?`<span class="pill set">${c} added</span>`:`<span class="pill late">Add your work</span>`,"Business overview, website, Instagram and your work",portfolioCard(v),false));
@@ -1285,9 +1285,10 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="promo
 const SETUP_FIELDS=[["years","years in business"],["team","team size"],["leadTime","typical lead time"],["references","agent references"]];
 // card: include "card on file" for closing partners (Ashleigh's view; the partner's own screen handles the card step itself)
 function setupMissing(v,card){if(!v)return[];
-  if((typeof isPartner==="function"&&isPartner(v))||v.kind==="closing")return[String(v.license||"").trim().length<3?"license number":"",!v.years?"years in business":"",
+  if((typeof isPartner==="function"&&isPartner(v))||v.kind==="closing")return[Array.isArray(v.serviceDetails)&&!v.serviceDetails.length?"specific services":"",String(v.license||"").trim().length<3?"license number":"",!v.years?"years in business":"",
     card&&typeof billingOn==="function"&&billingOn()&&typeof hasCard==="function"&&!hasCard(billingOf(v.id))?"card on file":""].filter(Boolean);
   const out=SETUP_FIELDS.filter(([k])=>k==="references"?String(v.references||"").trim().length<10:!v[k]).map(([,l])=>l);
+  if(Array.isArray(v.serviceDetails)&&!v.serviceDetails.length)out.push("specific services");
   if(v.services&&typeof insGroup==="function"&&insGroup(vsv(v))==="high"&&!((v.insurance||{}).path))out.push("certificate of insurance");
   return out}
 async function loadSetupV(uid){try{
@@ -1383,7 +1384,8 @@ document.addEventListener("click",e=>{const b=e.target.closest('[data-act="feeto
 function approvalSec(v){if(!v||v.approved!==false||kind()!=="vendor")return"";
   const cp=typeof isPartner==="function"&&isPartner(v),miss=setupMissing(v,true),pill=(ok,txt)=>`<span class="pill ${ok?"set":"late"}">${esc(txt)}</span>`;
   const sel=(id,label,list,val)=>`<label class="field"><span>${label}</span><select id="fs-${id}" name="${id}"><option value="">Choose one</option>${list.map(x=>`<option ${x===val?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`;
-  const rows=[];
+  const rows=[],sdOk=!miss.includes("specific services");
+  rows.push(fold("apsvc","Your services",pill(sdOk,sdOk?(v.serviceDetails||[]).length+" picked":"Needed"),"The exact services you offer in each kind of work",svcEditCard(v,cp?"partner":"vendor"),!sdOk));
   if(cp){const done=!miss.includes("license number")&&!miss.includes("years in business");
     rows.push(fold("apdet","License and business details",pill(done,done?"Added":"Needed"),"Your license or certification number and years in business",
       `<form class="form inner" data-form="finishpartner" novalidate>

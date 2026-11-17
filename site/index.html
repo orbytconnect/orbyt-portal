@@ -253,7 +253,10 @@ textarea{resize:vertical;min-height:64px}
 .fbar i{display:block;height:100%;background:var(--fc-exp)}
 @media (max-width:640px){.fstep{grid-template-columns:minmax(0,1fr) auto}.fstep .fbar{grid-column:1 / -1;grid-row:2}}
 .stat.static{cursor:default}
-.taxpick{display:grid;gap:10px}.taxsearch{width:100%}.taxlist{display:grid;gap:12px;max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface)}.taxgrp{display:grid;gap:4px}.taxcat{padding:4px 0}.taxhead{display:flex;gap:8px;align-items:flex-start;cursor:pointer}.taxsubs{margin:6px 0 4px 26px;display:grid;gap:6px}.tchips{display:flex;flex-wrap:wrap;gap:6px}.tchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:13px;cursor:pointer;background:var(--bg)}.tchip input{position:absolute;opacity:0;width:1px;height:1px}.tchip:has(input:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}.tchip:has(input:checked)::before{content:"✓"}.tchip:has(input:focus-visible){outline:2px solid var(--gold,#A8871F)}.tchip.hit{border-color:var(--gold,#A8871F)}.taxcat.on>.taxhead{color:var(--ink,#18314F)}
+.taxsubs[hidden],.taxcat[hidden],.taxgrp[hidden]{display:none!important}.taxhint{margin:-4px 0 0}
+.taxpick:not(.browse):not(.searching) .taxcat:not(.on){display:none}.taxpick:not(.browse):not(.searching) .taxgrp:not(:has(.taxcat.on)){display:none}
+.taxpick:not(.browse):not(.searching) .taxlist:not(:has(.taxcat.on)){display:none}
+.taxpick{display:grid;gap:10px}.taxsearch{width:100%}.taxlist{display:grid;gap:12px;max-height:520px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface)}.taxgrp{display:grid;gap:4px}.taxcat{padding:4px 0}.taxhead{display:flex;gap:8px;align-items:flex-start;cursor:pointer}.taxsubs{margin:6px 0 4px 26px;display:grid;gap:6px}.tchips{display:flex;flex-wrap:wrap;gap:6px}.tchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:13px;cursor:pointer;background:var(--bg)}.tchip input{position:absolute;opacity:0;width:1px;height:1px}.tchip:has(input:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}.tchip:has(input:checked)::before{content:"✓"}.tchip:has(input:focus-visible){outline:2px solid var(--gold,#A8871F)}.tchip.hit{border-color:var(--gold,#A8871F)}.taxcat.on>.taxhead{color:var(--ink,#18314F)}
 .aspects{border:0;padding:0;margin:0;display:grid;gap:6px}.aspect{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.aspl{font-size:14px}.stars.sm label{font-size:22px}.yesno{display:flex;gap:14px}.yesno label{display:flex;gap:6px;align-items:center;font-size:14px}
 .aspsum{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 10px;background:var(--surface);display:grid;gap:6px}.asprow{display:grid;grid-template-columns:150px 1fr 34px;align-items:center;gap:10px}.aspbar{height:6px;border-radius:99px;background:var(--line);overflow:hidden}.aspbar span{display:block;height:100%;background:var(--gold,#A8871F)}.revasp{margin:2px 0 4px}
 .seqfold{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:6px 0;background:var(--surface)}.seqfold>summary{cursor:pointer;list-style:none;line-height:1.5}.seqfold>summary::-webkit-details-marker{display:none}.seqfold>summary::before{content:"▸ ";color:var(--muted)}.seqfold[open]>summary::before{content:"▾ "}.seqfold .seq{margin-top:8px}
@@ -3054,22 +3057,26 @@ const taxCats=side=>Object.values(TAX[side]||{}).flatMap(d=>Object.keys(d));
 const taxSvcs=(side,cat)=>{for(const d of Object.values(TAX[side]||{}))if(d[cat])return d[cat];return[]};
 const taxCatOf=sub=>String(sub).split(": ")[0];
 // a category-first picker: tick a category, then tick the services you actually offer in it (none are pre-ticked)
-function svcPicker(side,pre,cats,subs,hint){cats=cats||[];subs=subs||[];let i=0;
+function svcPicker(side,pre,cats,subs,hint,catsOnly){cats=cats||[];subs=subs||[];let i=0;
   const groups=Object.entries(TAX[side]||{}).map(([disc,cs])=>`<div class="taxgrp"><div class="eyebrow">${esc(disc)}</div>${Object.entries(cs).map(([c,svcs])=>{const n=i++,on=cats.includes(c);
     return `<div class="taxcat ${on?"on":""}" data-tax="${esc((c+" "+svcs.join(" ")).toLowerCase())}"><label class="taxhead"><input type="checkbox" id="${pre}-${n}" name="svc" value="${esc(c)}" ${on?"checked":""}> <span class="strong">${esc(c)}</span>${hint&&hint[c]?`<span class="small"> · ${esc(hint[c])}</span>`:""}</label>
-      <div class="taxsubs" ${on?"":"hidden"}><span class="small">Which do you offer?</span><div class="tchips">${svcs.map((s,j)=>{const val=c+": "+s;return `<label class="tchip"><input type="checkbox" id="${pre}-${n}-${j}" name="sub" value="${esc(val)}" ${subs.includes(val)?"checked":""}><span>${esc(s)}</span></label>`}).join("")}</div></div></div>`}).join("")}</div>`).join("");
-  return `<div class="taxpick" data-side="${side}"><input type="search" class="taxsearch" placeholder="Search services, like move-out cleaning or drone photos" aria-label="Search services">
+      ${catsOnly?"":`<div class="taxsubs" ${on?"":"hidden"}><span class="small">Which do you offer?</span><div class="tchips">${svcs.map((s,j)=>{const val=c+": "+s;return `<label class="tchip"><input type="checkbox" id="${pre}-${n}-${j}" name="sub" value="${esc(val)}" ${subs.includes(val)?"checked":""}><span>${esc(s)}</span></label>`}).join("")}</div></div>`}</div>`}).join("")}</div>`).join("");
+  return `<div class="taxpick ${catsOnly?"catsonly":""}" data-side="${side}"><input type="search" class="taxsearch" placeholder="Start typing what you offer, like staging or move-out cleaning" aria-label="Search services" autocomplete="off">
+    <p class="small taxhint">${cats.length?"Your picks are below. Type to add more, or":catsOnly?"Type a few letters to find your kind of work, or":"Type a few letters to find your services, or"} <button class="linkbtn" type="button" data-act="taxbrowse">browse the full list</button>.</p>
     <div class="taxlist">${groups}</div><p class="small taxnone" hidden>Nothing matches. Ask for it under "Request a category" below.</p></div>`}
 // every ticked category needs at least one service under it
 function taxProblem(f){for(const box of f.querySelectorAll('.taxcat input[name="svc"]:checked')){const c=box.closest(".taxcat");
   if(!c.querySelector('input[name="sub"]:checked'))return{msg:`Pick at least one ${box.value.toLowerCase()} service you offer.`,el:c}}return null}
 document.addEventListener("change",e=>{const t=e.target;if(!t.matches||!t.matches('.taxcat input[name="svc"]'))return;const c=t.closest(".taxcat");c.classList.toggle("on",t.checked);
   const s=c.querySelector(".taxsubs");if(s)s.hidden=!t.checked;if(!t.checked)c.querySelectorAll('input[name="sub"]').forEach(x=>x.checked=false)});
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="taxbrowse"]');if(!b)return;e.preventDefault();e.stopPropagation();const pk=b.closest(".taxpick"),on=!pk.classList.contains("browse");
+  pk.classList.toggle("browse",on);b.textContent=on?"show just my picks":"browse the full list"},true);
 document.addEventListener("input",e=>{const t=e.target;if(!t.classList||!t.classList.contains("taxsearch"))return;const pk=t.closest(".taxpick"),q=t.value.trim().toLowerCase();let n=0;
+  pk.classList.toggle("searching",!!q);
   pk.querySelectorAll(".taxcat").forEach(c=>{const hit=!q||q.split(/\s+/).every(w=>c.dataset.tax.includes(w));c.hidden=!hit;if(hit)n++;
     c.querySelectorAll(".tchip").forEach(ch=>ch.classList.toggle("hit",!!q&&q.split(/\s+/).every(w=>ch.textContent.toLowerCase().includes(w))));
     if(q&&hit&&c.querySelector(".tchip.hit")){const s=c.querySelector(".taxsubs");if(s)s.hidden=false}else if(!c.querySelector('input[name="svc"]').checked){const s=c.querySelector(".taxsubs");if(s)s.hidden=true}});
-  pk.querySelectorAll(".taxgrp").forEach(g=>g.hidden=![...g.querySelectorAll(".taxcat")].some(c=>!c.hidden));pk.querySelector(".taxnone").hidden=n>0});
+  pk.querySelectorAll(".taxgrp").forEach(g=>g.hidden=!!q&&![...g.querySelectorAll(".taxcat")].some(c=>!c.hidden));pk.querySelector(".taxnone").hidden=!q||n>0});
 // ticking a service also ticks its category
 document.addEventListener("change",e=>{const t=e.target;if(!t.matches||!t.matches('.taxcat input[name="sub"]')||!t.checked)return;const c=t.closest(".taxcat"),box=c.querySelector('input[name="svc"]');
   if(!box.checked){box.checked=true;c.classList.add("on")}});
@@ -3418,7 +3425,7 @@ function signupView(m){
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
         ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label>`:""}</div>
-      ${m==="vendor"?`<div class="field"><span>Services you offer</span><small class="small">Tick each kind of work you do, then the services you actually offer in it.</small>${svcPicker("vendor","su-svc")}</div>
+      ${m==="vendor"?`<div class="field"><span>Services you offer</span><small class="small">Pick each kind of work you do. You'll choose your exact services on your dashboard next.</small>${svcPicker("vendor","su-svc",[],[],null,true)}</div>
         <label class="field"><span>Request a category (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything you offer that isn't listed"></label>
         <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>
         <div class="field cwq" id="su-cw"><span>Is any of your work part of a home sale's closing?</span>
@@ -3544,7 +3551,7 @@ document.addEventListener("submit",async e=>{
     if(kindOf==="signup"&&f.dataset.kind==="partner"&&typeof partnerSignup==="function")return await partnerSignup(f,fd,email,pass,pass2,done,btn);
     if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
-      const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,""),tp=V?taxProblem(f):null;
+      const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,""),tp=null;
       // [problem, message, field to jump to]
       const checks=[[V&&!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
         [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[digits.length<10,"Add a mobile phone number, with area code.","#su-phone"],
@@ -4150,7 +4157,7 @@ function vendorFolds(v,mine){
   const prof=[];
   if(ok){const st=insState(v),[pl,pc]=INS_PILL[st.state];
     prof.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
-  {const sd=(v.serviceDetails||[]).length,need=vsv(v).filter(c=>taxSvcs("vendor",c).length&&!(v.serviceDetails||[]).some(x=>taxCatOf(x)===c)).length;
+  if(ok){const sd=(v.serviceDetails||[]).length,need=vsv(v).filter(c=>taxSvcs("vendor",c).length&&!(v.serviceDetails||[]).some(x=>taxCatOf(x)===c)).length;
     prof.push(fold("svcs","Your services",sd?`<span class="pill ${need?"late":"set"}">${sd} picked</span>`:'<span class="pill late">Pick yours</span>',need?"Pick the services you offer, so I can match you to the right jobs":"What you offer in each kind of work",svcEditCard(v,"vendor"),!sd))}
   const c=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf,v.overviewPdf].filter(Boolean).length;
   prof.push(fold("port","Business overview and portfolio",c?`<span class="pill set">${c} added</span>`:`<span class="pill late">Add your work</span>`,"Business overview, website, Instagram and your work",portfolioCard(v),false));
@@ -4363,9 +4370,10 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="promo
 const SETUP_FIELDS=[["years","years in business"],["team","team size"],["leadTime","typical lead time"],["references","agent references"]];
 // card: include "card on file" for closing partners (Ashleigh's view; the partner's own screen handles the card step itself)
 function setupMissing(v,card){if(!v)return[];
-  if((typeof isPartner==="function"&&isPartner(v))||v.kind==="closing")return[String(v.license||"").trim().length<3?"license number":"",!v.years?"years in business":"",
+  if((typeof isPartner==="function"&&isPartner(v))||v.kind==="closing")return[Array.isArray(v.serviceDetails)&&!v.serviceDetails.length?"specific services":"",String(v.license||"").trim().length<3?"license number":"",!v.years?"years in business":"",
     card&&typeof billingOn==="function"&&billingOn()&&typeof hasCard==="function"&&!hasCard(billingOf(v.id))?"card on file":""].filter(Boolean);
   const out=SETUP_FIELDS.filter(([k])=>k==="references"?String(v.references||"").trim().length<10:!v[k]).map(([,l])=>l);
+  if(Array.isArray(v.serviceDetails)&&!v.serviceDetails.length)out.push("specific services");
   if(v.services&&typeof insGroup==="function"&&insGroup(vsv(v))==="high"&&!((v.insurance||{}).path))out.push("certificate of insurance");
   return out}
 async function loadSetupV(uid){try{
@@ -4461,7 +4469,8 @@ document.addEventListener("click",e=>{const b=e.target.closest('[data-act="feeto
 function approvalSec(v){if(!v||v.approved!==false||kind()!=="vendor")return"";
   const cp=typeof isPartner==="function"&&isPartner(v),miss=setupMissing(v,true),pill=(ok,txt)=>`<span class="pill ${ok?"set":"late"}">${esc(txt)}</span>`;
   const sel=(id,label,list,val)=>`<label class="field"><span>${label}</span><select id="fs-${id}" name="${id}"><option value="">Choose one</option>${list.map(x=>`<option ${x===val?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`;
-  const rows=[];
+  const rows=[],sdOk=!miss.includes("specific services");
+  rows.push(fold("apsvc","Your services",pill(sdOk,sdOk?(v.serviceDetails||[]).length+" picked":"Needed"),"The exact services you offer in each kind of work",svcEditCard(v,cp?"partner":"vendor"),!sdOk));
   if(cp){const done=!miss.includes("license number")&&!miss.includes("years in business");
     rows.push(fold("apdet","License and business details",pill(done,done?"Added":"Needed"),"Your license or certification number and years in business",
       `<form class="form inner" data-form="finishpartner" novalidate>
@@ -4831,7 +4840,7 @@ function partnerSignupView(){
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label></div>
-      <div class="field"><span>What do you offer?</span><small class="small">Tick your line of work, then the services you actually offer in it.</small>${svcPicker("partner","su-svc",[],[],CLOSING_HINT)}</div>
+      <div class="field"><span>What do you offer?</span><small class="small">Pick your line of work. You'll choose your exact services on your dashboard next.</small>${svcPicker("partner","su-svc",[],[],CLOSING_HINT,true)}</div>
       <div class="field"><span>Where do you work?</span>${ck("area",AREAS)}</div>
       <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>
       <div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
@@ -4847,7 +4856,7 @@ function partnerSignupView(){
       <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
     </form></div></section>`}
 async function partnerSignup(f,fd,email,pass,pass2,done,btn){
-  const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=fd.getAll("area").map(String),tp=taxProblem(f);
+  const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=fd.getAll("area").map(String),tp=null;
   const checks=[[!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
     [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[g("phone").replace(/\D/g,"").length<10,"Add a mobile phone number, with area code.","#su-phone"],
     [!svcs.length,"Pick what you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[!areas.length,"Pick at least one area you work in.","#su-area-0"],
@@ -4878,7 +4887,7 @@ function partnerView(v){
     live?`<span class="pill ${st.key==="due"||st.key==="canceled"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span>`:"",
     `${live&&typeof availToggle==="function"?availToggle(v):""}${partnerListing(v)}
      <p class="small" style="margin:10px 0 0">Your first ${LISTING_FREE_DAYS} days are free with our launch offer, then your marketing listing is $${LISTING_FEE} a month. ${billingOn()?"Cancel anytime from Manage billing.":"Cancel anytime by emailing ashleigh@orbytconnect.com."} It also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p>${live?billingBlock(v):""}`);
-  h+=`<details class="fold" data-fold="svcs" style="margin:12px 0" ${(v.serviceDetails||[]).length?"":"open"}><summary><span class="foldtitle">Your services</span>${(v.serviceDetails||[]).length?`<span class="pill set">${v.serviceDetails.length} picked</span>`:'<span class="pill late">Pick yours</span>'}<span class="small foldhint">What agents see you offer</span></summary><div class="foldbody">${svcEditCard(v,"partner")}</div></details>`;
+  if(live)h+=`<details class="fold" data-fold="svcs" style="margin:12px 0" ${(v.serviceDetails||[]).length?"":"open"}><summary><span class="foldtitle">Your services</span>${(v.serviceDetails||[]).length?`<span class="pill set">${v.serviceDetails.length} picked</span>`:'<span class="pill late">Pick yours</span>'}<span class="small foldhint">What agents see you offer</span></summary><div class="foldbody">${svcEditCard(v,"partner")}</div></details>`;
   h+=sec("port","2 · Your ad","Tell agents why to call you","This is your advertisement on your listing. Write it the way you'd pitch an agent over coffee.","",adCard(v));
   if(live){const sent=typeof rrFor==="function"?rrFor(v.id):[];
     h+=sec("myrev","3 · Reviews","What agents say about you","",myReviewsPill(v),

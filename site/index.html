@@ -3429,17 +3429,16 @@ function signupView(m){
   const sel=(id,label,list)=>`<label class="field"><span>${label}</span><select id="su-${id}" name="${id}"><option value="">Choose one</option>${list.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label>`;
   return `<section class="auth one"><div class="authcard"><div class="eyebrow">${m==="agent"?"For agents":"For vendor partners"}</div>
     <h1>${m==="agent"?"The right team for every listing":"More of the work you're good at"}</h1>
-    <p class="small" style="margin:0">${m==="agent"?"Orbyt is free for agents. Tell me where you list and I'll start lining up vendors matched to your homes.":"I'll check your references and reach out before your first introduction."}</p>
+    <p class="small" style="margin:0">${m==="agent"?"Orbyt is free for agents. Join in about a minute, then add a listing and I'll start lining up vendors matched to the home.":"I'll check your references and reach out before your first introduction."}</p>
     <form class="authform" data-proto="signup" data-kind="${m}" novalidate>
       ${m==="agent"?`${suSec(1,"About you",`<div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" autocomplete="given-name" required></label>
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" autocomplete="family-name" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
         <label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" autocomplete="organization" required></label></div>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" autocomplete="email" required></label>`)}
-      ${suSec(2,"Where you list homes",ck("area",AREAS)+suOtherArea())}
-      ${suSec(3,"Your login",`<div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
+      ${suSec(2,"Your login",`<div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}`)}
-      ${suSec(4,"Agree and join",`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>`)}`
+      ${suSec(3,"Agree and join",`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>`)}`
       :`<div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> About 2 minutes. Then you'll go straight to your dashboard, where Get approved asks for your exact services, a few business details and 2 to 3 agent references. Every field is required unless it says optional.</div>
       ${suSec(1,"About you",suPerson())}
       ${suSec(2,"Your business",suBiz())}
@@ -3569,7 +3568,7 @@ document.addEventListener("submit",async e=>{
       const checks=[[V&&!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
         [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[digits.length<10,"Add a mobile phone number, with area code.","#su-phone"],
         [!V&&!g("brokerage"),"Add your brokerage.","#su-brokerage"],
-        [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[!areas.length,V?"Pick or type at least one area you work in.":"Pick or type at least one area where you list homes.","#su-area-0"],
+        [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[V&&!areas.length,"Pick or type at least one area you work in.","#su-area-0"],
         [V&&!fd.get("closingwork"),"Tell me whether any of your work is part of a home sale's closing.","#su-cw-0"],
         [V&&fd.get("closingwork")==="yes","Your work is part of closings, so it's listed in the closing partner directory instead. Tap Continue as a closing partner.","#su-cwgo"],
         [V&&fd.get("closingwork")==="some"&&g("cwnote").length<3,"Tell me which of your services are part of closings.","#su-cwnote"],

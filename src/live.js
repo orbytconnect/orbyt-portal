@@ -332,36 +332,35 @@ function signupView(m){
     <h1>${m==="agent"?"The right team for every listing":"More of the work you're good at"}</h1>
     <p class="small" style="margin:0">${m==="agent"?"Orbyt is free for agents. Tell me where you list and I'll start lining up vendors matched to your homes.":"I'll check your references and reach out before your first introduction."}</p>
     <form class="authform" data-proto="signup" data-kind="${m}" novalidate>
-      ${m==="agent"?"":`<div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> It takes about 2 minutes. Then you'll go straight to your dashboard, where Get approved asks for a few business details and 2 to 3 agent references. Every field is required unless it says optional.</div>`}
-      ${m==="vendor"?`<div class="grid"><label class="field"><span>Legal entity name</span><input type="text" id="su-legal" name="legal" data-bizname required><small class="small">As it appears on your license or insurance</small></label>
-        <label class="field"><span>Business name agents see (optional)</span><input type="text" id="su-dba" name="dba" placeholder="Your DBA, if it's different"></label></div><input type="hidden" id="su-company" name="company">`:""}
-      <div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
+      ${m==="agent"?`<div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" required></label>
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
-        ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label>`:""}</div>
-      ${m==="vendor"?`<div class="field"><span>Services you offer</span><small class="small">Pick each kind of work you do. You'll choose your exact services on your dashboard next.</small>${svcPicker("vendor","su-svc",[],[],null,true)}</div>
+        <label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label></div>
+      <div class="field"><span>Where do you list homes?</span>${ck("area",AREAS)}</div>
+      <div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
+        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}
+      <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>`
+      :`<div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> About 2 minutes. Then you'll go straight to your dashboard, where Get approved asks for your exact services, a few business details and 2 to 3 agent references. Every field is required unless it says optional.</div>
+      ${suSec(1,"About you",suPerson())}
+      ${suSec(2,"Your business",suBiz())}
+      ${suSec(3,"Your work",`<small class="small">Pick each kind of work you do. You'll choose your exact services on your dashboard next.</small>${svcPicker("vendor","su-svc",[],[],null,true)}
         <label class="field"><span>Request a category (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything you offer that isn't listed"></label>
-        <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>
         <div class="field cwq" id="su-cw"><span>Is any of your work part of a home sale's closing?</span>
           <p class="small" style="margin:0 0 6px">For example: inspections or reports required by the purchase contract or the lender (home, termite, roof or sewer), appraisals, notary or signing services, or home warranties.</p>
           <div class="checks">${[["no","No"],["yes","Yes, that's my main business"],["some","Some of it"]].map(([v,l],i)=>`<label><input type="radio" id="su-cw-${i}" name="closingwork" value="${v}">${l}</label>`).join("")}</div>
           <div class="callout cwyes" id="su-cwyes" hidden><p class="small" style="margin:0 0 8px">Because your work is part of the closing, federal rules say Orbyt can't charge a fee per introduction. Instead, you'll get a marketing listing in the closing partner directory, where agents and their buyers can find you. Your details carry over.</p>
             <button class="btn sm" type="button" id="su-cwgo" data-act="cwswitch">Continue as a closing partner</button></div>
           <div id="su-cwsome" hidden><label class="field"><span>Which of your services are part of closings?</span><input type="text" id="su-cwnote" name="cwnote" maxlength="200" placeholder="Termite reports for escrow"></label>
-            <p class="small" style="margin:4px 0 0">Those jobs won't come through Orbyt introductions, so there's never a fee on them. You're welcome to list that work in the closing partner directory too.</p></div></div>`:""}
-      <div class="field"><span>${m==="agent"?"Where do you list homes?":"Where do you work?"}</span>${ck("area",AREAS)}</div>
-      ${m==="vendor"?`<label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>`:""}
-      <div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
-        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}
-      ${m==="vendor"?`<div class="reviewagree"><div class="eyebrow">Review and agree</div>
-        <p style="margin:0"><span class="strong">Orbyt is free to join.</span> You only pay a fee when an introduction turns into a paid job, and the client pays you directly, the same as always. <button class="linkbtn" type="button" data-act="feetoggle">See the fee structure</button></p>
-        <div id="su-fees" hidden>${signupFees()}${keyHighlights("vendor")}</div>
-        <h2>Your business</h2>${bizFieldsLite("su")}
-        <label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink("vendor")}, including the fee structure.</span></label>
-        ${authorityBox("su")}
-        <label class="checkrow top"><input type="checkbox" id="su-optout" name="optout"> <span class="small" style="font-weight:300">If you'd rather not receive Orbyt updates and announcements, tick this box.</span></label></div>`
-      :`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>`}
+            <p class="small" style="margin:4px 0 0">Those jobs won't come through Orbyt introductions, so there's never a fee on them. You're welcome to list that work in the closing partner directory too.</p></div></div>`)}
+      ${suSec(4,"Where you work",ck("area",AREAS))}
+      <div class="knowbox"><div class="eyebrow">Good to know before you join</div>
+        <div class="knowrow"><span class="knowico" aria-hidden="true">$</span><div><span class="strong">Fees.</span> Orbyt is free to join. You only pay a fee when an introduction turns into a paid job, and the client pays you directly, the same as always. <button class="linkbtn" type="button" data-act="feetoggle">See the fee structure</button>
+          <div id="su-fees" hidden>${signupFees()}${keyHighlights("vendor")}</div></div></div>
+        <div class="knowrow"><span class="knowico" aria-hidden="true">✓</span><div class="insnote" id="su-insnote" aria-live="polite"><span class="strong">Insurance.</span> Pick your kinds of work above to see what insurance you'll need.</div></div></div>
+      ${suSec(5,"Your login",`<div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
+        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}`)}
+      ${suSec(6,"Agree and join",suAgree("vendor"))}`}
       <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",portalHome()).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>${authMsg()}
       <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
     </form></div></section>`;
@@ -477,7 +476,7 @@ document.addEventListener("submit",async e=>{
         [V&&fd.get("closingwork")==="some"&&g("cwnote").length<3,"Tell me which of your services are part of closings.","#su-cwnote"],
         [!!pwProblem(pass),pwProblem(pass),"#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
         [V&&!g("legal"),"Add your legal business name.","#su-legal"],[V&&!fd.get("btype"),"Choose your business type.","#su-btype"],[V&&!g("title"),"Add your title.","#su-title"],
-        [!fd.get("terms"),`Check the box to agree to the ${TERMS[m].title}.`,"#su-terms"],[V&&!fd.get("authority"),"Check the box to confirm you have authority to agree for the business.","#su-auth"]];
+        [!fd.get("terms"),`Check the box to agree to the ${TERMS[m].title}.`,"#su-terms"],[false]];
       const hit=checks.find(c=>c[0]);
       if(hit){done(hit[1]);const el=hit[2]&&f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}
       const meta={ref:S.ref||"",role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
@@ -807,15 +806,15 @@ document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form=
 // sign-up: say what insurance their services need, as they pick them
 function signupInsNote(){const f=document.querySelector('form[data-proto="signup"][data-kind="vendor"]'),el=$("#su-insnote");if(!f||!el)return;
   const fd=new FormData(f),svcs=[...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(canon)],g=insGroup(svcs);
-  if(!svcs.length){el.hidden=true;return}const t=andList(insTrades(svcs,g).map(x=>x.toLowerCase()));
-  el.innerHTML=g==="high"?`<b>Insurance:</b> because you offer ${esc(t)}, Orbyt needs to be named as an additional insured on your liability insurance before your first introduction. After you're approved, I'll give you a ready-made email to send your insurance agent.`
-    :g==="mid"?`<b>Insurance:</b> because you offer ${esc(t)}, Orbyt needs to be named as an additional insured on your liability insurance within 30 days of approval. After you're approved, I'll give you a ready-made email to send your insurance agent.`
-    :`<b>Insurance:</b> after you're approved, you'll upload a certificate of your general liability insurance.`;el.hidden=false}
+  if(!svcs.length){el.innerHTML=`<span class="strong">Insurance.</span> Pick your kinds of work above to see what insurance you'll need.`;return}const t=andList(insTrades(svcs,g).map(x=>x.toLowerCase()));
+  el.innerHTML=g==="high"?`<span class="strong">Insurance.</span> Because you offer ${esc(t)}, Orbyt needs to be named as an additional insured on your liability insurance before your first introduction. After you're approved, I'll give you a ready-made email to send your insurance agent.`
+    :g==="mid"?`<span class="strong">Insurance.</span> Because you offer ${esc(t)}, Orbyt needs to be named as an additional insured on your liability insurance within 30 days of approval. After you're approved, I'll give you a ready-made email to send your insurance agent.`
+    :`<span class="strong">Insurance.</span> After you're approved, you'll upload a certificate of your general liability insurance.`;el.hidden=false}
 document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest('form[data-proto="signup"]'))signupInsNote();
   if(e.target.name==="closingwork"){const v=e.target.value,y=document.getElementById("su-cwyes"),so=document.getElementById("su-cwsome");if(y)y.hidden=v!=="yes";if(so)so.hidden=v!=="some"}});
 // "Yes, that's my main business": move to closing partner sign-up, keeping what they typed
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act="cwswitch"]');if(!b)return;e.preventDefault();e.stopPropagation();
-  const f=b.closest("form"),keep={};["legal","dba","company","first","last","email","phone","web"].forEach(k=>{const el=f.querySelector(`[name="${k}"]`);if(el)keep[k]=el.value});
+  const f=b.closest("form"),keep={};["legal","dba","company","btype","title","first","last","email","phone","web","heard"].forEach(k=>{const el=f.querySelector(`[name="${k}"]`);if(el)keep[k]=el.value});
   keep.areas=[...f.querySelectorAll('input[name="area"]:checked')].map(x=>x.value);
   S.authMode="partner";S.authErr="";render();window.scrollTo(0,0);
   const g=document.querySelector('form[data-kind="partner"]');if(!g)return;
@@ -1476,3 +1475,18 @@ document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form=
 function svcDetailLine(v){const sd=v.serviceDetails||[];if(!sd.length)return"";
   const by={};sd.forEach(x=>{const c=taxCatOf(x);(by[c]=by[c]||[]).push(x.slice(c.length+2))});
   return `<div class="svcdet">${Object.entries(by).map(([c,l])=>`<div class="small"><span class="strong">${esc(c)}:</span> ${esc(l.join(", "))}</div>`).join("")}</div>`}
+
+/* ---------- sign-up building blocks: numbered sections, one agreement box ---------- */
+const suSec=(n,title,body)=>`<fieldset class="susec"><legend class="suhead"><span class="sn num">${n}</span>${esc(title)}</legend>${body}</fieldset>`;
+const suPerson=()=>`<div class="grid"><label class="field"><span>First name</span><input type="text" id="su-first" name="first" autocomplete="given-name" required></label>
+  <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" autocomplete="family-name" required></label>
+  <label class="field"><span>Your title</span><input type="text" id="su-title" name="title" placeholder="Owner, manager, partner" autocomplete="organization-title"></label>
+  <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label></div>
+  <label class="field"><span>Email</span><input type="email" id="su-email" name="email" autocomplete="email" required></label>`;
+const suBiz=()=>`<div class="grid"><label class="field"><span>Legal entity name</span><input type="text" id="su-legal" name="legal" data-bizname required><small class="small">As it appears on your license or insurance</small></label>
+  <label class="field"><span>Business name agents see (optional)</span><input type="text" id="su-dba" name="dba" placeholder="Your DBA, if it's different"></label>
+  <label class="field"><span>Business type</span><select id="su-btype" name="btype"><option value="">Choose one</option>${BIZ_TYPES.map(x=>`<option>${esc(x)}</option>`).join("")}</select></label></div><input type="hidden" id="su-company" name="company">`;
+// agreeing to the terms and confirming authority is one checkbox; the authority flag rides along with it
+const suAgree=kind=>`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I've read and agree to the ${termsLink(kind)}${kind==="vendor"?", including the fee structure,":""} and I have authority to agree on behalf of <b class="bizname">[Legal business name]</b>.</span></label><input type="hidden" id="su-auth" name="authority" value="1">
+  <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>
+  <label class="checkrow top"><input type="checkbox" id="su-optout" name="optout"> <span class="small" style="font-weight:300">If you'd rather not receive Orbyt updates and announcements, tick this box.</span></label>`;

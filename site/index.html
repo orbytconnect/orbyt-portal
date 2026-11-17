@@ -70,7 +70,7 @@ a{color:var(--teal-text)}
 .brand .tag{font-size:14px;color:var(--muted);border-left:1px solid var(--line);padding-left:12px}
 .as{display:flex;align-items:center;gap:10px}
 .as label{font-size:11px;font-weight:300;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)}
-select,input[type=text],input[type=email],input[type=password],input[type=tel],input[type=url],input[type=number],input[type=date],textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:14px;min-width:0;width:100%}
+select,input[type=text],input[type=search],input[type=email],input[type=password],input[type=tel],input[type=url],input[type=number],input[type=date],textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:14px;min-width:0;width:100%}
 .as select{width:auto;max-width:62vw}
 textarea{resize:vertical;min-height:64px}
 
@@ -253,6 +253,9 @@ textarea{resize:vertical;min-height:64px}
 .fbar i{display:block;height:100%;background:var(--fc-exp)}
 @media (max-width:640px){.fstep{grid-template-columns:minmax(0,1fr) auto}.fstep .fbar{grid-column:1 / -1;grid-row:2}}
 .stat.static{cursor:default}
+.taxpick{display:grid;gap:10px}.taxsearch{width:100%}.taxlist{display:grid;gap:12px;max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface)}.taxgrp{display:grid;gap:4px}.taxcat{padding:4px 0}.taxhead{display:flex;gap:8px;align-items:flex-start;cursor:pointer}.taxsubs{margin:6px 0 4px 26px;display:grid;gap:6px}.tchips{display:flex;flex-wrap:wrap;gap:6px}.tchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:13px;cursor:pointer;background:var(--bg)}.tchip input{position:absolute;opacity:0;width:1px;height:1px}.tchip:has(input:checked){background:var(--ink);color:var(--bg);border-color:var(--ink)}.tchip:has(input:checked)::before{content:"✓"}.tchip:has(input:focus-visible){outline:2px solid var(--gold,#A8871F)}.tchip.hit{border-color:var(--gold,#A8871F)}.taxcat.on>.taxhead{color:var(--ink,#18314F)}
+.aspects{border:0;padding:0;margin:0;display:grid;gap:6px}.aspect{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.aspl{font-size:14px}.stars.sm label{font-size:22px}.yesno{display:flex;gap:14px}.yesno label{display:flex;gap:6px;align-items:center;font-size:14px}
+.aspsum{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 10px;background:var(--surface);display:grid;gap:6px}.asprow{display:grid;grid-template-columns:150px 1fr 34px;align-items:center;gap:10px}.aspbar{height:6px;border-radius:99px;background:var(--line);overflow:hidden}.aspbar span{display:block;height:100%;background:var(--gold,#A8871F)}.revasp{margin:2px 0 4px}
 .seqfold{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:6px 0;background:var(--surface)}.seqfold>summary{cursor:pointer;list-style:none;line-height:1.5}.seqfold>summary::-webkit-details-marker{display:none}.seqfold>summary::before{content:"▸ ";color:var(--muted)}.seqfold[open]>summary::before{content:"▾ "}.seqfold .seq{margin-top:8px}
 .stat.static:hover{background:none}
 .stat .small{display:block;margin-top:2px}
@@ -780,10 +783,11 @@ function promoCell(v){if(typeof isPartner==="function"&&isPartner(v))return type
     <div><button class="linkbtn" style="white-space:nowrap" data-act="feature" data-id="${esc(v.id)}">${on?"Add 30 days":"Mark offer paid"}</button></div>${on?`<div><button class="linkbtn" data-act="feature" data-mode="end" data-id="${esc(v.id)}">End offer</button></div>`:""}`}
 function featuredNow(v){if(!v||!v.featured)return false;if(!v.featuredUntil)return true;const t=new Date();const d=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");return v.featuredUntil>=d}
 // what agents see for a featured vendor: the label and the vendor's own offer
-function promoTag(vid){const v=typeof vid==="string"?vendorById(vid):vid;if(!featuredNow(v))return"";
+const promoFor=(v,cat)=>!cat||!(v.promoServices||[]).length||v.promoServices.includes(cat);
+function promoTag(vid,cat){const v=typeof vid==="string"?vendorById(vid):vid;if(!featuredNow(v)||!promoFor(v,cat))return"";
   return `<div class="promotag"><span class="pill featured">Special offer</span>${v.promoOffer?` <span class="small strong">${esc(v.promoOffer)}</span>`:""}</div>`}
 function offerBlock(v){if(!featuredNow(v)||!(v.promoOffer||v.promoDetails))return"";
-  return `<div class="callout offer" style="margin:0"><div class="eyebrow">Special offer for Orbyt clients${kind()==="orbyt"&&v.featuredUntil?" · until "+esc(fmtDate(v.featuredUntil)):""}</div>${v.promoOffer?`<div class="strong">${esc(v.promoOffer)}</div>`:""}${v.promoDetails?`<p class="small" style="margin:0">${esc(v.promoDetails)}</p>`:""}</div>`}
+  return `<div class="callout offer" style="margin:0"><div class="eyebrow">Special offer for Orbyt clients${kind()==="orbyt"&&v.featuredUntil?" · until "+esc(fmtDate(v.featuredUntil)):""}</div>${v.promoOffer?`<div class="strong">${esc(v.promoOffer)}</div>`:""}${v.promoDetails?`<p class="small" style="margin:0">${esc(v.promoDetails)}</p>`:""}${(v.promoServices||[]).length?`<p class="small" style="margin:0">For ${esc(v.promoServices.join(", ").toLowerCase())}</p>`:""}</div>`}
 function rating(vid){const rs=S.reviews.filter(r=>r.vendorId===vid&&r.approved);if(!rs.length)return null;return{avg:rs.reduce((s,r)=>s+r.rating,0)/rs.length,n:rs.length}}
 const ratingHtml=vid=>{const r=rating(vid);return r?`<span class="rating"><b>★ ${r.avg.toFixed(1)}</b> <span class="small">(${r.n})</span></span>`:`<span class="small">No reviews yet</span>`};
 
@@ -1029,10 +1033,10 @@ function vendorCard(v){
     <div class="vfacts"><div class="wide"><span class="eyebrow">Works in</span><div>${esc((v.areas||[]).join(", ")||"Not set")}</div></div>
       ${withYou!==null?`<div><span class="eyebrow">Jobs with you</span><div class="num">${withYou}</div></div>`:""}
       ${favBy!==null?`<div><span class="eyebrow">Agent favorite</span><div class="num">${favBy} ${favBy===1?"agent":"agents"}</div></div>`:""}</div>
-    ${offerBlock(v)}${kind()==="orbyt"?workBlock(v)+notesBlock(v)+pricingBlock(v)+formBlock(v):profileBlock(v)}
+    ${typeof svcDetailLine==="function"?svcDetailLine(v):""}${offerBlock(v)}${kind()==="orbyt"?workBlock(v)+notesBlock(v)+pricingBlock(v)+formBlock(v):profileBlock(v)}
     ${kind()==="orbyt"?(()=>{const mine=S.reviews.filter(r=>r.vendorId===v.id).sort((a,b)=>(a.approved?1:0)-(b.approved?1:0)||String(b.createdAt).localeCompare(String(a.createdAt)));
       return mine.length?`<div><span class="eyebrow">Reviews · approve or hide them here</span><div class="revlist" style="margin-top:6px">${mine.map(r=>revItem(r,false)).join("")}</div></div>`:""})()
-    :revs.length?`<div><span class="eyebrow">What agents say</span><div class="vrevs">${revs.map(r=>`<blockquote><span class="rating"><b>${"★".repeat(r.rating)}</b></span> ${esc(r.comment||"")}<div class="small">${esc(revWho(r))}, ${ago(r.createdAt)}${revSource(r)}</div></blockquote>`).join("")}</div></div>`:""}
+    :revs.length?`<div><span class="eyebrow">What agents say</span>${typeof aspectSummary==="function"?aspectSummary(v.id):""}<div class="vrevs">${revs.map(r=>`<blockquote><span class="rating"><b>${"★".repeat(r.rating)}</b></span> ${esc(r.comment||"")}${typeof revAspectLine==="function"?revAspectLine(r):""}<div class="small">${esc(revWho(r))}, ${ago(r.createdAt)}${revSource(r)}</div></blockquote>`).join("")}</div></div>`:""}
   </div>`;
 }
 const vnotes=id=>(S.vnotes[id]||{}).entries||[];
@@ -1161,7 +1165,7 @@ function upNext(agent,openN){
   const when=p.targetDate?`Lists ${fmtDate(p.targetDate)}${d!==null&&d>=0?` · ${d===0?"today":d+(d===1?" day":" days")+" away"}`:" · date passed"}`:"";
   let body="";
   if(n.kind==="compare"){const fd=n.bids.filter(b=>b.availableFrom),fast=fd.length>1?fd.map(b=>b.availableFrom).sort()[0]:null;
-    body=`<div class="unrows">${n.bids.map(b=>{const v=vendorById(b.vendorId);return `<div class="unrow"><div style="min-width:0"><span class="strong">${vLink(b)}</span> <span class="small">${v?ratingHtml(v.id):""}</span>${promoTag(b.vendorId)}${b.note?`<div class="small">${esc(b.note)}</div>`:""}</div>
+    body=`<div class="unrows">${n.bids.map(b=>{const v=vendorById(b.vendorId);return `<div class="unrow"><div style="min-width:0"><span class="strong">${vLink(b)}</span> <span class="small">${v?ratingHtml(v.id):""}</span>${promoTag(b.vendorId,b.category)}${b.note?`<div class="small">${esc(b.note)}</div>`:""}</div>
       <div class="num unamt">${money(b.amount)}<div class="small">${esc(timeline(b))}${fast!==null&&b.availableFrom===fast?" · soonest":""}</div></div>
       <div class="small">${b.pdfId?pdfLink(b):""}${vendorDocs(b.vendorId)?`<div>${vendorDocs(b.vendorId)}</div>`:""}</div>
       <div><button class="btn sm" data-act="select" data-id="${esc(b.id)}">Add to team</button></div></div>`}).join("")}</div>
@@ -2345,7 +2349,7 @@ function projectDetail(p,mode){
     const shown=bids;
     if(shown.length){
       h+=`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Bid</th><th>Timeline</th><th>Notes</th><th>PDF</th><th></th></tr></thead><tbody>${shown.map(b=>{const v=vendorById(b.vendorId);
-        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId)}${typeof lostTag==="function"?lostTag(b):""}${!isOrbyt&&typeof msgBtn==="function"&&b.vendorId&&msgOn()?`<div>${projMsgBtn(p.id,b.vendorId)}</div>`:""}
+        return `<tr class="${ONTEAM.includes(b.status)?"sel":b.status==="passed"||b.status==="declined"?"passedrow":""}"><td><span class="strong">${vLink(b)}</span><div class="small">${v?ratingHtml(v.id):"Not on the roster"}</div>${promoTag(b.vendorId,b.category)}${typeof lostTag==="function"?lostTag(b):""}${!isOrbyt&&typeof msgBtn==="function"&&b.vendorId&&msgOn()?`<div>${projMsgBtn(p.id,b.vendorId)}</div>`:""}
           ${b.introNote?`<div class="intronote">${b.introducedBy==="auto"?"":isOrbyt?"Your note: ":"From Ashleigh: "}“${esc(b.introNote)}”</div>`:""}
           ${b.availChecked&&b.status==="requested"?`<div class="small">${isOrbyt?"Availability checked":"Ashleigh confirmed they're available"}</div>`:""}</td>
         <td class="money">${b.status==="requested"?'<span class="small">Waiting</span>':money(b.amount)}</td>
@@ -2425,7 +2429,7 @@ function rosterView(){
   h+=reviewQueue();
   if(!all.length)return h+`<div class="emptystate"><h2>No vendors yet</h2><p>Add the painters, landscapers, photographers and cleaners you trust. Everyone here should be licensed and insured, and checked before they join.</p></div>`;
   const f=S.rf,q=f.q.trim().toLowerCase();
-  const vs=all.filter(v=>(!q||v.name.toLowerCase().includes(q)||(vPhone(v)+" "+vEmail(v)).toLowerCase().includes(q))&&(!f.cat||vsv(v).includes(f.cat))&&(!f.area||(v.areas||[]).includes(f.area))
+  const vs=all.filter(v=>(!q||v.name.toLowerCase().includes(q)||(vPhone(v)+" "+vEmail(v)+" "+vsv(v).join(" ")+" "+(v.serviceDetails||[]).join(" ")).toLowerCase().includes(q))&&(!f.cat||vsv(v).includes(f.cat))&&(!f.area||(v.areas||[]).includes(f.area))
     &&(!f.status||(f.status==="review"?v.approved===false:f.status==="setup"?v.approved===false&&setupMissing(v).length>0:f.status==="taking"?v.available!==false&&v.approved!==false:v.available===false))&&(!f.cred||(f.cred==="yes"?v.licensed&&v.insured:!(v.licensed&&v.insured)))
     &&(!f.promo||(f.promo==="featured"?featuredNow(v):!featuredNow(v)))&&(!f.rating||((rating(v.id)||{avg:0}).avg>=Number(f.rating)))
     &&(!f.price||(f.price==="none"?!(priceStats(v.id)||{}).tier:(priceStats(v.id)||{}).tier===f.price)));
@@ -2458,7 +2462,7 @@ function rosterView(){
 function revItem(r,showVendor){const p=projById(r.projectId);const v=vendorById(r.vendorId);
   return `<div class="rev"><div class="top"><div>${showVendor?`<button class="vlink strong" data-act="vcard" data-id="${esc(r.vendorId)}">${esc(v?v.name:"Vendor")}</button> `:""}<span class="rating"><b>${"★".repeat(r.rating)}</b><span class="small">${"★".repeat(5-r.rating)}</span></span>${revSource(r)}</div>
     ${r.approved?`<span class="pill set">Showing</span>`:`<span class="pill comparing">Needs approval</span>`}</div>
-    ${r.comment?`<div>${esc(r.comment)}</div>`:""}<div class="small">${esc(revWho(r))}${p?" · "+esc(p.address):""} · ${ago(r.createdAt)}</div>
+    ${r.comment?`<div>${esc(r.comment)}</div>`:""}${typeof revAspectLine==="function"?revAspectLine(r):""}<div class="small">${esc(revWho(r))}${p?" · "+esc(p.address):""} · ${ago(r.createdAt)}</div>
     ${S.canWrite?`<div class="actions">${r.approved?`<button class="btn ghost sm" data-act="approve" data-id="${esc(r.id)}" data-v="0">Hide</button>`:`<button class="btn sm" data-act="approve" data-id="${esc(r.id)}" data-v="1">Approve</button>`}</div>`:""}</div>`}
 function reviewQueue(){
   const pend=S.reviews.filter(r=>!r.approved).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
@@ -2541,11 +2545,13 @@ function reviewStrip(agent){
         ${open?"":`<div class="quickstars" role="group" aria-label="Rate ${esc(bidName(b))}">${[1,2,3,4,5].map(n=>`<button type="button" data-act="quickrate" data-id="${esc(b.id)}" data-n="${n}" aria-label="${n} star${n>1?"s":""}">★</button>`).join("")}</div>`}</div>
         ${open?reviewForm(b,S.preRating):`<button class="linkbtn" data-act="snoozereview" data-id="${esc(b.id)}">Remind me in ${SNOOZE_DAYS} days</button>`}</div>`}).join("")}</div></section>`;
 }
+let RF_N=0;
 function reviewForm(b,pre){
-  const id=esc(b.id);
+  const id=esc(b.id),u=id+"-"+(++RF_N);
   return `<form class="form" data-form="review" data-id="${id}" style="margin-top:4px">
-    <fieldset><legend class="legend">Rating for ${esc(bidName(b))}</legend><div class="stars">${[5,4,3,2,1].map(n=>`<input type="radio" id="rv-${id}-${n}" name="rating" value="${n}" required ${pre===n?"checked":""}><label for="rv-${id}-${n}" title="${n} star${n>1?"s":""}">★</label>`).join("")}</div></fieldset>
-    <label class="field"><span>What should other agents know?</span><textarea id="rv-c-${id}" name="comment" placeholder="On time, easy to work with, the seller loved the result"></textarea></label>
+    <fieldset><legend class="legend">Rating for ${esc(bidName(b))}</legend><div class="stars">${[5,4,3,2,1].map(n=>`<input type="radio" id="rv-${u}-${n}" name="rating" value="${n}" required ${pre===n?"checked":""}><label for="rv-${u}-${n}" title="${n} star${n>1?"s":""}">★</label>`).join("")}</div></fieldset>
+    ${typeof aspectFields==="function"?aspectFields("rv-"+u):""}
+    <label class="field"><span>What should other agents know?</span><textarea id="rv-c-${u}" name="comment" placeholder="On time, easy to work with, the seller loved the result"></textarea></label>
     <div class="actions"><button class="btn" type="submit">Send review</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></form>`;
 }
 function vendorForm(){
@@ -2861,7 +2867,9 @@ document.addEventListener("submit",e=>{
     guard(async()=>{await col("bids").doc(b.id).update({status:"declined",declinedAt:now(),declineReason:rs,declineStage:f.dataset.stage||"chosen",declineNote:[rs==="Other"?"":rs,nt].filter(Boolean).join(". ")});
     if(f.dataset.stage!=="request")for(const o of bidsFor(b.projectId,b.category))if(o.status==="passed")await col("bids").doc(o.id).update({status:"submitted"});S.openForm=null},f.dataset.stage==="request"?"Thanks for letting Ashleigh know. It's off your list.":"Thanks for letting them know.")}
   else if(k==="review"){const b=S.bids.find(x=>x.id===f.dataset.id);const p=b&&projById(b.projectId);if(!b)return;
-    guard(async()=>{await col("reviews").add({vendorId:b.vendorId,projectId:b.projectId,bidId:b.id,agent:p?p.agent:"",rating:Number(fd.get("rating")),comment:(fd.get("comment")||"").trim(),approved:false,createdAt:now()});S.openForm=null},
+    const sc=typeof aspectScores==="function"?aspectScores(fd):{ok:true};
+    if(!sc.ok){toast("Rate each of the four areas, and say whether you'd hire them again.");return}
+    guard(async()=>{await col("reviews").add({vendorId:b.vendorId,projectId:b.projectId,bidId:b.id,agent:p?p.agent:"",rating:Number(fd.get("rating")),comment:(fd.get("comment")||"").trim(),scores:sc.scores,again:sc.again,approved:false,createdAt:now()});S.openForm=null},
       "Thanks! Your review shows on their profile once Ashleigh approves it.");S.preRating=0}
 });
 
@@ -3040,6 +3048,34 @@ document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form=
   if(defaultTeamOf(agent).some(m=>String(m.email).toLowerCase()===email)){toast("They're already on your list.");return}
   S.openForm=null;saveTeam(agent,[...defaultTeamOf(agent),{name,email,role:String(fd.get("role")),notify:!!fd.get("notify")}],"Every new project you start will be shared with "+name+".")},true);
 
+/* the 3-level service list: discipline > category > service. Generated from the Orbyt service list sheet. */
+const TAX={"vendor": {"Design and staging": {"Staging": ["Vacant staging","Occupied staging (styling the seller's furniture)","Partial staging (key rooms)","Staging consultation","Virtual staging","Accessories and styling only"],"Organizing": ["Decluttering before listing","Packing and pre-move organizing","Closets, kitchens, pantries and garages","Unpacking and move-in setup","Post-renovation reset","Downsizing and estate support"],"Interior design": ["Full-room design","Furniture and decor sourcing","Paint and finish selections","Lighting and fixture selections"],"Window treatments": ["Blinds and shades","Curtains and drapery","Shutters","Motorized shades"]},"Media and marketing": {"Photography": ["Listing photos","Twilight photos","Drone and aerial photos","Detail and lifestyle photos","Photo editing (virtual twilight, item removal)"],"Video": ["Walkthrough video","Social media reels","Drone video","Agent intro and branding video"],"3D tours and floor plans": ["3D virtual tour","2D floor plan","Square footage measurement"],"Signage": ["Yard sign and post install","Rider signs","Open house signs","Sign removal"]},"Cleaning": {"Cleaning": ["Deep clean before listing","Move-out or move-in clean","Recurring clean while listed","Post-construction clean","Inside appliances"],"Carpet cleaning": ["Carpet steam cleaning","Upholstery cleaning","Area rug cleaning","Stain and odor treatment"],"Window cleaning": ["Interior and exterior windows","Screens and tracks","Skylights","Hard water stain removal"],"Pressure washing": ["Driveways and walkways","House wash","Decks and patios","Roof soft wash"],"Gutter cleaning": ["Gutter and downspout cleaning","Gutter guard install","Minor gutter repair"],"Solar panel cleaning": ["Panel cleaning","Bird-proofing"],"Junk removal": ["Full-house cleanout","Furniture and appliance haul-away","Yard debris removal","Donation drop-off"]},"Exterior and outdoor": {"Landscaping": ["Yard cleanup","Mow, edge and trim","Mulch and planting refresh","Seasonal color for curb appeal","Sod install","Irrigation repair"],"Landscape design": ["Design plan","Hardscape design","Drought-tolerant redesign"],"Tree service": ["Trimming and pruning","Palm trimming","Tree removal","Stump grinding"],"Fencing": ["Fence repair","New fence","Gate repair","Fence staining"],"Concrete": ["Driveway and walkway repair","Crack sealing","Patio install","Stamped or decorative concrete"],"Pool services": ["Pool and spa cleaning","Green-to-clean","Equipment repair","Recurring pool service"],"Roofing": ["Roof repair","Leak repair","Roof tune-up","Roof replacement"]},"Repairs and renovation": {"Handyman": ["Punch list repairs","Fixture and hardware swaps","Caulking and grout","Door and cabinet adjustments","Wall patching after move-out"],"Painting": ["Interior painting","Exterior painting","Cabinet painting","Touch-ups and trim","Color consultation","Wallpaper removal"],"Drywall": ["Patch and repair","Texture matching","Popcorn ceiling removal","Water damage repair"],"Flooring": ["Hardwood refinishing","LVP and laminate install","Carpet install","Tile install and repair"],"General contractor / remodeling": ["Kitchen refresh","Bathroom refresh","Full remodel","Repairs from inspection reports","Permits"],"Garage doors": ["Garage door repair","Spring and cable replacement","Opener install","New garage door"],"Appliance repair": ["Appliance repair","Appliance install","Replacement sourcing"],"Carpentry": ["Finish carpentry and trim","Built-ins","Door install","Deck repair"],"Windows and doors": ["Window replacement","Door replacement","Sliding door repair","Screen repair"],"Countertops and cabinets": ["Countertop install","Cabinet refacing","Hardware upgrades"],"Restoration": ["Water damage restoration","Mold remediation","Fire and smoke cleanup"]},"Home systems": {"Plumbing": ["Leak repair","Fixture replacement","Water heater repair or replacement","Drain cleaning","Sewer line repair","Water softener and filtration"],"Electric": ["Light fixture and fan install","Outlet and GFCI updates","Smoke and CO detector install","Landscape lighting","Panel upgrade","EV charger install"],"HVAC": ["Tune-up and service","HVAC repair","System replacement","Duct cleaning"],"Pest control": ["Ant and general pest treatment","Rodent control","Bee and wasp removal","Ongoing service"],"Locksmith": ["Rekey at move-in","Lock replacement","Smart lock install","Lockout service"],"Smart home and security": ["Security system install","Cameras and video doorbells","Smart thermostats","Wi-Fi and network setup"],"Septic": ["Septic pumping","Septic repair"],"Chimney": ["Chimney sweep","Chimney repair"]},"Home care and concierge": {"Personal concierge": ["Errands","Appointment and vendor coordination","Utility and service setup","Move-day logistics"],"Home watch": ["Vacation home checks","Arrival prep and stocking","Storm and leak checks","Key holding and vendor access"]},"Moving and storage": {"Moving": ["Local move","Long-distance move","Packing","Furniture moves for staging","Piano and specialty items"],"Storage": ["Portable storage container","Short-term storage"],"Estate sales": ["Estate sale management","Senior move management","Consignment and donation coordination"]}},"partner": {"Financing": {"Lender": ["Conventional loans","FHA loans","VA loans","Jumbo loans","Non-QM and bank statement loans","First-time buyer programs","Pre-approval","Refinance","HELOC","Bridge loans","Reverse mortgages"]},"Title and escrow": {"Title": ["Owner's title policy","Lender's title policy","Preliminary title report","Title clearing (liens, probate, estates)"],"Escrow": ["Purchase escrow","Refinance escrow","Short sale and REO escrow","Repair holdbacks","Mobile or remote signing"],"1031 exchange": ["Qualified intermediary","Reverse exchange","Exchange coordination"]},"Insurance and warranty": {"Homeowners insurance": ["Homeowners (HO-3)","Condo (HO-6)","Landlord and rental","Wildfire-area coverage","Flood","Earthquake","Umbrella"],"Home warranty": ["Buyer's plan","Seller coverage while listed","Add-ons (pool, spa, roof leak)"]},"Inspections and appraisal": {"Home inspection": ["Buyer's home inspection","Pre-listing inspection","Condo inspection","New construction inspection"],"Termite inspection": ["Wood-destroying pest report (Section 1 and 2)","Termite treatment and fumigation","Wood repair from the report"],"Specialty inspection": ["Sewer scope","Roof inspection and certification","Chimney inspection","Pool and spa inspection","Mold and air quality","Foundation and structural","Septic inspection"],"Appraisal": ["Pre-listing appraisal","Estate and date-of-death appraisal","Divorce appraisal","Appraisal review"]},"Closing logistics": {"Notary / signing agent": ["Loan signing","Mobile notary","Remote online notary (RON)","Power of attorney notarization"],"Transaction coordinator": ["Listing-side coordination","Buyer-side coordination","Disclosure package prep","Contract-to-close management"],"Disclosure reports": ["Natural hazard disclosure (NHD) report","HOA document ordering","Property tax and assessment reports"]}}};
+const taxCats=side=>Object.values(TAX[side]||{}).flatMap(d=>Object.keys(d));
+const taxSvcs=(side,cat)=>{for(const d of Object.values(TAX[side]||{}))if(d[cat])return d[cat];return[]};
+const taxCatOf=sub=>String(sub).split(": ")[0];
+// a category-first picker: tick a category, then tick the services you actually offer in it (none are pre-ticked)
+function svcPicker(side,pre,cats,subs,hint){cats=cats||[];subs=subs||[];let i=0;
+  const groups=Object.entries(TAX[side]||{}).map(([disc,cs])=>`<div class="taxgrp"><div class="eyebrow">${esc(disc)}</div>${Object.entries(cs).map(([c,svcs])=>{const n=i++,on=cats.includes(c);
+    return `<div class="taxcat ${on?"on":""}" data-tax="${esc((c+" "+svcs.join(" ")).toLowerCase())}"><label class="taxhead"><input type="checkbox" id="${pre}-${n}" name="svc" value="${esc(c)}" ${on?"checked":""}> <span class="strong">${esc(c)}</span>${hint&&hint[c]?`<span class="small"> · ${esc(hint[c])}</span>`:""}</label>
+      <div class="taxsubs" ${on?"":"hidden"}><span class="small">Which do you offer?</span><div class="tchips">${svcs.map((s,j)=>{const val=c+": "+s;return `<label class="tchip"><input type="checkbox" id="${pre}-${n}-${j}" name="sub" value="${esc(val)}" ${subs.includes(val)?"checked":""}><span>${esc(s)}</span></label>`}).join("")}</div></div></div>`}).join("")}</div>`).join("");
+  return `<div class="taxpick" data-side="${side}"><input type="search" class="taxsearch" placeholder="Search services, like move-out cleaning or drone photos" aria-label="Search services">
+    <div class="taxlist">${groups}</div><p class="small taxnone" hidden>Nothing matches. Ask for it under "Request a category" below.</p></div>`}
+// every ticked category needs at least one service under it
+function taxProblem(f){for(const box of f.querySelectorAll('.taxcat input[name="svc"]:checked')){const c=box.closest(".taxcat");
+  if(!c.querySelector('input[name="sub"]:checked'))return{msg:`Pick at least one ${box.value.toLowerCase()} service you offer.`,el:c}}return null}
+document.addEventListener("change",e=>{const t=e.target;if(!t.matches||!t.matches('.taxcat input[name="svc"]'))return;const c=t.closest(".taxcat");c.classList.toggle("on",t.checked);
+  const s=c.querySelector(".taxsubs");if(s)s.hidden=!t.checked;if(!t.checked)c.querySelectorAll('input[name="sub"]').forEach(x=>x.checked=false)});
+document.addEventListener("input",e=>{const t=e.target;if(!t.classList||!t.classList.contains("taxsearch"))return;const pk=t.closest(".taxpick"),q=t.value.trim().toLowerCase();let n=0;
+  pk.querySelectorAll(".taxcat").forEach(c=>{const hit=!q||q.split(/\s+/).every(w=>c.dataset.tax.includes(w));c.hidden=!hit;if(hit)n++;
+    c.querySelectorAll(".tchip").forEach(ch=>ch.classList.toggle("hit",!!q&&q.split(/\s+/).every(w=>ch.textContent.toLowerCase().includes(w))));
+    if(q&&hit&&c.querySelector(".tchip.hit")){const s=c.querySelector(".taxsubs");if(s)s.hidden=false}else if(!c.querySelector('input[name="svc"]').checked){const s=c.querySelector(".taxsubs");if(s)s.hidden=true}});
+  pk.querySelectorAll(".taxgrp").forEach(g=>g.hidden=![...g.querySelectorAll(".taxcat")].some(c=>!c.hidden));pk.querySelector(".taxnone").hidden=n>0});
+// ticking a service also ticks its category
+document.addEventListener("change",e=>{const t=e.target;if(!t.matches||!t.matches('.taxcat input[name="sub"]')||!t.checked)return;const c=t.closest(".taxcat"),box=c.querySelector('input[name="svc"]');
+  if(!box.checked){box.checked=true;c.classList.add("on")}});
+// newer categories from the service list, so agents can ask for them on a project
+try{for(const c of taxCats("vendor"))if(!CATS.includes(c)&&!MORE_SERVICES.includes(c))MORE_SERVICES.push(c)}catch(_){}
+
 /* =====================================================================
    Orbyt portal: live data layer (Supabase)
    The screens talk to S.db the same way they did in the prototype.
@@ -3082,7 +3118,7 @@ function appVendors(){const A=byKey(D.vendor_admin,"vendor_id"),P=byKey(D.vendor
     return{id:v.id,userId:v.user_id,name:v.name,contactName:v.contact_name||"",email:v.email||"",phone:v.phone||"",web:v.website||"",
       services:v.services||[],category:(v.services||[])[0]||"",areas:normAreas(v.areas||[]),areaNote:v.area_note||"",years:v.years_in_business||"",
       team:v.team_size||"",leadTime:v.lead_time||"",worksWithAgents:v.works_with_agents||"",portfolioUrl:v.portfolio_url||"",
-      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",kind:v.kind||"vendor",license:v.license_number||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",listingPaidThrough:a.listing_paid_through||"",overviewPdfName:v.overview_pdf_name||"",adHeadline:v.ad_headline||"",adBody:v.ad_body||"",adImage:v.ad_image||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
+      photoIds:(v.photo_paths||[]).map(x=>"vendor-photos:"+x),instagram:v.instagram||"",portfolioPdf:v.portfolio_pdf?"vendor-photos:"+v.portfolio_pdf:"",portfolioPdfPath:v.portfolio_pdf||"",overviewPdf:v.overview_pdf||"",promoServices:v.promo_services||[],serviceDetails:v.service_details||[],kind:v.kind||"vendor",license:v.license_number||"",promoOffer:v.promo_offer||"",promoDetails:v.promo_details||"",promoRequestedAt:v.promo_requested_at||"",featuredUntil:a.featured_until||"",listingPaidThrough:a.listing_paid_through||"",overviewPdfName:v.overview_pdf_name||"",adHeadline:v.ad_headline||"",adBody:v.ad_body||"",adImage:v.ad_image||"",portfolioPdfName:v.portfolio_pdf_name||"",available:v.available!==false,source:v.source||"",createdAt:v.created_at,
       approved:a.vendor_id?!!a.approved:(kind()==="orbyt"?false:true),featured:!!a.featured,licensed:!!a.licensed,insured:!!a.insured,repeatJobs:a.repeat_jobs||0,approvedAt:a.approved_at,
       pricing:p.pricing||{},references:p.references_text||"",heard:p.heard_about||"",signupNotes:p.signup_notes||"",promoInterest:p.promo_interest||"",coiIds:coi,coiId:coi[0]||"",coiUrl:p.coi_url||"",insurance:p.insurance||{},insPaths:p.insurance_paths||[],
       legalName:p.legal_name||"",dba:p.dba||"",businessType:p.business_type||"",signerTitle:p.signer_title||"",marketingOptOut:!!p.marketing_opt_out,
@@ -3110,7 +3146,7 @@ function appBids(){const INV=byKey(D.invoices,"bid_id");
     return o})}
 function appReviews(){return(D.reviews||[]).map(r=>({id:r.id,bidId:r.bid_id,vendorId:r.vendor_id,projectId:r.project_id,agent:r.agent_name||"",agentId:r.agent_id,
   rating:r.rating,comment:r.comment||"",approved:!!r.approved,createdAt:r.created_at,source:r.source||"booked",brokerage:r.reviewer_brokerage||"",
-  reviewerEmail:r.reviewer_email||"",workWhen:r.work_when||""}))}
+  reviewerEmail:r.reviewer_email||"",workWhen:r.work_when||"",scores:r.scores||null,again:r.book_again==null?null:!!r.book_again}))}
 const settingVal=k=>((D.settings||[]).find(x=>x.key===k)||{}).value;
 function myAgentName(){return S.me?(S.me.full_name||S.me.email):""}
 function appCollection(n){
@@ -3250,7 +3286,7 @@ async function write(c,id,op,d){
   }
   if(c==="reviews"){
     if(op==="add"){const r=await sb.from("reviews").insert({bid_id:d.bidId,vendor_id:d.vendorId,project_id:d.projectId,agent_id:kind()==="agent"?S.uid:null,
-      agent_name:d.agent||myAgentName(),rating:d.rating,comment:d.comment||null,approved:kind()==="orbyt"?!!d.approved:false}).select("id").single();fail(r.error,"review");return r.data.id}
+      agent_name:d.agent||myAgentName(),rating:d.rating,comment:d.comment||null,scores:d.scores||null,book_again:d.again==null?null:!!d.again,approved:kind()==="orbyt"?!!d.approved:false}).select("id").single();fail(r.error,"review");return r.data.id}
     if(op==="delete"){fail((await sb.from("reviews").delete().eq("id",id)).error,"review");return}
     fail((await sb.from("reviews").update({approved:!!d.approved}).eq("id",id)).error,"review");return id;
   }
@@ -3382,8 +3418,8 @@ function signupView(m){
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label>
         ${m==="agent"?`<label class="field"><span>Brokerage</span><input type="text" id="su-brokerage" name="brokerage" required></label>`:""}</div>
-      ${m==="vendor"?`<div class="field"><span>Services you offer</span>${ck("svc",CATS)}${moreChecks("svc","su-ms")}</div>
-        <label class="field"><span>Anything else? (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything not listed above"></label>
+      ${m==="vendor"?`<div class="field"><span>Services you offer</span><small class="small">Tick each kind of work you do, then the services you actually offer in it.</small>${svcPicker("vendor","su-svc")}</div>
+        <label class="field"><span>Request a category (optional, separate with commas)</span><input type="text" id="su-othersvc" name="othersvc" placeholder="Anything you offer that isn't listed"></label>
         <p class="small insnote" id="su-insnote" aria-live="polite" hidden></p>
         <div class="field cwq" id="su-cw"><span>Is any of your work part of a home sale's closing?</span>
           <p class="small" style="margin:0 0 6px">For example: inspections or reports required by the purchase contract or the lender (home, termite, roof or sewer), appraisals, notary or signing services, or home warranties.</p>
@@ -3508,12 +3544,12 @@ document.addEventListener("submit",async e=>{
     if(kindOf==="signup"&&f.dataset.kind==="partner"&&typeof partnerSignup==="function")return await partnerSignup(f,fd,email,pass,pass2,done,btn);
     if(kindOf==="signup"){const m=f.dataset.kind,first=String(fd.get("first")||"").trim(),last=String(fd.get("last")||"").trim(),areas=fd.getAll("area");
       const svcs=[...new Set([...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>x.charAt(0).toUpperCase()+x.slice(1))])];
-      const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,"");
+      const g=k=>String(fd.get(k)||"").trim(),V=m==="vendor",digits=g("phone").replace(/\D/g,""),tp=V?taxProblem(f):null;
       // [problem, message, field to jump to]
       const checks=[[V&&!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
         [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[digits.length<10,"Add a mobile phone number, with area code.","#su-phone"],
         [!V&&!g("brokerage"),"Add your brokerage.","#su-brokerage"],
-        [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!areas.length,V?"Pick at least one area you work in.":"Pick at least one area where you list homes.","#su-area-0"],
+        [V&&!svcs.length,"Pick or type at least one service you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[!areas.length,V?"Pick at least one area you work in.":"Pick at least one area where you list homes.","#su-area-0"],
         [V&&!fd.get("closingwork"),"Tell me whether any of your work is part of a home sale's closing.","#su-cw-0"],
         [V&&fd.get("closingwork")==="yes","Your work is part of closings, so it's listed in the closing partner directory instead. Tap Continue as a closing partner.","#su-cwgo"],
         [V&&fd.get("closingwork")==="some"&&g("cwnote").length<3,"Tell me which of your services are part of closings.","#su-cwnote"],
@@ -3524,7 +3560,7 @@ document.addEventListener("submit",async e=>{
       if(hit){done(hit[1]);const el=hit[2]&&f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}
       const meta={ref:S.ref||"",role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();
-      else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),services:svcs,heard_about:String(fd.get("heard")||"").trim(),
+      else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),services:svcs,service_details:fd.getAll("sub").map(String),heard_about:String(fd.get("heard")||"").trim(),
         closing_work:String(fd.get("closingwork")||""),signup_notes:fd.get("closingwork")==="some"?"Closing work: some. "+g("cwnote"):""});
       const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
       if(error)return done(friendlyAuthError(error));
@@ -4064,6 +4100,7 @@ async function renderReviewPage(token){
     <p class="small" style="margin:0">${esc(data.vendor)} asked for your review. It helps other San Diego agents find good people. No account needed.</p>
     <form class="authform" data-form="reviewsubmit" data-token="${esc(token)}" novalidate>
       <fieldset class="field" style="border:0;padding:0;margin:0"><legend class="legend">Your rating</legend><div class="starpick">${stars}</div></fieldset>
+      ${aspectFields("rvp")}
       <label class="field"><span>About the work</span><textarea id="rv-comment" name="comment" rows="5" maxlength="2000" placeholder="What did they do, and how did it go? Quality, communication, timing, anything another agent should know."></textarea></label>
       <div class="grid"><label class="field"><span>Your name</span><input type="text" id="rv-name" name="name" value="${esc(data.agent_name||"")}" autocomplete="name"></label>
         <label class="field"><span>Your brokerage</span><input type="text" id="rv-brokerage" name="brokerage" autocomplete="organization"></label></div>
@@ -4074,11 +4111,11 @@ async function renderReviewPage(token){
 }
 document.addEventListener("submit",async e=>{const f=e.target.closest('form[data-form="reviewsubmit"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
   const fd=new FormData(f),g=k=>String(fd.get(k)||"").trim(),er=f.querySelector(".rverr"),show=m=>{if(er){er.textContent=m;er.hidden=!m;if(m)er.scrollIntoView({block:"nearest"})}};
-  const rating=Number(fd.get("rating")||0);
-  const bad=!rating?"Pick a star rating.":!g("comment")?"Add a few words about the work.":!g("name")?"Add your name.":!g("brokerage")?"Add your brokerage.":"";
+  const rating=Number(fd.get("rating")||0),sc=aspectScores(fd);
+  const bad=!rating?"Pick a star rating.":!sc.ok?"Rate each of the four areas, and say whether you'd hire them again.":!g("comment")?"Add a few words about the work.":!g("name")?"Add your name.":!g("brokerage")?"Add your brokerage.":"";
   if(bad)return show(bad);show("");
   const btn=f.querySelector('button[type="submit"]');if(btn)btn.disabled=true;
-  const{error}=await sb.rpc("review_request_submit",{p_token:f.dataset.token,p_rating:rating,p_comment:g("comment"),p_name:g("name"),p_brokerage:g("brokerage"),p_when:g("when")||null});
+  const{error}=await sb.rpc("review_request_submit",{p_token:f.dataset.token,p_rating:rating,p_comment:g("comment"),p_name:g("name"),p_brokerage:g("brokerage"),p_when:g("when")||null,p_scores:sc.scores,p_again:sc.again});
   if(btn)btn.disabled=false;
   if(error){console.error(error);return show(/already been sent|isn't active|Pick|Add /.test(error.message||"")?String(error.message).replace(/^.*?ERROR:\s*/,""):"That didn't send. Check your connection and try again.")}
   $("#app").innerHTML=reviewCard("Review","Thank you!",`<p>Your review is in. I'll check it and add it to the profile, usually within a day.</p><p class="small">Ashleigh at Orbyt</p>`);window.scrollTo({top:0})},true);
@@ -4113,6 +4150,8 @@ function vendorFolds(v,mine){
   const prof=[];
   if(ok){const st=insState(v),[pl,pc]=INS_PILL[st.state];
     prof.push(fold("ins","Insurance",`<span class="pill ${pc}">${pl}</span>`,st.state==="needed"&&st.g==="high"?"Needed before your first introduction":st.state==="needed"&&st.due?"Due "+fmtDate(st.due):"",insuranceCard(v),false))}
+  {const sd=(v.serviceDetails||[]).length,need=vsv(v).filter(c=>taxSvcs("vendor",c).length&&!(v.serviceDetails||[]).some(x=>taxCatOf(x)===c)).length;
+    prof.push(fold("svcs","Your services",sd?`<span class="pill ${need?"late":"set"}">${sd} picked</span>`:'<span class="pill late">Pick yours</span>',need?"Pick the services you offer, so I can match you to the right jobs":"What you offer in each kind of work",svcEditCard(v,"vendor"),!sd))}
   const c=[v.web,v.instagram,v.portfolioUrl,v.portfolioPdf,v.overviewPdf].filter(Boolean).length;
   prof.push(fold("port","Business overview and portfolio",c?`<span class="pill set">${c} added</span>`:`<span class="pill late">Add your work</span>`,"Business overview, website, Instagram and your work",portfolioCard(v),false));
   const pr=vPricing(v),hasP=statedTier(v)||priceItems(v).length||pr.minimum;
@@ -4208,10 +4247,10 @@ function revService(r){const b=r.bidId?S.bids.find(x=>x.id===r.bidId):null;retur
 const revQuote=r=>`"${String(r.comment||"").trim()}" (${[shortName(r.agent),revBrokerage(r)].filter(Boolean).join(", ")})`;
 function myReviewsCard(v){const rs=myReviews(v);
   if(!rs.length)return `<p class="small" style="margin:0">No reviews yet. After a job, the agent gets asked to rate your work, and every review I approve shows up here. You can also ask agents you've worked with before for a review in "Reviews from past clients."</p>`;
-  return `<p class="small" style="margin:0 0 4px">Every review agents see on your Orbyt profile. Feel free to share them on your website or social. "Copy" gives you the words with the agent's first name, last initial and brokerage.</p>
+  return aspectSummary(v.id)+`<p class="small" style="margin:0 0 4px">Every review agents see on your Orbyt profile. Feel free to share them on your website or social. "Copy" gives you the words with the agent's first name, last initial and brokerage.</p>
     <div class="myrevs">${rs.map(r=>{const when=r.source==="past_client"&&r.workWhen?"Work in "+r.workWhen:fmtDate(String(r.createdAt||"").slice(0,10));
       return `<blockquote class="myrev"><div class="row"><span class="rating"><b>${"★".repeat(r.rating)}</b><span class="small">${"★".repeat(5-r.rating)}</span></span>${typeof revSource==="function"?revSource(r):""}</div>
-        ${r.comment?`<p style="margin:6px 0">${esc(r.comment)}</p>`:`<p class="small" style="margin:6px 0">Stars only, no comment.</p>`}
+        ${r.comment?`<p style="margin:6px 0">${esc(r.comment)}</p>`:`<p class="small" style="margin:6px 0">Stars only, no comment.</p>`}${revAspectLine(r)}
         <div class="small">${esc([r.agent||"Agent",revBrokerage(r)].filter(Boolean).join(", "))}${revService(r)?" · "+esc(revService(r)):""}${when?" · "+esc(when):""}</div>
         ${r.comment?`<button class="linkbtn" type="button" data-act="copyrev" data-id="${esc(r.id)}">Copy</button>`:""}</blockquote>`}).join("")}</div>`}
 function myReviewsPill(v){const rt=rating(v.id);return rt?`<span class="pill set">★ ${rt.avg.toFixed(1)} · ${rt.n} ${rt.n===1?"review":"reviews"}</span>`:`<span class="pill">None yet</span>`}
@@ -4244,7 +4283,7 @@ function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.pr
     const endField=!on||renew?`<label class="field"><span>${renew?"Renewal runs until":"Run it until"}</span><input type="date" id="pr-end" name="end" min="${start}" max="${maxEnd}" value="${maxEnd}"></label><p class="small" style="margin:-6px 0 0">${renew?`Starts ${esc(fmtDate(start))} when your current offer ends. `:""}Up to 30 days for $20.</p>`:"";
     return `<form class="form inner" data-form="promo" novalidate>${status}
     <label class="field"><span>Your offer for Orbyt agents and their clients</span><input type="text" id="pr-offer" name="offer" maxlength="90" value="${esc(v.promoOffer||"")}" placeholder="10% off move-in cleans booked through Orbyt"></label>
-    <label class="field"><span>Details (optional)</span><textarea id="pr-details" name="details" rows="2" maxlength="400" placeholder="Good through December. Homes up to 3,000 sq ft.">${esc(v.promoDetails||"")}</textarea></label>
+    <label class="field"><span>Details (optional)</span><textarea id="pr-details" name="details" rows="2" maxlength="400" placeholder="Good through December. Homes up to 3,000 sq ft.">${esc(v.promoDetails||"")}</textarea></label>${promoSvcField(v)}
     <p class="small" style="margin:0">A discount, a free add-on, faster scheduling, or whatever fits your service. Make it something you'll honor for anyone who books through Orbyt while it's live.</p>
     ${endField}<p class="small warntext prerr" role="alert" style="margin:0" hidden></p>
     <div class="actions">${on?(left!==null&&left<=7?`<button class="btn sm" type="submit" data-pay="1">Renew for 30 days, $20</button>`:"")+`<button class="btn ghost sm" type="submit">Save offer</button>`
@@ -4254,7 +4293,7 @@ function promoCard(v){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.pr
     :`<p class="small" style="margin:0">Run a special offer for Orbyt clients for 30 days, for $20. Agents see your offer next to your quotes and on your profile, so they can pass the deal on. It doesn't change how I match. That's always the best fit for each home.</p>`;
   return `<form class="form inner" data-form="promo" novalidate>${status}
     <label class="field"><span>Your offer for Orbyt agents and their clients</span><input type="text" id="pr-offer" name="offer" maxlength="90" value="${esc(v.promoOffer||"")}" placeholder="10% off move-in cleans booked through Orbyt"></label>
-    <label class="field"><span>Details (optional)</span><textarea id="pr-details" name="details" rows="2" maxlength="400" placeholder="Good through December. Homes up to 3,000 sq ft.">${esc(v.promoDetails||"")}</textarea></label>
+    <label class="field"><span>Details (optional)</span><textarea id="pr-details" name="details" rows="2" maxlength="400" placeholder="Good through December. Homes up to 3,000 sq ft.">${esc(v.promoDetails||"")}</textarea></label>${promoSvcField(v)}
     <p class="small" style="margin:0">A discount, a free add-on, faster scheduling, or whatever fits your service. Make it something you'll honor for anyone who books through Orbyt while it's live.</p>
     <p class="small warntext prerr" role="alert" style="margin:0" hidden></p>
     <div class="actions">${on?(left!==null&&left<=7&&!req?`<button class="btn sm" type="submit" data-req="1">Renew for 30 days</button>`:"")+`<button class="btn ghost sm" type="submit">Save offer</button>`
@@ -4266,11 +4305,12 @@ document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form=
     const btn=e.submitter;btn.disabled=true;btn.textContent="Opening Stripe...";
     const endEl=f.querySelector("#pr-end"),endV=endEl&&endEl.value;
     if(endEl&&endV&&(endV<endEl.min||endV>endEl.max)){btn.disabled=false;btn.textContent="Try again";if(el){el.textContent="Pick an end date within 30 days.";el.hidden=false}return}
-    (async()=>{try{fail((await sb.from("vendors").update({promo_offer:offer,promo_details:details||null}).eq("id",v.id)).error,"offer");await startCheckout("promo",endV?{promo_end:endV}:{})}
+    (async()=>{try{fail((await sb.from("vendors").update({promo_offer:offer,promo_details:details||null,promo_services:promoSvcPicked(f,v)}).eq("id",v.id)).error,"offer");await startCheckout("promo",endV?{promo_end:endV}:{})}
       catch(err){btn.disabled=false;btn.textContent="Try again";if(el){el.textContent=err.message||"That didn't work.";el.hidden=false}}})();return}
   const wantReq=!!(e.submitter&&e.submitter.dataset.req);
   if(wantReq&&!offer){if(el){el.textContent="Add your offer first. It's what agents see next to your quotes.";el.hidden=false}f.querySelector("#pr-offer").focus();return}
-  const row={promo_offer:offer||null,promo_details:details||null};if(wantReq)row.promo_requested_at=new Date().toISOString();
+  if(f.querySelector('input[name="psvc"]')&&!f.querySelectorAll('input[name="psvc"]:checked').length){if(el){el.textContent="Pick at least one service for your offer.";el.hidden=false}return}
+  const row={promo_offer:offer||null,promo_details:details||null,promo_services:promoSvcPicked(f,v)};if(wantReq)row.promo_requested_at=new Date().toISOString();
   S.promoOpen=true;
   guard(async()=>{fail((await sb.from("vendors").update(row).eq("id",v.id)).error,"offer");await S.db.reload()},wantReq?"Request sent. I'll email you a payment link.":"Offer saved.")},true);
 
@@ -4469,6 +4509,49 @@ function vendorFeesCard(v){if(typeof invRow!=="function")return null;
       <td class="money">${r.type==="waived"?"Waived":money2(r.fee)}<div class="small">${r.type==="repeat"?"Repeat job":r.type==="waived"?"":"First job with this agent"}</div></td><td>${st(r)}</td></tr>`).join("")}</tbody></table></div>
     <p class="small" style="margin:8px 0 0">Fees are based on your final invoice amount and due ${PAY_DAYS} days after a job wraps. Questions about a fee? Message Ashleigh.</p>`;
   return{pill:owed.length?`<span class="pill ${owed.some(r=>r.overdue)?"late":"comparing"}">${money2(sum(owed))} owed</span>`:"",body}}
+
+/* ---------- structured reviews: four areas and "would you hire them again?" ---------- */
+const ASPECTS=[["quality","Quality of work"],["timeliness","On time"],["communication","Communication"],["value","Value for the price"]];
+const ASPECT_MIN=3;  // averages show once this many reviews have them
+function aspectFields(pre){
+  const row=([k,l])=>`<div class="aspect"><span class="aspl">${esc(l)}</span><div class="stars sm">${[5,4,3,2,1].map(n=>`<input type="radio" id="${pre}-${k}-${n}" name="s_${k}" value="${n}"><label for="${pre}-${k}-${n}" title="${n} ${n===1?"star":"stars"}">★</label>`).join("")}</div></div>`;
+  return `<fieldset class="aspects"><legend class="legend">Rate each area</legend>${ASPECTS.map(row).join("")}
+    <div class="aspect"><span class="aspl">Would you hire them again?</span><div class="yesno"><label><input type="radio" name="again" value="1"> Yes</label><label><input type="radio" name="again" value="0"> No</label></div></div></fieldset>`}
+function aspectScores(fd){const scores={};for(const[k]of ASPECTS){const n=Number(fd.get("s_"+k)||0);if(n)scores[k]=n}
+  const a=fd.get("again"),again=a==="1"?true:a==="0"?false:null;
+  return{scores:Object.keys(scores).length?scores:null,again,ok:Object.keys(scores).length===ASPECTS.length&&again!==null}}
+function revAspectLine(r){if(!r.scores&&r.again==null)return"";
+  const bits=ASPECTS.filter(([k])=>r.scores&&r.scores[k]).map(([k,l])=>`${l} ${r.scores[k]}/5`);
+  return `<div class="small revasp">${esc(bits.join(" · "))}${r.again!=null?`${bits.length?" · ":""}<span class="strong">${r.again?"Would hire again":"Wouldn't hire again"}</span>`:""}</div>`}
+function aspectSummary(vid){const rs=S.reviews.filter(r=>r.vendorId===vid&&r.approved&&r.scores);if(rs.length<ASPECT_MIN)return"";
+  const avg=k=>{const l=rs.filter(r=>r.scores[k]);return l.length?l.reduce((t,r)=>t+r.scores[k],0)/l.length:null};
+  const ag=S.reviews.filter(r=>r.vendorId===vid&&r.approved&&r.again!=null),pct=ag.length?Math.round(ag.filter(r=>r.again).length/ag.length*100):null;
+  return `<div class="aspsum">${ASPECTS.map(([k,l])=>{const a=avg(k);return a==null?"":`<div class="asprow"><span class="small">${esc(l)}</span><span class="aspbar"><span style="width:${Math.round(a/5*100)}%"></span></span><b class="num">${a.toFixed(1)}</b></div>`}).join("")}
+    ${pct!=null?`<div class="small" style="margin-top:4px"><span class="strong">${pct}%</span> of agents would hire them again (${ag.length} ${ag.length===1?"review":"reviews"})</div>`:""}</div>`}
+
+/* ---------- special offers tied to services ---------- */
+function promoSvcField(v){const sv=vsv(v).filter(Boolean);if(sv.length<2)return"";const cur=v.promoServices||[];
+  return `<fieldset class="field" style="border:0;padding:0;margin:0"><legend class="legend">Which services is it for?</legend><div class="checks">${sv.map((c,i)=>`<label><input type="checkbox" name="psvc" id="pr-svc-${i}" value="${esc(c)}" ${!cur.length||cur.includes(c)?"checked":""}>${esc(c)}</label>`).join("")}</div>
+    <p class="small" style="margin:4px 0 0">Agents see it next to your quotes for these services.</p></fieldset>`}
+function promoSvcPicked(f,v){const all=vsv(v).filter(Boolean),on=[...f.querySelectorAll('input[name="psvc"]:checked')].map(c=>c.value);
+  return !f.querySelector('input[name="psvc"]')||!on.length||on.length===all.length?null:on}
+
+/* ---------- a vendor or partner edits the services they offer ---------- */
+function svcEditCard(v,side){
+  return `<form class="form inner" data-form="mysvcs" novalidate><p class="small" style="margin:0">Tick only what you actually do. I use this to match you to jobs, and agents see it on your profile.</p>
+    ${svcPicker(side,"ms-svc",vsv(v).filter(Boolean),v.serviceDetails||[],side==="partner"&&typeof CLOSING_HINT!=="undefined"?CLOSING_HINT:null)}
+    <p class="small warntext mserr" role="alert" style="margin:0" hidden></p><div class="actions"><button class="btn sm" type="submit">Save my services</button></div></form>`}
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="mysvcs"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const v=vendorById(myVendorId());if(!v)return;const fd=new FormData(f),cats=fd.getAll("svc").map(String),el=f.querySelector(".mserr"),tp=taxProblem(f);
+  const show=m=>{el.textContent=m;el.hidden=!m};
+  if(!cats.length)return show("Pick at least one kind of work you do.");if(tp){show(tp.msg);tp.el.scrollIntoView({block:"center"});return}
+  // keep any category they asked for that isn't in the list yet
+  const side=typeof isPartner==="function"&&isPartner(v)?"partner":"vendor",extra=vsv(v).filter(c=>c&&!taxCats(side).includes(c));
+  guard(async()=>{fail((await sb.from("vendors").update({services:[...cats,...extra],service_details:fd.getAll("sub").map(String)}).eq("id",v.id)).error,"services");await S.db.reload()},"Services saved")},true);
+// the services under each category, for vendor cards and search
+function svcDetailLine(v){const sd=v.serviceDetails||[];if(!sd.length)return"";
+  const by={};sd.forEach(x=>{const c=taxCatOf(x);(by[c]=by[c]||[]).push(x.slice(c.length+2))});
+  return `<div class="svcdet">${Object.entries(by).map(([c,l])=>`<div class="small"><span class="strong">${esc(c)}:</span> ${esc(l.join(", "))}</div>`).join("")}</div>`}
 
 
 /* ---------- home team cards: a printable card agents give buyer clients, and the request page behind its QR code ---------- */
@@ -4679,7 +4762,7 @@ document.addEventListener("input",e=>{const f=e.target.closest('form[data-form="
    They buy a marketing listing (Closing Partner Marketing Services Agreement): free for 90 days, then $20 a month.
    Agents see every listed partner in an open directory, in a rotating order. Orbyt never picks, introduces or
    recommends one, and partners never pay for referrals. No bids, job fees, insurance tiers or special offers. */
-const CLOSING=["Lender","Title","Escrow","Homeowners insurance","Home inspection","Termite inspection","Appraisal","Notary / signing agent","Home warranty"];
+const CLOSING=typeof taxCats==="function"?taxCats("partner"):["Lender","Title","Escrow","Homeowners insurance","Home inspection","Termite inspection","Appraisal","Notary / signing agent","Home warranty"];
 const CLOSING_HINT={"Lender":"Mortgage lenders and loan officers","Title":"Title companies and title officers","Escrow":"Escrow companies and officers","Homeowners insurance":"Home and hazard insurance","Home inspection":"Home inspectors for buyers and sellers","Termite inspection":"Wood-destroying pest reports for escrow","Appraisal":"Licensed appraisers","Notary / signing agent":"Mobile notaries and loan signing agents","Home warranty":"Home warranty plans"};
 const isPartner=v=>!!v&&v.kind==="closing";
 const introsFor=(pid,c)=>(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.project_id===pid&&(!c||i.category===c));
@@ -4748,7 +4831,7 @@ function partnerSignupView(){
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label></div>
-      <div class="field"><span>What do you offer?</span>${ck("svc",CLOSING,CLOSING_HINT)}</div>
+      <div class="field"><span>What do you offer?</span><small class="small">Tick your line of work, then the services you actually offer in it.</small>${svcPicker("partner","su-svc",[],[],CLOSING_HINT)}</div>
       <div class="field"><span>Where do you work?</span>${ck("area",AREAS)}</div>
       <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>
       <div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
@@ -4764,17 +4847,17 @@ function partnerSignupView(){
       <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
     </form></div></section>`}
 async function partnerSignup(f,fd,email,pass,pass2,done,btn){
-  const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=fd.getAll("area").map(String);
+  const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=fd.getAll("area").map(String),tp=taxProblem(f);
   const checks=[[!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
     [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[g("phone").replace(/\D/g,"").length<10,"Add a mobile phone number, with area code.","#su-phone"],
-    [!svcs.length,"Pick what you offer.","#su-svc-0"],[!areas.length,"Pick at least one area you work in.","#su-area-0"],
+    [!svcs.length,"Pick what you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[!areas.length,"Pick at least one area you work in.","#su-area-0"],
     [!!pwProblem(pass),pwProblem(pass),"#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
     [!g("legal"),"Add your legal business name.","#su-legal"],[!fd.get("btype"),"Choose your business type.","#su-btype"],[!g("title"),"Add your title.","#su-title"],
     [!fd.get("terms"),`Check the box to agree to the ${TERMS.partner.title}.`,"#su-terms"],[!fd.get("authority"),"Check the box to confirm you have authority to agree for the business.","#su-auth"]];
   const hit=checks.find(c=>c[0]);
   if(hit){done(hit[1]);const el=f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}
   const meta={ref:S.ref||"",role:"vendor",partner_kind:"closing",license:g("license"),full_name:first+" "+last,phone:g("phone"),areas,terms_version:TERMS.partner.version,user_agent:navigator.userAgent.slice(0,300),
-    ...bizData(fd),marketing_opt_out:!!fd.get("optout"),company:g("company"),website:g("web"),services:svcs,years_in_business:g("years"),references:g("references"),heard_about:g("heard")};
+    ...bizData(fd),marketing_opt_out:!!fd.get("optout"),company:g("company"),website:g("web"),services:svcs,service_details:fd.getAll("sub").map(String),years_in_business:g("years"),references:g("references"),heard_about:g("heard")};
   const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
   if(error)return done(friendlyAuthError(error));
   if(data.session){S.authErr="";await enter(data.user);return}
@@ -4795,6 +4878,7 @@ function partnerView(v){
     live?`<span class="pill ${st.key==="due"||st.key==="canceled"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span>`:"",
     `${live&&typeof availToggle==="function"?availToggle(v):""}${partnerListing(v)}
      <p class="small" style="margin:10px 0 0">Your first ${LISTING_FREE_DAYS} days are free with our launch offer, then your marketing listing is $${LISTING_FEE} a month. ${billingOn()?"Cancel anytime from Manage billing.":"Cancel anytime by emailing ashleigh@orbytconnect.com."} It also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p>${live?billingBlock(v):""}`);
+  h+=`<details class="fold" data-fold="svcs" style="margin:12px 0" ${(v.serviceDetails||[]).length?"":"open"}><summary><span class="foldtitle">Your services</span>${(v.serviceDetails||[]).length?`<span class="pill set">${v.serviceDetails.length} picked</span>`:'<span class="pill late">Pick yours</span>'}<span class="small foldhint">What agents see you offer</span></summary><div class="foldbody">${svcEditCard(v,"partner")}</div></details>`;
   h+=sec("port","2 · Your ad","Tell agents why to call you","This is your advertisement on your listing. Write it the way you'd pitch an agent over coffee.","",adCard(v));
   if(live){const sent=typeof rrFor==="function"?rrFor(v.id):[];
     h+=sec("myrev","3 · Reviews","What agents say about you","",myReviewsPill(v),
@@ -4887,7 +4971,7 @@ function listingCell(v){const st=listingStatus(v),b=st.b||{};
 function partnersAdminView(){const all=partnersAll().sort((a,b)=>a.name.localeCompare(b.name)),f=S.pf||{c:"",st:"",q:""},q=(f.q||"").trim().toLowerCase();
   const pend=all.filter(v=>v.approved===false);
   const keyOf=v=>{const k=listingStatus(v).key;return k==="canceled"?k:v.approved===false?"review":v.available===false?"hidden":k};
-  const vs=all.filter(v=>(!q||(v.name+" "+(v.contactName||"")+" "+(v.email||"")).toLowerCase().includes(q))&&(!f.c||vsv(v).includes(f.c))&&(!f.st||(f.st==="nocard"?!hasCard(billingOf(v.id)):f.st==="setup"?v.approved===false&&setupMissing(v,true).length>0:keyOf(v)===f.st)));
+  const vs=all.filter(v=>(!q||(v.name+" "+(v.contactName||"")+" "+(v.email||"")+" "+(v.serviceDetails||[]).join(" ")).toLowerCase().includes(q))&&(!f.c||vsv(v).includes(f.c))&&(!f.st||(f.st==="nocard"?!hasCard(billingOf(v.id)):f.st==="setup"?v.approved===false&&setupMissing(v,true).length>0:keyOf(v)===f.st)));
   const live=partnersLive(),paying=live.filter(v=>listingStatus(v).key==="paid").length,free=live.filter(v=>listingStatus(v).key==="free").length,due=listingDue();
   const sel=(id,k,label,opts)=>`<label class="field"><span>${label}</span><select id="${id}" data-pf="${k}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${f[k]===v?"selected":""}>${esc(t)}</option>`).join("")}</select></label>`;
   let h=(S.canWrite?billingSetupCard():"")+closingWorkCheck()+`<div class="stats" style="--n:4;margin-bottom:18px">
@@ -5067,6 +5151,10 @@ function setupCard(){if(!S.canWrite||!S.session)return"";
 /* the Help page, written for each role */
 /* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
 const NEWS=[
+  {id:"2026-11-19a",date:"2026-11-19",roles:["agent"],title:"Message several vendors at once",body:"On a project, tap Message several vendors, pick who gets it (or everyone booked), and send. Each vendor gets it in their own thread with you."},
+  {id:"2026-11-19b",date:"2026-11-19",roles:["agent"],title:"More detailed reviews",body:"Reviews now ask about quality of work, timing, communication and value, and whether you'd hire them again. Vendor profiles show the averages once there are three or more."},
+  {id:"2026-11-19c",date:"2026-11-19",roles:["vendor","partner"],title:"Pick the services you actually offer",body:"Open Your services and tick exactly what you do in each kind of work, like vacant staging or move-out cleans. It helps me match you, and agents see it on your profile."},
+  {id:"2026-11-19d",date:"2026-11-19",roles:["vendor"],title:"Offers for specific services",body:"When you run a special offer, you can choose which of your services it's for. Agents see it next to your quotes for those services."},
   {id:"2026-11-18a",date:"2026-11-18",roles:["vendor"],title:"Your fees, job by job",body:"Open the Profile tab to see what you owe Orbyt for each booked job, what's coming up, and what you've paid this year."},
   {id:"2026-11-18b",date:"2026-11-18",roles:["vendor"],title:"A Profile tab",body:"Your profile, reviews, special offer and referral link now live on their own Profile tab, so Tasks shows just your work."},
   {id:"2026-11-18c",date:"2026-11-18",roles:["vendor"],title:"A simpler timeline on requests",body:"On a bid request, the work before and after yours is folded away. Tap Before your work or After your work to see the details."},
@@ -5407,9 +5495,35 @@ function projectMsgs(p){if(!msgOn()||!p||kind()==="vendor")return"";
   const rows=vids.map(id=>{const v=vendorById(id),t=msgThreads().find(x=>x.project_id===p.id&&x.vendor_id===id),n=t?unreadOf(t):0,last=t&&t.msgs[t.msgs.length-1];
     return `<button class="mthread ${open===id?"on":""} ${n?"unread":""}" type="button" data-act="projmsg" data-key="${esc(p.id+"|"+id)}"><span class="mtop"><span class="maddr">${esc(v.name)}</span><span class="small num">${last?ago(last.created_at):""}</span></span>
       <span class="small msnip">${n?`<span class="count">${n}</span> `:""}${last?esc((last.sender_name?last.sender_name+": ":"")+String(last.body).slice(0,90)):"No messages yet"}</span></button>`}).join("");
-  return `<section class="projmsgs"><h2 style="margin:0 0 8px">Messages about this home</h2><div class="pmgrid"><div class="mside inline">${rows}</div>${open?`<div>${msgInline(p.id,open,{close:true})}</div>`:`<p class="small" style="margin:8px 0">${kind()==="orbyt"?"Pick a vendor to read their thread with the agent.":"Pick a vendor to message them. Everything about the job stays in one place."}</p>`}</div></section>`}
+  const bulk=vids.length>1&&S.canWrite&&kind()==="agent"?(S.bulkMsg===p.id?bulkForm(p,vids):`<button class="btn ghost sm" type="button" data-act="bulkmsg" data-id="${esc(p.id)}">Message several vendors</button>`):"";
+  return `<section class="projmsgs"><div class="sechead" style="margin:0 0 8px"><h2 style="margin:0">Messages about this home</h2>${S.bulkMsg===p.id?"":bulk}</div>${S.bulkMsg===p.id?bulk:""}<div class="pmgrid"><div class="mside inline">${rows}</div>${open?`<div>${msgInline(p.id,open,{close:true})}</div>`:`<p class="small" style="margin:8px 0">${kind()==="orbyt"?"Pick a vendor to read their thread with the agent.":"Pick a vendor to message them. Everything about the job stays in one place."}</p>`}</div></section>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="projmsg"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   S.projMsg=t.dataset.key||"";render();if(S.projMsg)setTimeout(()=>{msgScroll();const box=document.querySelector(".projmsgs .msginline");if(box)box.scrollIntoView({block:"nearest"});const el=document.getElementById("msg-body");if(el&&kind()!=="orbyt")el.focus({preventScroll:true})},0)},true);
+
+/* ---------- one message to several vendors on a project (each gets it in their own private thread) ---------- */
+function bulkForm(p,vids){const bs=id=>S.bids.find(b=>b.projectId===p.id&&b.vendorId===id&&b.status!=="declined")||{};
+  const booked=id=>ONTEAM.includes(bs(id).status),lbl=id=>{const b=bs(id);return booked(id)?"Booked":b.status==="requested"?"Bid requested":b.status==="passed"?"Not picked":"Sent a bid"};
+  const nb=vids.filter(booked).length;
+  return `<form class="form inner bulkform" data-form="bulkmsg" data-p="${esc(p.id)}" novalidate style="margin:0 0 12px">
+    <div class="eyebrow">Message several vendors</div>
+    <div class="actions" style="margin:0"><span class="small">Pick:</span><button class="linkbtn" type="button" data-act="bulkpick" data-w="all">Everyone</button>${nb?`<button class="linkbtn" type="button" data-act="bulkpick" data-w="booked">Booked only (${nb})</button>`:""}<button class="linkbtn" type="button" data-act="bulkpick" data-w="none">No one</button></div>
+    <div class="checks bulkchecks">${vids.map((id,i)=>`<label><input type="checkbox" name="v" id="bm-${i}" value="${esc(id)}" data-booked="${booked(id)?1:0}" ${booked(id)||!nb?"checked":""}>${esc(vendorById(id).name)} <span class="small">· ${esc(lbl(id))}</span></label>`).join("")}</div>
+    <label class="field"><span>Message</span><textarea id="bm-body" name="body" rows="3" maxlength="4000" placeholder="Quick update on ${esc(p.address)}: the list date moved to..."></textarea></label>
+    <p class="small" style="margin:0">Each vendor gets this in their own thread with you, so they won't see who else got it.</p>
+    <p class="small warntext bmerr" role="alert" style="margin:0" hidden></p>
+    <div class="actions"><button class="btn sm" type="submit">Send</button><button class="btn ghost sm" type="button" data-act="bulkmsg" data-id="">Cancel</button></div></form>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="bulkmsg"],[data-act="bulkpick"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  if(t.dataset.act==="bulkmsg"){S.bulkMsg=t.dataset.id||"";render();setTimeout(()=>{const el=document.getElementById("bm-body");if(el)el.focus()},0);return}
+  const w=t.dataset.w;t.closest("form").querySelectorAll('input[name="v"]').forEach(c=>c.checked=w==="all"||(w==="booked"&&c.dataset.booked==="1"))},true);
+document.addEventListener("submit",async e=>{const f=e.target.closest('form[data-form="bulkmsg"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const ids=[...f.querySelectorAll('input[name="v"]:checked')].map(c=>c.value),body=f.querySelector("#bm-body").value.trim(),err=f.querySelector(".bmerr"),btn=f.querySelector('button[type="submit"]');
+  const show=m=>{err.textContent=m;err.hidden=!m};
+  if(!ids.length)return show("Pick at least one vendor.");if(!body)return show("Write a message first.");
+  btn.disabled=true;btn.textContent="Sending...";show("");let bad=0;
+  for(const id of ids){const{error}=await sb.rpc("message_send",{p_project:f.dataset.p,p_vendor:id,p_body:body});if(error)bad++}
+  await msgRefresh();
+  if(bad===ids.length){btn.disabled=false;btn.textContent="Send";return show("That didn't send. Check your connection and try again.")}
+  S.bulkMsg="";render();toast(bad?`Sent to ${ids.length-bad} of ${ids.length}. Try the others again.`:`Sent to ${ids.length} ${ids.length===1?"vendor":"vendors"}`)},true);
 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.quoteView){S.quoteView=null;render()}});
 liveBoot();

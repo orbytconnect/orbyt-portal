@@ -3,7 +3,7 @@
    They buy a marketing listing (Closing Partner Marketing Services Agreement): free for 90 days, then $20 a month.
    Agents see every listed partner in an open directory, in a rotating order. Orbyt never picks, introduces or
    recommends one, and partners never pay for referrals. No bids, job fees, insurance tiers or special offers. */
-const CLOSING=["Lender","Title","Escrow","Homeowners insurance","Home inspection","Termite inspection","Appraisal","Notary / signing agent","Home warranty"];
+const CLOSING=typeof taxCats==="function"?taxCats("partner"):["Lender","Title","Escrow","Homeowners insurance","Home inspection","Termite inspection","Appraisal","Notary / signing agent","Home warranty"];
 const CLOSING_HINT={"Lender":"Mortgage lenders and loan officers","Title":"Title companies and title officers","Escrow":"Escrow companies and officers","Homeowners insurance":"Home and hazard insurance","Home inspection":"Home inspectors for buyers and sellers","Termite inspection":"Wood-destroying pest reports for escrow","Appraisal":"Licensed appraisers","Notary / signing agent":"Mobile notaries and loan signing agents","Home warranty":"Home warranty plans"};
 const isPartner=v=>!!v&&v.kind==="closing";
 const introsFor=(pid,c)=>(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.project_id===pid&&(!c||i.category===c));
@@ -72,7 +72,7 @@ function partnerSignupView(){
         <label class="field"><span>Last name</span><input type="text" id="su-last" name="last" required></label>
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" required></label>
         <label class="field"><span>Mobile phone</span><input type="tel" id="su-phone" name="phone" autocomplete="tel" required></label></div>
-      <div class="field"><span>What do you offer?</span>${ck("svc",CLOSING,CLOSING_HINT)}</div>
+      <div class="field"><span>What do you offer?</span><small class="small">Tick your line of work, then the services you actually offer in it.</small>${svcPicker("partner","su-svc",[],[],CLOSING_HINT)}</div>
       <div class="field"><span>Where do you work?</span>${ck("area",AREAS)}</div>
       <label class="field"><span>How did you hear about Orbyt? (optional)</span><input type="text" id="su-heard" name="heard"></label>
       <div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
@@ -88,17 +88,17 @@ function partnerSignupView(){
       <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
     </form></div></section>`}
 async function partnerSignup(f,fd,email,pass,pass2,done,btn){
-  const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=fd.getAll("area").map(String);
+  const g=k=>String(fd.get(k)||"").trim(),first=g("first"),last=g("last"),svcs=fd.getAll("svc").map(String),areas=fd.getAll("area").map(String),tp=taxProblem(f);
   const checks=[[!g("company"),"Add your legal entity name.","#su-legal"],[!first||!last,"Add your first and last name.",!first?"#su-first":"#su-last"],
     [!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),"Enter a valid email.","#su-email"],[g("phone").replace(/\D/g,"").length<10,"Add a mobile phone number, with area code.","#su-phone"],
-    [!svcs.length,"Pick what you offer.","#su-svc-0"],[!areas.length,"Pick at least one area you work in.","#su-area-0"],
+    [!svcs.length,"Pick what you offer.","#su-svc-0"],[!!tp,tp&&tp.msg,tp&&"#"+tp.el.querySelector('input[name="sub"]').id],[!areas.length,"Pick at least one area you work in.","#su-area-0"],
     [!!pwProblem(pass),pwProblem(pass),"#su-pass"],[pass!==pass2,"Those passwords don't match. Type them again.","#su-pass2"],
     [!g("legal"),"Add your legal business name.","#su-legal"],[!fd.get("btype"),"Choose your business type.","#su-btype"],[!g("title"),"Add your title.","#su-title"],
     [!fd.get("terms"),`Check the box to agree to the ${TERMS.partner.title}.`,"#su-terms"],[!fd.get("authority"),"Check the box to confirm you have authority to agree for the business.","#su-auth"]];
   const hit=checks.find(c=>c[0]);
   if(hit){done(hit[1]);const el=f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}
   const meta={ref:S.ref||"",role:"vendor",partner_kind:"closing",license:g("license"),full_name:first+" "+last,phone:g("phone"),areas,terms_version:TERMS.partner.version,user_agent:navigator.userAgent.slice(0,300),
-    ...bizData(fd),marketing_opt_out:!!fd.get("optout"),company:g("company"),website:g("web"),services:svcs,years_in_business:g("years"),references:g("references"),heard_about:g("heard")};
+    ...bizData(fd),marketing_opt_out:!!fd.get("optout"),company:g("company"),website:g("web"),services:svcs,service_details:fd.getAll("sub").map(String),years_in_business:g("years"),references:g("references"),heard_about:g("heard")};
   const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
   if(error)return done(friendlyAuthError(error));
   if(data.session){S.authErr="";await enter(data.user);return}
@@ -119,6 +119,7 @@ function partnerView(v){
     live?`<span class="pill ${st.key==="due"||st.key==="canceled"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span>`:"",
     `${live&&typeof availToggle==="function"?availToggle(v):""}${partnerListing(v)}
      <p class="small" style="margin:10px 0 0">Your first ${LISTING_FREE_DAYS} days are free with our launch offer, then your marketing listing is $${LISTING_FEE} a month. ${billingOn()?"Cancel anytime from Manage billing.":"Cancel anytime by emailing ashleigh@orbytconnect.com."} It also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p>${live?billingBlock(v):""}`);
+  h+=`<details class="fold" data-fold="svcs" style="margin:12px 0" ${(v.serviceDetails||[]).length?"":"open"}><summary><span class="foldtitle">Your services</span>${(v.serviceDetails||[]).length?`<span class="pill set">${v.serviceDetails.length} picked</span>`:'<span class="pill late">Pick yours</span>'}<span class="small foldhint">What agents see you offer</span></summary><div class="foldbody">${svcEditCard(v,"partner")}</div></details>`;
   h+=sec("port","2 · Your ad","Tell agents why to call you","This is your advertisement on your listing. Write it the way you'd pitch an agent over coffee.","",adCard(v));
   if(live){const sent=typeof rrFor==="function"?rrFor(v.id):[];
     h+=sec("myrev","3 · Reviews","What agents say about you","",myReviewsPill(v),
@@ -211,7 +212,7 @@ function listingCell(v){const st=listingStatus(v),b=st.b||{};
 function partnersAdminView(){const all=partnersAll().sort((a,b)=>a.name.localeCompare(b.name)),f=S.pf||{c:"",st:"",q:""},q=(f.q||"").trim().toLowerCase();
   const pend=all.filter(v=>v.approved===false);
   const keyOf=v=>{const k=listingStatus(v).key;return k==="canceled"?k:v.approved===false?"review":v.available===false?"hidden":k};
-  const vs=all.filter(v=>(!q||(v.name+" "+(v.contactName||"")+" "+(v.email||"")).toLowerCase().includes(q))&&(!f.c||vsv(v).includes(f.c))&&(!f.st||(f.st==="nocard"?!hasCard(billingOf(v.id)):f.st==="setup"?v.approved===false&&setupMissing(v,true).length>0:keyOf(v)===f.st)));
+  const vs=all.filter(v=>(!q||(v.name+" "+(v.contactName||"")+" "+(v.email||"")+" "+(v.serviceDetails||[]).join(" ")).toLowerCase().includes(q))&&(!f.c||vsv(v).includes(f.c))&&(!f.st||(f.st==="nocard"?!hasCard(billingOf(v.id)):f.st==="setup"?v.approved===false&&setupMissing(v,true).length>0:keyOf(v)===f.st)));
   const live=partnersLive(),paying=live.filter(v=>listingStatus(v).key==="paid").length,free=live.filter(v=>listingStatus(v).key==="free").length,due=listingDue();
   const sel=(id,k,label,opts)=>`<label class="field"><span>${label}</span><select id="${id}" data-pf="${k}">${opts.map(([v,t])=>`<option value="${esc(v)}" ${f[k]===v?"selected":""}>${esc(t)}</option>`).join("")}</select></label>`;
   let h=(S.canWrite?billingSetupCard():"")+closingWorkCheck()+`<div class="stats" style="--n:4;margin-bottom:18px">

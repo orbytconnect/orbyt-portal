@@ -62,7 +62,7 @@ function appBids(){const INV=byKey(D.invoices,"bid_id");
   return(D.bids||[]).map(b=>{const o={id:b.id};for(const c of BID_COLS)o[camel(c)]=b[c];
     o.vendorId=b.vendor_id||"";o.vendorName=b.vendor_name||"";o.amount=b.amount==null?null:Number(b.amount);o.finalAmount=b.final_amount==null?null:Number(b.final_amount);
     o.prevAmount=b.prev_amount==null?null:Number(b.prev_amount);o.pdfId=b.quote_path?"quotes:"+b.quote_path:"";o.pdfName=b.quote_name||"";o.pdfIsImage=!!b.quote_is_image;
-    o.steps={agreement:!!b.step_agreement,paid:!!b.step_paid};o.startDate=b.start_date||"";o.availableFrom=b.available_from||"";o.feeType=b.fee_type||"";
+    o.steps={agreement:!!b.step_agreement,paid:!!b.step_paid};o.assignedTo=b.assigned_to||"";o.startDate=b.start_date||"";o.availableFrom=b.available_from||"";o.feeType=b.fee_type||"";
     const i=INV[b.id];if(i)o.invoice={status:i.status,number:i.number||"",at:i.invoiced_at,paidAt:i.paid_at};
     for(const k of["changeNote","declineNote","declineReason","note","introNote","confirmNote","finalNote"])if(o[k]==null)o[k]="";
     return o})}
@@ -296,6 +296,7 @@ function authView(){
   if(m==="pending")return card("Almost there",`Thanks${S.pendingName?", "+esc(S.pendingName):""}`,`<p>${S.setupV?"Your profile is complete. ":""}I review every new account before the first introduction, usually within a day. You'll get an email as soon as you're in.</p><p class="small">Ashleigh at Orbyt</p>
     <div class="actions"><button class="btn ghost" data-act="signout">Sign out</button></div>`);
   if(m==="declined")return card("Account","This account isn't active",`<p>Reach out to ashleigh@orbytconnect.com with any questions.</p><div class="actions"><button class="btn ghost" data-act="signout">Sign out</button></div>`);
+  if(m==="team")return teamJoinView(card);
   if(m==="checkemail")return card("One more step","Check your email",`<p>I sent a confirmation link to <span class="strong">${esc(S.pendingEmail||"your inbox")}</span>. Click it, then sign in here${S.pendingPartner?" to finish your listing under Get listed":S.pendingVendor?". Your dashboard opens right away, and Get approved lists the few details I need before your first introduction":""}.</p>
     <div class="actions"><button class="btn" data-act="authmode" data-m="signin">Back to sign in</button></div>`);
   if(m==="forgot")return card("Password","Reset your password",`<form class="authform" data-proto="forgot" novalidate>
@@ -378,13 +379,15 @@ async function enter(user){
   if(prof.role==="agent"||prof.role==="vendor")sb.rpc("note_terms_login").then(()=>{},()=>{});
   let role="orbyt";
   if(prof.role==="agent")role="agent:"+(prof.full_name||prof.email);
-  if(prof.role==="vendor"){const{data:v}=await sb.from("vendors").select("id").eq("user_id",user.id).maybeSingle();role=v?"vendor:"+v.id:"vendor:none"}
+  S.teamMember=false;
+  if(prof.role==="vendor"){const{data:v}=await sb.from("vendors").select("id").eq("user_id",user.id).maybeSingle();
+    if(v)role="vendor:"+v.id;else{const{data:tv}=await sb.rpc("my_vendor_id").then(r=>r,()=>({data:null}));role=tv?"vendor:"+tv:"vendor:none";S.teamMember=!!tv}}
   S.session=role;S.role=role;S.tab=role==="orbyt"?"dash":"tasks";S.authMode="signin";
   const db=makeSupabaseDb();S.db=db;S.assets=liveAssets;S.canWrite=true;
   S.downloads={save:async({filename,data})=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data]));a.download=filename;document.body.appendChild(a);a.click();a.remove();return{status:"saved"}}};
   subscribeAll(db);render();
   try{await db.reload()}catch(e){console.error(e);toast("Couldn't load your projects. Refresh to try again.")}
-  loadSetupStatus();
+  loadSetupStatus();loadTeam();
   setInterval(()=>{if(document.visibilityState==="visible"&&!S.busy)db.reload().catch(()=>{})},30000);
 }
 function subscribeAll(db){
@@ -446,7 +449,7 @@ document.addEventListener("click",async e=>{
 document.addEventListener("change",e=>{const el=e.target;if(!el.matches||!el.matches("input[data-showpw]"))return;
   const f=el.closest("form");if(f)f.querySelectorAll('input[name="password"],input[name="password2"]').forEach(i=>i.type=el.checked?"text":"password")});
 document.addEventListener("submit",async e=>{
-  const f=e.target.closest("form[data-proto]");if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const f=e.target.closest("form[data-proto]");if(!f||f.dataset.proto==="teamjoin")return;e.preventDefault();e.stopImmediatePropagation();
   const fd=new FormData(f),email=String(fd.get("email")||"").trim().toLowerCase(),pass=String(fd.get("password")||""),kindOf=f.dataset.proto;
   const btn=f.querySelector('button[type="submit"]');if(btn)btn.disabled=true;
   const done=(err,note)=>{S.authErr=err||"";S.authNote=note||"";if(btn)btn.disabled=false;
@@ -503,6 +506,7 @@ async function liveBoot(){
   const q=new URLSearchParams(location.search);
   if(q.get("quotes")){S.authReady=true;await renderClientPage(q.get("quotes"));return}
   if(q.get("review")){S.authReady=true;await renderReviewPage(q.get("review"));return}
+  if(/^[0-9a-f]{64}$/.test(q.get("team")||"")){S.teamToken=q.get("team");try{history.replaceState(null,"",location.pathname)}catch(_){}}
   // a home team card's request page: /r/<agent name> (or ?card=<agent name>)
   const rm=location.pathname.toLowerCase().match(/^\/r\/([a-z0-9-]{1,40})\/?$/),card=(rm&&rm[1])||String(q.get("card")||"").toLowerCase();
   if(/^[a-z0-9-]{1,40}$/.test(card)){S.authReady=true;await renderCardRequestPage(card);return}
@@ -523,6 +527,8 @@ async function liveBoot(){
     if(bill==="done")[4000,10000].forEach(ms=>setTimeout(async()=>{try{if(S.db&&S.db.reload)await S.db.reload();else if(S.authMode==="pending"){const{data}=await sb.rpc("billing_mine");S.billMine=data||S.billMine;render()}}catch(_){}},ms))}
   sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"){S.authMode="newpass";S.recovering=true;S.authReady=true;S.session=null;render()}});
   const{data:{session}}=await sb.auth.getSession();
+  if(S.teamToken&&session&&S.authMode!=="newpass"){const{error}=await sb.rpc("team_accept",{p_token:S.teamToken});S.teamToken="";if(error)setTimeout(()=>toast(error.message),1200);else setTimeout(()=>toast("You're on the team."),1200)}
+  if(S.teamToken&&!session){const{data}=await sb.rpc("team_invite_info",{p_token:S.teamToken});S.teamInvite=(data||[])[0]||{bad:true};S.authMode="team"}
   if(session&&S.authMode!=="newpass")await enter(session.user);else{S.authReady=true;render()}
 }
 
@@ -580,13 +586,13 @@ const myRole=()=>kind()==="vendor"?"vendor":kind()==="agent"?"agent":"";
 const myVendorId=()=>kind()==="vendor"?roleVal():"";
 const acceptancesFor=uid=>(D.terms_acceptances||[]).filter(a=>uid&&a.user_id===uid).sort((a,b)=>String(b.accepted_at).localeCompare(String(a.accepted_at)));
 const currentAcceptance=(uid,r)=>acceptancesFor(uid).find(a=>a.version===TERMS[r].version);
-function needsTerms(){const r=myRole();if(!r||!S.uid||!Array.isArray(D.terms_acceptances))return false;
+function needsTerms(){const r=myRole();if(!r||!S.uid||!Array.isArray(D.terms_acceptances)||S.teamMember)return false;
   if(r==="vendor"){const v=vendorById(myVendorId());if(!v||v.approved===false)return false}
   return !currentAcceptance(S.uid,termsRole())}
 const feesKey=()=>"orbyt-fees-seen-"+S.uid;
 function feesSeen(){try{return localStorage.getItem(feesKey())==="1"}catch(_){return true}}
 function markFeesSeen(){try{localStorage.setItem(feesKey(),"1")}catch(_){}}
-function showTermsGate(){if(needsTerms())return true;
+function showTermsGate(){if(S.teamMember)return false;if(needsTerms())return true;
   if(myRole()!=="vendor"||!Array.isArray(D.terms_acceptances))return false;
   const v=vendorById(myVendorId());return !!(v&&v.approved!==false&&!feesSeen())}
 function feeCalc(){const x=Number(S.agCalc||0);
@@ -640,7 +646,8 @@ function signupFees(){
     <div class="feecard"><span class="eyebrow">First job with a new agent</span><table class="agtable"><tbody><tr><td>First $1,000</td><td>12%</td></tr><tr><td>$1,001 to $5,000</td><td>8%</td></tr><tr><td>Above $5,000</td><td>5%</td></tr></tbody></table>
       <p class="small" style="margin:0">Each portion at its own rate, like tax brackets. $25 minimum, $600 cap per job.</p></div>
     <div class="feecard"><span class="eyebrow">Repeat jobs</span><p class="feebig">2%</p><p class="small" style="margin:0">Later jobs with that agent or their clients. $15 minimum, $100 cap per job.</p></div>
-    <div class="feecard"><span class="eyebrow">Good to know</span><p class="small" style="margin:0">Nothing to join and no monthly fee. An optional special offer for Orbyt clients is $20 for up to 30 days. Fees more than 30 days past due add 1.5% a month, and new intros pause until they're paid.</p></div></div>`}
+    <div class="feecard"><span class="eyebrow">Good to know</span><p class="small" style="margin:0">Nothing to join and no monthly fee. An optional special offer for Orbyt clients is $20 for up to 30 days. Fees more than 30 days past due add 1.5% a month, and new intros pause until they're paid.</p></div>
+    <div class="feecard"><span class="eyebrow">Recurring service</span><p class="small" style="margin:0">For ongoing work, like pest treatments, pool care or landscape maintenance, the fee applies to the first job only. Orbyt never charges on the recurring visits after that.</p></div></div>`}
 // the business name in the authority line follows what's typed
 document.addEventListener("input",e=>{const el=e.target;if(!el.matches||!el.matches("input[data-bizname]"))return;const f=el.closest("form");
   f&&f.querySelectorAll(".bizname").forEach(b=>b.textContent=el.value.trim()||"[Legal business name]")},true);
@@ -1086,6 +1093,8 @@ function vendorFolds(v,mine){
     rv.push(fold("lost","Why quotes didn't win",`<span class="pill">${k}</span>`,"What agents told you",lc,false))}}
   const stats=vendorStats(v,mine||[]);
   if(stats||rv.length)out.push(psec("results",num(),"Reviews and results","How agents rate you and how your bids are doing.","",stats+(rv.length?`<div class="folds">${rv.join("")}</div>`:"")));
+  // the team: people who help with quotes and jobs (owner only)
+  if(!S.teamMember&&typeof teamCard==="function"){const n=(S.team||[]).filter(m=>!m.owner).length;out.push(psec("team",num(),"Your team","Invite the people who help with quotes or run your jobs.",n?`<span class="pill">${n} ${n===1?"person":"people"}</span>`:"",teamCard()))}
   // fees owed, one row per booked job
   if(ok&&typeof vendorFeesCard==="function"){const fc=vendorFeesCard(v);if(fc)out.push(psec("fees",num(),"Orbyt fees","What you owe Orbyt, job by job.",fc.pill,fc.body))}
   // 3 special offer
@@ -1491,3 +1500,63 @@ const suAgree=kind=>`<label class="checkrow top"><input type="checkbox" id="su-t
 // areas not on the list, typed in by hand
 const suOtherArea=()=>`<label class="field" style="margin-top:8px"><span>Other areas (optional, separate with commas)</span><input type="text" id="su-otherarea" name="otherarea" placeholder="Anywhere not listed, like Temecula"></label>`;
 const otherAreas=fd=>[...new Set(String(fd.get("otherarea")||"").split(",").map(x=>x.trim().replace(/\s+/g," ")).filter(x=>x.length>1).map(x=>x.slice(0,60)))].slice(0,10);
+
+/* ---------- vendor team members ---------- */
+// the join page from an invite link
+function teamJoinView(card){const t=S.teamInvite||{};
+  if(t.bad||!t.email)return card("Team invite","This invite isn't active",`<p>Ask the person who invited you to send a new one, or reach out to ashleigh@orbytconnect.com.</p><div class="actions"><button class="btn" data-act="authmode" data-m="signin">Sign in</button></div>`);
+  if(t.used)return card("Team invite","You're already on the team",`<p>Sign in with ${esc(t.email)} to see ${esc(t.vendor_name)}'s requests and jobs.</p><div class="actions"><button class="btn" data-act="authmode" data-m="signin">Sign in</button></div>`);
+  const nm=String(t.name||"").trim().split(/\s+/);
+  return card("Team invite",`Join ${esc(t.vendor_name)} on Orbyt`,`<p class="small" style="margin:0">Set up your own login to send quotes, message agents and keep jobs moving. About a minute.</p>
+    <form class="authform" data-proto="teamjoin" novalidate>
+      ${suSec(1,"About you",`<div class="grid"><label class="field"><span>First name</span><input type="text" id="tj-first" name="first" autocomplete="given-name" value="${esc(nm[0]||"")}" required></label>
+        <label class="field"><span>Last name</span><input type="text" id="tj-last" name="last" autocomplete="family-name" value="${esc(nm.slice(1).join(" "))}" required></label>
+        <label class="field"><span>Mobile phone</span><input type="tel" id="tj-phone" name="phone" autocomplete="tel" required></label>
+        <label class="field"><span>Email</span><input type="email" id="tj-email" name="email" value="${esc(t.email)}" readonly></label></div>`)}
+      ${suSec(2,"Your login",`<div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
+        <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}`)}
+      ${suSec(3,"Agree and join",`<label class="checkrow top"><input type="checkbox" id="tj-terms" name="terms"> <span>I agree to the ${termsLink("vendor")}.</span></label>`)}
+      <p class="small" style="margin:0">Already have an Orbyt login with this email? <button class="linkbtn" type="button" data-act="authmode" data-m="signin">Sign in</button>, then open the invite link again.</p>${authMsg()}
+      <div class="actions"><button class="btn" type="submit">Join the team</button></div></form>`)}
+document.addEventListener("submit",async e=>{const f=e.target.closest('form[data-proto="teamjoin"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const fd=new FormData(f),g=k=>String(fd.get(k)||"").trim(),t=S.teamInvite||{},pass=String(fd.get("password")||""),btn=f.querySelector('button[type="submit"]');
+  const fail=(m,sel)=>{S.authErr=m;render();const el=sel&&document.querySelector(sel);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}};
+  const hit=[[!g("first")||!g("last"),"Add your first and last name.",!g("first")?"#tj-first":"#tj-last"],[g("phone").replace(/\D/g,"").length<10,"Add a mobile phone number, with area code.","#tj-phone"],
+    [!!pwProblem(pass),pwProblem(pass),"#su-pass"],[pass!==String(fd.get("password2")||""),"Those passwords don't match. Type them again.","#su-pass2"],[!fd.get("terms"),"Check the box to agree to the terms.","#tj-terms"]].find(c=>c[0]);
+  if(hit)return fail(hit[1],hit[2]);
+  if(btn)btn.disabled=true;
+  const meta={role:"vendor",team_token:S.teamToken,full_name:g("first")+" "+g("last"),phone:g("phone"),terms_version:TERMS.vendor.version,user_agent:navigator.userAgent.slice(0,300)};
+  const{error}=await sb.auth.signUp({email:t.email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
+  if(error){if(btn)btn.disabled=false;return fail(/already|registered/i.test(error.message)?"You already have an Orbyt login with this email. Sign in, then open the invite link again.":error.message)}
+  S.pendingEmail=t.email;S.pendingVendor=false;S.authMode="checkemail";S.authErr="";render()},true);
+
+// the team, loaded for vendors after each refresh
+async function loadTeam(){if(kind()!=="vendor"||!sb)return;const{data}=await sb.rpc("vendor_team").then(r=>r,()=>({data:null}));if(data){S.team=data;schedule()}}
+const teamPeople=()=>(S.team||[]).filter(m=>m.joined&&m.user_id);
+function handledName(uid){if(uid===S.uid)return "Handled by you";const m=(S.team||[]).find(x=>x.user_id===uid);return "Handled by "+(m?firstName(m.name)||m.name:"your team")}
+function handledBy(b){if(kind()!=="vendor"||!S.canWrite)return"";const ppl=teamPeople();if(ppl.length<2)return"";
+  return `<label class="handled"><span class="small">Handled by</span><select data-act="assign" data-id="${esc(b.id)}"><option value="">Not assigned</option>${ppl.map(m=>`<option value="${esc(m.user_id)}" ${m.user_id===b.assignedTo?"selected":""}>${esc(m.user_id===S.uid?"Me ("+firstName(m.name)+")":m.name)}</option>`).join("")}</select></label>`}
+document.addEventListener("change",async e=>{const t=e.target;if(!t.matches||!t.matches('select[data-act="assign"]'))return;
+  const{error}=await sb.rpc("bid_assign",{p_bid:t.dataset.id,p_user:t.value||null});
+  if(error){toast(error.message);return}await S.db.reload();render();
+  toast(!t.value?"Unassigned":t.value===S.uid?"It's yours":"Tagged. They'll get an email.")});
+
+// the owner's team section, on the Profile tab
+function teamCard(){const ppl=S.team||[];
+  const rows=ppl.map(m=>`<tr><td class="strong">${esc(m.name)}${m.owner?' <span class="pill">Owner</span>':""}</td><td class="small">${esc(m.email)}</td>
+    <td>${m.owner?"":m.joined?'<span class="pill set">Joined</span>':`<span class="pill">Invited ${esc(ago(m.invited_at))}</span>`}</td>
+    <td style="text-align:right;white-space:nowrap">${m.owner?"":`${m.joined?"":`<button class="linkbtn" data-act="teamresend" data-id="${esc(m.member_id)}">Resend</button>`}<button class="linkbtn" data-act="teamremove" data-id="${esc(m.member_id)}" data-name="${esc(m.name)}" style="margin-left:12px">Remove</button>`}</td></tr>`).join("");
+  return `<p class="small" style="margin:0 0 8px">Each person gets their own login to see requests, send quotes and message agents. Only you can change your profile, billing, insurance and references.</p>
+    ${ppl.length?`<div class="tablewrap"><table><tbody>${rows}</tbody></table></div>`:""}
+    <form class="form inner" data-form="teaminvite" novalidate style="margin-top:10px"><div class="grid"><label class="field"><span>Name</span><input type="text" id="ti-name" name="name" maxlength="80" placeholder="Jordan Lee"></label>
+      <label class="field"><span>Email</span><input type="email" id="ti-email" name="email" placeholder="jordan@yourbusiness.com"></label></div>
+      <p class="small warntext tierr" role="alert" style="margin:0" hidden></p><div class="actions"><button class="btn sm" type="submit">Send invite</button></div></form>`}
+document.addEventListener("submit",async e=>{const f=e.target.closest('form[data-form="teaminvite"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const name=f.querySelector("#ti-name").value.trim(),email=f.querySelector("#ti-email").value.trim(),err=f.querySelector(".tierr"),btn=f.querySelector('button[type="submit"]');
+  const show=m=>{err.textContent=m;err.hidden=!m};if(!name)return show("Add their name.");if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return show("Enter a valid email.");
+  btn.disabled=true;const{error}=await sb.rpc("vendor_member_invite",{p_name:name,p_email:email});btn.disabled=false;
+  if(error)return show(error.message);await loadTeam();render();toast("Invite sent to "+name)},true);
+document.addEventListener("click",async e=>{const t=e.target.closest('[data-act="teamresend"],[data-act="teamremove"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  if(t.dataset.act==="teamremove"){if(S.teamRemove!==t.dataset.id){S.teamRemove=t.dataset.id;t.textContent="Tap again to remove";setTimeout(()=>{if(S.teamRemove===t.dataset.id){S.teamRemove="";t.textContent="Remove"}},4000);return}
+    S.teamRemove="";const{error}=await sb.rpc("vendor_member_remove",{p_id:t.dataset.id});if(error)return toast(error.message);await loadTeam();await S.db.reload();render();toast(t.dataset.name+" was removed from your team");return}
+  const{error}=await sb.rpc("vendor_member_resend",{p_id:t.dataset.id});toast(error?error.message:"Invite sent again")},true);

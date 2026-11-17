@@ -4,22 +4,26 @@ const taxCats=side=>Object.values(TAX[side]||{}).flatMap(d=>Object.keys(d));
 const taxSvcs=(side,cat)=>{for(const d of Object.values(TAX[side]||{}))if(d[cat])return d[cat];return[]};
 const taxCatOf=sub=>String(sub).split(": ")[0];
 // a category-first picker: tick a category, then tick the services you actually offer in it (none are pre-ticked)
-function svcPicker(side,pre,cats,subs,hint){cats=cats||[];subs=subs||[];let i=0;
+function svcPicker(side,pre,cats,subs,hint,catsOnly){cats=cats||[];subs=subs||[];let i=0;
   const groups=Object.entries(TAX[side]||{}).map(([disc,cs])=>`<div class="taxgrp"><div class="eyebrow">${esc(disc)}</div>${Object.entries(cs).map(([c,svcs])=>{const n=i++,on=cats.includes(c);
     return `<div class="taxcat ${on?"on":""}" data-tax="${esc((c+" "+svcs.join(" ")).toLowerCase())}"><label class="taxhead"><input type="checkbox" id="${pre}-${n}" name="svc" value="${esc(c)}" ${on?"checked":""}> <span class="strong">${esc(c)}</span>${hint&&hint[c]?`<span class="small"> · ${esc(hint[c])}</span>`:""}</label>
-      <div class="taxsubs" ${on?"":"hidden"}><span class="small">Which do you offer?</span><div class="tchips">${svcs.map((s,j)=>{const val=c+": "+s;return `<label class="tchip"><input type="checkbox" id="${pre}-${n}-${j}" name="sub" value="${esc(val)}" ${subs.includes(val)?"checked":""}><span>${esc(s)}</span></label>`}).join("")}</div></div></div>`}).join("")}</div>`).join("");
-  return `<div class="taxpick" data-side="${side}"><input type="search" class="taxsearch" placeholder="Search services, like move-out cleaning or drone photos" aria-label="Search services">
+      ${catsOnly?"":`<div class="taxsubs" ${on?"":"hidden"}><span class="small">Which do you offer?</span><div class="tchips">${svcs.map((s,j)=>{const val=c+": "+s;return `<label class="tchip"><input type="checkbox" id="${pre}-${n}-${j}" name="sub" value="${esc(val)}" ${subs.includes(val)?"checked":""}><span>${esc(s)}</span></label>`}).join("")}</div></div>`}</div>`}).join("")}</div>`).join("");
+  return `<div class="taxpick ${catsOnly?"catsonly":""}" data-side="${side}"><input type="search" class="taxsearch" placeholder="Start typing what you offer, like staging or move-out cleaning" aria-label="Search services" autocomplete="off">
+    <p class="small taxhint">${cats.length?"Your picks are below. Type to add more, or":catsOnly?"Type a few letters to find your kind of work, or":"Type a few letters to find your services, or"} <button class="linkbtn" type="button" data-act="taxbrowse">browse the full list</button>.</p>
     <div class="taxlist">${groups}</div><p class="small taxnone" hidden>Nothing matches. Ask for it under "Request a category" below.</p></div>`}
 // every ticked category needs at least one service under it
 function taxProblem(f){for(const box of f.querySelectorAll('.taxcat input[name="svc"]:checked')){const c=box.closest(".taxcat");
   if(!c.querySelector('input[name="sub"]:checked'))return{msg:`Pick at least one ${box.value.toLowerCase()} service you offer.`,el:c}}return null}
 document.addEventListener("change",e=>{const t=e.target;if(!t.matches||!t.matches('.taxcat input[name="svc"]'))return;const c=t.closest(".taxcat");c.classList.toggle("on",t.checked);
   const s=c.querySelector(".taxsubs");if(s)s.hidden=!t.checked;if(!t.checked)c.querySelectorAll('input[name="sub"]').forEach(x=>x.checked=false)});
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="taxbrowse"]');if(!b)return;e.preventDefault();e.stopPropagation();const pk=b.closest(".taxpick"),on=!pk.classList.contains("browse");
+  pk.classList.toggle("browse",on);b.textContent=on?"show just my picks":"browse the full list"},true);
 document.addEventListener("input",e=>{const t=e.target;if(!t.classList||!t.classList.contains("taxsearch"))return;const pk=t.closest(".taxpick"),q=t.value.trim().toLowerCase();let n=0;
+  pk.classList.toggle("searching",!!q);
   pk.querySelectorAll(".taxcat").forEach(c=>{const hit=!q||q.split(/\s+/).every(w=>c.dataset.tax.includes(w));c.hidden=!hit;if(hit)n++;
     c.querySelectorAll(".tchip").forEach(ch=>ch.classList.toggle("hit",!!q&&q.split(/\s+/).every(w=>ch.textContent.toLowerCase().includes(w))));
     if(q&&hit&&c.querySelector(".tchip.hit")){const s=c.querySelector(".taxsubs");if(s)s.hidden=false}else if(!c.querySelector('input[name="svc"]').checked){const s=c.querySelector(".taxsubs");if(s)s.hidden=true}});
-  pk.querySelectorAll(".taxgrp").forEach(g=>g.hidden=![...g.querySelectorAll(".taxcat")].some(c=>!c.hidden));pk.querySelector(".taxnone").hidden=n>0});
+  pk.querySelectorAll(".taxgrp").forEach(g=>g.hidden=!!q&&![...g.querySelectorAll(".taxcat")].some(c=>!c.hidden));pk.querySelector(".taxnone").hidden=!q||n>0});
 // ticking a service also ticks its category
 document.addEventListener("change",e=>{const t=e.target;if(!t.matches||!t.matches('.taxcat input[name="sub"]')||!t.checked)return;const c=t.closest(".taxcat"),box=c.querySelector('input[name="svc"]');
   if(!box.checked){box.checked=true;c.classList.add("on")}});

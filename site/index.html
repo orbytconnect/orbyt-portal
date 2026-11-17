@@ -397,6 +397,7 @@ table.mini{min-width:0}
 .cwlist{list-style:none;margin:0;padding:0;display:grid;gap:8px}.cwlist li{border-top:1px solid var(--line);padding-top:8px}
 .stepnote{background:var(--surface-2);border-left:4px solid var(--gold,#A8871F);border-radius:10px;padding:10px 14px;font-size:14px;line-height:1.5}
 .setuppanel{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}.setupmiss{display:block;margin-top:2px}
+.didlist{margin:12px 0}
 .vsecs{margin-top:28px}.psecbody .vst{background:var(--surface-2)}.psecbody>.folds{margin:0}.psecbody .vstats{margin-bottom:14px}.updfold{margin:10px 0 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 @media (max-width:720px){.vstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .feebox{border-left:3px solid var(--gold)}
@@ -859,7 +860,10 @@ function agentTasks(agent){
           when:dAt,act:{a:"form",key:"review:tasks:"+b.id,label:"Leave a review"},auto:reviewed(b),autoLabel:"Reviewed",bid:b});
     }
     if(!p.listed){const d=daysTo(p.targetDate);
-      if(d!==null&&d<=DATE_WINDOW)for(const c of p.categories||[]){
+      if(d!==null&&d<0){const open=(p.categories||[]).filter(c=>!isBooked(p.id,c));
+        T.push({id:"didlist-"+p.id+"-"+p.targetDate,cls:"k-warn",label:"List date",urgent:true,title:`Did ${p.address} list?`,
+          meta:`Target date was ${fmtDate(p.targetDate)}${open.length?` · Not booked: ${open.join(", ")}`:""} · mark it listed or change the date`,when:p.targetDate,act:{a:"open",id:p.id,label:"Update"},auto:false});
+      }else if(d!==null&&d<=DATE_WINDOW)for(const c of p.categories||[]){
         const booked=isBooked(p.id,c);
         T.push({id:"date-"+p.id+"-"+c,cls:"k-warn",label:"List date",urgent:!booked,title:`${c} isn't booked yet for ${p.address}`,
           meta:`${d<0?"Target date passed":d===0?"Lists today":"Lists in "+d+(d===1?" day":" days")} (${fmtDate(p.targetDate)})`,when:p.targetDate,act:{a:"open",id:p.id,label:"Open project"},auto:booked,autoLabel:"Booked"});
@@ -2254,6 +2258,14 @@ function pickForm(p,c,bids){
       <button class="btn" type="submit">Introduce selected</button></div>
     <p class="small" style="margin:0">${esc(ag)} sees who you introduce and your notes. Each vendor gets a bid request labeled "Introduced by Ashleigh."</p></form>`;
 }
+function listDateForm(p){const today=new Date().toISOString().slice(0,10);
+  const n=S.bids.filter(b=>b.projectId===p.id&&["requested","submitted","changes","chosen","selected"].includes(b.status)&&!b.done).map(b=>b.vendorId).filter((x,i,a)=>a.indexOf(x)===i).length;
+  return `<form class="form callout" data-form="listdate" data-id="${esc(p.id)}"><label class="field" style="max-width:240px"><span>New target list date</span><input type="date" id="ld-${esc(p.id)}" name="date" min="${today}" value="${esc(p.targetDate&&p.targetDate>=today?p.targetDate:"")}" required></label>
+    ${n?`<p class="small" style="margin:0">${n===1?"The vendor":"The "+n+" vendors"} quoting or booked on this home will get an email and a notification with the new date.</p>`:""}
+    <div class="actions"><button class="btn sm" type="submit">Save date</button><button class="btn ghost sm" type="button" data-act="cancel">Cancel</button></div></form>`}
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="listdate"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const v=String(new FormData(f).get("date")||"");if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){toast("Pick a date");return}
+  guard(async()=>{await col("projects").doc(f.dataset.id).update({targetDate:v});S.openForm=null},"List date updated")},true);
 function projectDetail(p,mode){
   if(!p)return"";
   const isOrbyt=mode==="orbyt";const[st,cls]=projStatus(p);const d=daysTo(p.targetDate);
@@ -2264,7 +2276,11 @@ function projectDetail(p,mode){
       ${isOrbyt&&S.canWrite?`<label class="inlinesel"><span>Budget</span><select id="pb-${esc(p.id)}" data-budget="${esc(p.id)}"><option value="">Not sure</option>${TIERS.map(t=>`<option value="${t}" ${p.budget===t?"selected":""}>${BUDGETS[t]}</option>`).join("")}</select></label>`:p.budget?`<span>Budget <b>${BUDGETS[p.budget]}</b></span>`:""}
       <span class="pill ${cls}">${st}</span>${PM_ON&&isOrbyt&&!p.pm&&p.pmInterest&&p.pmInterest!=="no"?`<span class="pill comparing">${esc(PMI[p.pmInterest])}</span>`:""}</div>
       ${isOrbyt&&p.brokerage?`<div class="small" style="margin-top:4px">${esc(p.brokerage)}${p.agentPhone?" · "+esc(p.agentPhone):""}${p.agentEmail?" · "+esc(p.agentEmail):""}</div>`:""}${isOrbyt&&S.canWrite&&typeof changeAgentBlock==="function"?changeAgentBlock(p):""}</div>
-    <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>`;
+    <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:mode!=="vendor"?`<span class="eyebrow">Target list date</span><span class="small">Not set</span>`:""}
+      ${mode!=="vendor"&&S.canWrite&&!p.listed?`<button class="linkbtn" type="button" data-act="form" data-key="listdate:${esc(p.id)}">${p.targetDate?"Change date":"Add a date"}</button>`:""}</div></div>`;
+  if(mode!=="vendor"&&S.canWrite&&!p.listed&&S.openForm==="listdate:"+p.id)h+=listDateForm(p);
+  else if(mode!=="vendor"&&S.canWrite&&!p.listed&&d!==null&&d<0)h+=`<div class="callout warn didlist"><p style="margin:0"><span class="strong">Did ${esc(p.address)} list?</span> The target date was ${esc(fmtDate(p.targetDate))}. Mark it listed, or move the date so ${isOrbyt?"everyone":"your vendors"} plan around the right one.</p>
+    <div class="actions" style="margin-top:8px"><button class="btn sm" data-act="listed" data-id="${esc(p.id)}" data-v="1">Yes, mark it listed</button><button class="btn ghost sm" data-act="form" data-key="listdate:${esc(p.id)}">No, change the date</button></div></div>`;
   if(mode!=="vendor"&&(p.clientEmail||p.clientPhone))h+=`<p class="small" style="margin:8px 0 0">Reach ${esc(cfn(p)||"the client")}: ${[p.clientPhone?`<a href="tel:${esc(p.clientPhone.replace(/[^\d+]/g,""))}">${esc(p.clientPhone)}</a>`:"",p.clientEmail?`<a href="mailto:${esc(p.clientEmail)}">${esc(p.clientEmail)}</a>`:""].filter(Boolean).join(" · ")}</p>`;
   if(p.notes)h+=`<p class="note">${esc(p.notes)}</p>`;
   if(mode==="agent"&&typeof hcProjectBtn==="function")h+=hcProjectBtn(p);

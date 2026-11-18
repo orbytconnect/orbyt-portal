@@ -102,23 +102,23 @@ function partnerView(v){
   if(S.tab==="messages"&&typeof messagesView==="function"&&msgOn())return `<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Messages</h1></div><div><button class="btn ghost sm" type="button" data-act="partnerhome">Back to your listing</button></div></section>`+messagesView();
   const st=listingStatus(v),past=(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.vendor_id===v.id),live=v.approved!==false;
   const sec=(id,n,title,sub,right,body)=>`<section class="psec" data-fold="${id}"><div class="psechead"><div><div class="eyebrow">${n}</div><h2>${title}</h2>${sub?`<p class="small">${sub}</p>`:""}</div>${right?`<div>${right}</div>`:""}</div><div class="psecbody">${body}</div></section>`;
-  let h=`<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>
+  let h=`<section class="hello vhello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>
     ${live?"":`<p class="banner" style="margin-top:10px">Welcome to Orbyt. Finish the steps under Get listed below, and I'll check your license and publish your listing.</p>`}</div>
-    <div class="hellore">${ratingHtml(v.id)}${typeof msgAshBtn==="function"&&msgOn()?msgAshBtn(unreadTotal()?`Messages from Ashleigh (${unreadTotal()})`:"Message Ashleigh","btn ghost sm"):""}</div></section>`;
-  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function"&&live)h+=setupCard();
+    <div class="hellore vhside">${ratingHtml(v.id)}${live&&typeof availToggle==="function"?availToggle(v):""}${typeof msgAshBtn==="function"&&msgOn()?msgAshBtn(unreadTotal()?`Messages from Ashleigh (${unreadTotal()})`:"Message Ashleigh","btn ghost sm"):""}</div></section>`;
+  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function"&&live)h+=setupCard();const bx=[];
   if(!live&&typeof approvalSec==="function")h+=approvalSec(v);
-  h+=sec("listing","1 · Your listing","How agents see you",live?"Agents in the network find you in the Orbyt closing partner directory and on their buyers' projects.":"Once it's live, agents in the network can find your listing in the Orbyt closing partner directory.",
+  bx.push(vbox("listing","Your listing",live?"Agents in the network find you in the Orbyt closing partner directory and on their buyers' projects.":"Once it's live, agents in the network can find your listing in the Orbyt closing partner directory.",
     live?`<span class="pill ${st.key==="due"||st.key==="canceled"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span>`:"",
-    `${live&&typeof availToggle==="function"?availToggle(v):""}${partnerListing(v)}
-     <p class="small" style="margin:10px 0 0">Your first ${LISTING_FREE_DAYS} days are free with our launch offer, then your marketing listing is $${LISTING_FEE} a month. ${billingOn()?"Cancel anytime from Manage billing.":"Cancel anytime by emailing ashleigh@orbytconnect.com."} It also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p>${live?billingBlock(v):""}`);
-  if(live)h+=`<details class="fold" data-fold="svcs" style="margin:12px 0" ${(v.serviceDetails||[]).length?"":"open"}><summary><span class="foldtitle">Your services</span>${(v.serviceDetails||[]).length?`<span class="pill set">${v.serviceDetails.length} picked</span>`:'<span class="pill late">Pick yours</span>'}<span class="small foldhint">What agents see you offer</span></summary><div class="foldbody">${svcEditCard(v,"partner")}</div></details>`;
-  h+=sec("port","2 · Your ad","Tell agents why to call you","This is your advertisement on your listing. Write it the way you'd pitch an agent over coffee.","",adCard(v));
+    `${partnerListing(v)}
+     <p class="small" style="margin:10px 0 0">Your first ${LISTING_FREE_DAYS} days are free with our launch offer, then your marketing listing is $${LISTING_FEE} a month. ${billingOn()?"Cancel anytime from Manage billing.":"Cancel anytime by emailing ashleigh@orbytconnect.com."} It also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p>${live?billingBlock(v):""}`));
+  if(live)bx.push(vbox("svcs","Your services","What agents see you offer in each line of work.",(v.serviceDetails||[]).length?`<span class="pill set">${v.serviceDetails.length} picked</span>`:'<span class="pill late">Pick yours</span>',svcEditCard(v,"partner")));
+  bx.push(vbox("port","Your ad","This is your advertisement on your listing. Write it the way you'd pitch an agent over coffee.",(v.adHeadline||v.adBody)?'<span class="pill set">Written</span>':'<span class="pill late">Write it</span>',adCard(v)));
   if(live){const sent=typeof rrFor==="function"?rrFor(v.id):[];
-    h+=sec("myrev","3 · Reviews","What agents say about you","",myReviewsPill(v),
-      myReviewsCard(v)+(typeof reviewInviteCard==="function"?`<details class="fold" data-fold="rr" style="margin-top:12px" ${S.rrMore?"open":""}><summary><span class="foldtitle">Invite agents to review you</span>${sent.length?`<span class="pill">${sent.length} invited</span>`:""}</summary><div class="foldbody">${reviewInviteCard(v)}</div></details>`:""));
-    h+=sec("refer","4 · Spread the word","Refer someone to Orbyt","",refCountPill(),referralCard("partner"))}
-  if(past.length)h+=`<details class="fold" style="margin-top:12px"><summary><span class="foldtitle">Earlier introductions</span><span class="pill">${past.length}</span></summary><div class="foldbody"><div class="introlist">${past.map(i=>`<div class="introcard"><div class="eyebrow">${esc(i.category)} · ${esc(ago(i.introduced_at))}</div><div class="strong">${esc(i.agent_name||"Agent")}</div><div class="small">${esc(i.address||"")}</div></div>`).join("")}</div></div></details>`;
-  return h}
+    bx.push(vbox("myrev","Reviews","What agents say about you.",myReviewsPill(v),
+      myReviewsCard(v)+(typeof reviewInviteCard==="function"?`<details class="fold" data-fold="rr" style="margin-top:12px" ${S.rrMore?"open":""}><summary><span class="foldtitle">Invite agents to review you</span>${sent.length?`<span class="pill">${sent.length} invited</span>`:""}</summary><div class="foldbody">${reviewInviteCard(v)}</div></details>`:"")));
+    bx.push(vbox("refer","Spread the word","Refer someone to Orbyt with your own sign-up link.",refCountPill(),referralCard("partner")))}
+  if(past.length)bx.push(vbox("intros","Earlier introductions","Agents Orbyt introduced you to before listings.",`<span class="pill">${past.length}</span>`,`<div class="introlist">${past.map(i=>`<div class="introcard"><div class="eyebrow">${esc(i.category)} · ${esc(ago(i.introduced_at))}</div><div class="strong">${esc(i.agent_name||"Agent")}</div><div class="small">${esc(i.address||"")}</div></div>`).join("")}</div>`));
+  return h+`<div class="vboxes">${bx.join("")}</div>`}
 
 /* the partner's own ad on their listing */
 function adCard(v){const img=v.adImage&&typeof ovUrl==="function"?ovUrl(v.adImage):"",ov=v.overviewPdf&&typeof ovUrl==="function"?ovUrl(v.overviewPdf):"";

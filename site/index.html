@@ -155,6 +155,7 @@ textarea{resize:vertical;min-height:64px}
 @media(max-width:700px){.vhside{align-items:flex-start}.vhside .availtoggle{justify-content:flex-start}}
 .dashgrid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:0 24px;align-items:start}.dashside{position:sticky;top:12px}.dashside .setup{margin:0;padding:14px 16px}.dashside .setuphead{flex-direction:column;align-items:flex-start;gap:4px}.dashside .setuphead h2{font-size:18px}.dashside .setuplist li{grid-template-columns:22px minmax(0,1fr)!important;align-items:start}.dashside .setuplist li>div:last-child,.dashside .setuplist li>span.small:last-child{grid-column:2}.dashside .setuplist li .actions{margin:0}.dashside .setuplist li.done{display:none}
 @media(max-width:980px){.dashgrid{grid-template-columns:minmax(0,1fr)}.dashside{position:static;margin-top:18px}}
+.dash.one{display:block}
 .vboxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:18px}.vbox{border:1px solid var(--line);border-radius:12px;background:var(--surface);min-width:0}.vbox.open{grid-column:1/-1}
 .vboxhead{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 16px}.vboxhead:focus-visible{outline:2px solid var(--gold,#A8871F);outline-offset:-2px;border-radius:12px}
 .vboxtitle{display:grid;gap:3px;min-width:0}.vboxtitle .h2{font-size:18px;color:var(--ink);font-weight:500}.vboxright{display:flex;align-items:center;gap:8px;flex-shrink:0}.caret{color:var(--muted);font-size:13px}
@@ -1129,17 +1130,20 @@ function agentView(){
   const agent=roleVal();const T=agentTasks(agent);const isUpd=t=>/^intro-/.test(t.id)||(S.canWrite&&/^review-/.test(t.id));const openN=splitTasks(T).open.filter(t=>!isUpd(t)).length;
   const ps=S.projects.filter(p=>isOnProject(p,agent));
   if(typeof msgPending==="function")msgPending();
-  if(!["tasks","projects","messages","favorites","team","card","closingdir"].includes(S.tab))S.tab="tasks";
+  // favorites, team, card and the closing directory live in boxes on the home page now
+  const TAB2BOX={favorites:"favs",team:"team",card:"card",closingdir:"closing"};
+  if(TAB2BOX[S.tab]){const b=TAB2BOX[S.tab];S.vbox=b;S.tab="tasks";setTimeout(()=>{const el=document.querySelector(`.vbox[data-box="${b}"]`);if(el)el.scrollIntoView({block:"start",behavior:"smooth"})},60)}
+  if(!["tasks","projects","messages"].includes(S.tab))S.tab="tasks";
   const inProj=S.tab==="projects"&&S.openProject&&ps.some(p=>p.id===S.openProject);
   let h=`<section class="hello ${inProj?"slim":""}"><div><h1>Hi ${esc(agent.split(" ")[0])}</h1>
-    ${inProj?"":`<p>See new quotes as they come in, compare them side by side and see who's booked on every project.</p>`}
+
     ${S.canWrite&&!inProj?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
     ${S.canWrite?`<div class="actions"><button class="btn" data-act="newproject">New project</button></div>`:""}</section>`;
-  if(!inProj){if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function")h+=setupCard()}
+  const setup=!inProj&&typeof setupCard==="function"?setupCard():"";
   if(S.openForm==="newarea")h+=`<form class="form" data-form="market" data-agent="1" style="margin-bottom:20px"><h3>Where should Orbyt go next?</h3><p class="small" style="margin:0">Tell me where you have listings or buyers outside ${esc(AREAS.slice(0,3).join(", "))} and the rest of my current areas. Enough requests and I'll start recruiting vendors there.</p>
     <div class="grid"><label class="field"><span>Area</span><input type="text" id="na-area" name="area" required placeholder="Temecula, Orange County"></label><label class="field"><span>Note (optional)</span><input type="text" id="na-note" name="note" placeholder="I list 6 to 8 homes a year there"></label></div>
     <div class="actions"><button class="btn sm" type="submit">Send request</button><button class="btn ghost sm" type="button" data-act="cancel">Cancel</button></div></form>`;
-  if(!inProj)h+=upNext(agent,openN)+reviewStrip(agent);
+  const upnext=inProj?"":upNext(agent,openN),revs=inProj?"":reviewStrip(agent);
   const ab=S.bids.filter(b=>ps.some(p=>p.id===b.projectId));
   if(!inProj)h+=statStrip([
     {key:"active",label:"Active projects",list:ps.filter(p=>!p.listed).sort(byDate),render:l=>projTable(l,"open"),empty:"No active projects."},
@@ -1147,22 +1151,21 @@ function agentView(){
     {key:"received",label:"Bids received",list:ab.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"agent"),empty:"No new bids to look at."},
     {key:"accepted",label:"Bids accepted",list:ab.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"agent"),empty:"No vendors booked yet."},...(typeof msgStat==="function"?msgStat():[])]);
   const favs=favIds(agent).map(vendorById).filter(Boolean);
-  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[]),["favorites",`Favorites <span class="small num">(${favs.length})</span>`,0],["team",`Always share with <span class="small num">(${defaultTeamOf(agent).length})</span>`,0],...(typeof closingDirectory==="function"?[["closingdir","Closing partners",0]]:[]),...(typeof hcView==="function"&&S.canWrite?[["card","Home team card",0]]:[])]);
-  if(S.tab==="closingdir"&&typeof closingDirectory==="function")return h+closingDirectory();
+  h+=tabs([["tasks","Home",openN],["projects","Projects",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[])]);
   if(S.tab==="messages"&&typeof messagesView==="function")return h+messagesView();
-  if(S.tab==="team")return h+myTeamView(agent);
-  if(S.tab==="card"&&typeof hcView==="function")return h+hcView(agent);
   if(S.openForm==="newproject")h+=newProjectForm(agent);
-  if(S.tab==="tasks")return h+tasksView(T,"When a vendor sends a bid or a list date gets close, it shows up here.",isUpd)+(typeof agentFolds==="function"?agentFolds():"");
-  if(S.tab==="favorites"){
-    if(!favs.length)return h+`<div class="emptystate"><h2>No favorites yet</h2><p>Click any vendor's name to open their card, then choose "Save to favorites." Ashleigh sees your favorites and puts them first when she matches your listings.</p></div>`;
-    const groups=[...CATS,...(typeof CLOSING!=="undefined"?CLOSING:[])].filter(c=>favs.some(v=>vsv(v).includes(c)));
-    if(typeof hcView==="function"&&S.canWrite)h+=`<div class="callout hccallout" style="margin-bottom:16px"><div><span class="strong">Share your favorites with buyers</span><div class="small">Print a home team card with these pros' names and ratings, and a code that sends requests back to you. No vendor contact details on it.</div></div><button class="btn ghost sm" data-act="hcmake">Make a home team card</button></div>`;
-    return h+groups.map(c=>`<div class="section"><h2>${esc(c)}</h2><div class="favgrid">${favs.filter(v=>vsv(v).includes(c)).map(v=>{const jobs=S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected"&&projById(b.projectId)?.agent===agent).length;
-      return `<div class="favcard"><div class="row"><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${S.canWrite?`<button class="linkbtn" data-act="fav" data-id="${esc(v.id)}">Remove</button>`:""}</div>
-        <div>${ratingHtml(v.id)}</div><div class="small">${typeof bookedWithMe==="function"&&msgOn()&&!bookedWithMe(v.id)?"Contact details show once you book them":[vPhone(v),vEmail(v)].filter(Boolean).map(esc).join(" · ")||"No contact info yet"}</div>
-        <div class="small num">${jobs} ${jobs===1?"job":"jobs"} with you</div></div>`}).join("")}</div></div>`).join("");
-  }
+  if(S.tab==="tasks"){
+    // home: setup until it's done, what's next, the to-do list, then boxes that open in place
+    const todo=`<section class="todobar"><div class="todohead"><span class="h2">To do</span><span class="small">${openN?`${openN} open`:"All caught up"}</span></div>${tasksView(T,"When a vendor sends a bid or a list date gets close, it shows up here.",isUpd)}</section>`;
+    const nrev=(revs.match(/Remind me in/g)||[]).length;
+    const team=defaultTeamOf(agent).length;
+    const boxes=[revs?vbox("revs","How did they do?","Rate the vendors who finished jobs for you.",`<span class="pill late">${nrev||""} to review</span>`,revs):"",
+      vbox("favs","Favorites","Vendors you like. They're matched to your listings first.",favs.length?`<span class="pill">${favs.length}</span>`:"",favsBody(agent,favs)),
+      vbox("team","Always share with","Your assistant or team see every project and can get the emails.",team?`<span class="pill">${team}</span>`:"",myTeamView(agent)),
+      typeof hcView==="function"?vbox("card","Home team card","A printable card for buyers with your favorite pros.","",hcView(agent)):"",
+      typeof closingDirectory==="function"?vbox("closing","Closing partners","Lenders, title, escrow, insurance and inspectors listed with Orbyt.","",closingDirectory()):"",
+      typeof referralCard==="function"&&S.canWrite?vbox("refer","Spread the word","A ready-made message with your own sign-up link.",typeof refCountPill==="function"?refCountPill():"",referralCard("agent")):""].join("");
+    return h+setup+upnext+todo+`<div class="vboxes">${boxes}</div>`}
   if(S.openProject&&ps.some(p=>p.id===S.openProject))return h+`<div class="back"><button class="linkbtn" data-act="closeproject">All projects</button></div>`+projectDetail(projById(S.openProject),"agent");
   if(!ps.length)return h+`<div class="emptystate"><h2>No projects yet</h2><p>Add a project with the address, your client and what the home needs. Ashleigh will line up matched vendors and their bids land here.</p></div>`;
   const rows=sortRows(ps.filter(inRange),{address:p=>p.address,client:p=>client(p),date:p=>p.targetDate||"9999"});
@@ -1386,7 +1389,7 @@ function orbytView(){
   if(S.tab==="tasks"||!["dash","pipeline","projects","messages","vendors","partners","agents","invoicing","reports"].includes(S.tab))S.tab="dash";
   const pending=S.reviews.filter(r=>!r.approved).length;
   let h=`<section class="hello"><div><h1>Hi Ashleigh</h1>
-    <p>See every project at a glance, including what needs matching, who's bid and who's booked. Hand-pick the vendors you introduce for each home, add your own tasks, and book your client's pick.</p></div>
+</div>
     ${S.canWrite&&!S.dbMissing?`<div class="actions"><button class="btn" data-act="newproject">New project</button></div>`:""}</section>`;
   if(typeof adminPushCard==="function")h+=adminPushCard();
   if(typeof newsCard==="function"&&S.tab==="dash")h+=newsCard();
@@ -1990,17 +1993,21 @@ function dashView(){
       {key:"waiting",label:"Waiting on vendors",list:S.bids.filter(b=>["requested","changes","chosen"].includes(b.status)&&live(b)),render:l=>bidTable(l,"orbyt"),empty:"No vendors owe you a bid right now."},
       {key:"review",label:"Bids to review",list:S.bids.filter(b=>b.status==="submitted"&&live(b)),render:l=>bidTable(l,"orbyt"),empty:"No bids waiting on a decision."},
       ...(PM_ON?[{key:"managing",label:"You're managing",list:pm,render:l=>projTable(l,"openmatch"),empty:"No active projects with project management."}]:[])])+alertsView();
-    main+=`<section class="section"><div class="sechead"><div><h2>Needs matching</h2><span class="small">${matchMode()==="hand"?"You pick every introduction.":"Automatic matching is on. These still need a hand."}</span></div>
-      ${S.canWrite&&S.openForm!=="import"?`<button class="btn ghost sm" data-act="form" data-key="import">Import website requests</button>`:""}</div>
+    // the rest as boxes that open in place
+    const bx=[];
+    bx.push(vbox("needs","Needs matching",matchMode()==="hand"?"You pick every introduction.":"Automatic matching is on. These still need a hand.",needs.length?`<span class="pill late">${needs.length}</span>`:'<span class="pill set">All matched</span>',
+      `${S.canWrite&&S.openForm!=="import"?`<div class="actions" style="margin:0 0 10px"><button class="btn ghost sm" data-act="form" data-key="import">Import website requests</button></div>`:""}
       ${S.openForm==="import"?importPanel():""}
-      ${needs.length?`<div class="needgrid">${needs.map(needCard).join("")}</div>`:`<p class="small">You're all caught up. New requests from agents show up here.</p>`}</section>`;
-    if(PM_ON)main+=`<section class="section"><div class="sechead"><h2>Projects you're managing</h2><span class="small">Project management, 10% of vendor totals, $500 minimum</span></div>
-      ${pm.length?`<div class="pmgrid">${pm.map(pmCard).join("")}</div>`:`<p class="small">No active projects with project management. Turn it on from a project in the Matching tab.</p>`}</section>`;
-    main+=`<section class="section"><div class="sechead"><div><h2>All projects</h2><span class="small">${active.length} active${listed.length?", "+listed.length+" listed":""}</span></div>
+      ${needs.length?`<div class="needgrid">${needs.map(needCard).join("")}</div>`:`<p class="small">You're all caught up. New requests from agents show up here.</p>`}`));
+    {const mt=(S.mytasks||[]).filter(t=>!t.done).length;bx.push(vbox("mytasks","Your own tasks","Reminders you add for yourself.",mt?`<span class="pill">${mt} open</span>`:"",myTasksView()))}
+    if(PM_ON)bx.push(vbox("pm","Projects you're managing","Project management, 10% of vendor totals, $500 minimum",pm.length?`<span class="pill">${pm.length}</span>`:"",
+      pm.length?`<div class="pmgrid">${pm.map(pmCard).join("")}</div>`:`<p class="small">No active projects with project management. Turn it on from a project in the Matching tab.</p>`));
+    bx.push(vbox("allproj","All projects",`${active.length} active${listed.length?", "+listed.length+" listed":""}`,"",`<section class="section"><div class="sechead"><div><h2>All projects</h2><span class="small">${active.length} active${listed.length?", "+listed.length+" listed":""}</span></div>
       <button class="btn ghost sm" data-act="tab" data-tab="pipeline">Open the pipeline</button></div>
-      <div class="minipipe">${PIPE.filter(st=>st.k!=="listed"&&st.k!=="done").map(st=>{const n=active.filter(p=>pipeStage(p)===st.k).length;return `<button class="ministage" data-act="pipejump" data-k="${st.k}"><span class="num">${n}</span><span class="small">${st.label}</span></button>`}).join("")}</div></section>`;
+      <div class="minipipe">${PIPE.filter(st=>st.k!=="listed"&&st.k!=="done").map(st=>{const n=active.filter(p=>pipeStage(p)===st.k).length;return `<button class="ministage" data-act="pipejump" data-k="${st.k}"><span class="num">${n}</span><span class="small">${st.label}</span></button>`}).join("")}</div></section>`));
+    main+=`<div class="vboxes">${bx.join("")}</div>`;
   }
-  return `<div class="dash"><div style="min-width:0">${main}</div><aside class="dside">${myTasksView()}</aside></div>`;
+  return `<div class="dash one">${main}</div>`;
 }
 function parseCSV(t){t=t.replace(/^\uFEFF/,"");const rows=[];let row=[],f="",q=false;
   for(let i=0;i<t.length;i++){const c=t[i];
@@ -2580,6 +2587,15 @@ function submitForm(b){
     ${feeCallout(b)}
     <div class="actions"><button class="btn" type="submit">${b.status==="changes"?"Send updated bid":"Send bid"}</button><button class="btn ghost" type="button" data-act="form" data-key="decline:${esc(b.id)}">Can't bid on this one</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></form>`;
 }
+function favsBody(agent,favs){
+    if(!favs.length)return `<div class="emptystate"><h2>No favorites yet</h2><p>Click any vendor's name to open their card, then choose "Save to favorites." Ashleigh sees your favorites and puts them first when she matches your listings.</p></div>`;
+    const groups=[...CATS,...(typeof CLOSING!=="undefined"?CLOSING:[])].filter(c=>favs.some(v=>vsv(v).includes(c)));
+    let h="";if(typeof hcView==="function"&&S.canWrite)h+=`<div class="callout hccallout" style="margin-bottom:16px"><div><span class="strong">Share your favorites with buyers</span><div class="small">Print a home team card with these pros' names and ratings, and a code that sends requests back to you. No vendor contact details on it.</div></div><button class="btn ghost sm" data-act="hcmake">Make a home team card</button></div>`;
+    return h+groups.map(c=>`<div class="section"><h2>${esc(c)}</h2><div class="favgrid">${favs.filter(v=>vsv(v).includes(c)).map(v=>{const jobs=S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected"&&projById(b.projectId)?.agent===agent).length;
+      return `<div class="favcard"><div class="row"><button class="vlink strong" data-act="vcard" data-id="${esc(v.id)}">${esc(v.name)}</button>${S.canWrite?`<button class="linkbtn" data-act="fav" data-id="${esc(v.id)}">Remove</button>`:""}</div>
+        <div>${ratingHtml(v.id)}</div><div class="small">${typeof bookedWithMe==="function"&&msgOn()&&!bookedWithMe(v.id)?"Contact details show once you book them":[vPhone(v),vEmail(v)].filter(Boolean).map(esc).join(" · ")||"No contact info yet"}</div>
+        <div class="small num">${jobs} ${jobs===1?"job":"jobs"} with you</div></div>`}).join("")}</div></div>`).join("");
+  }
 function reviewStrip(agent){
   const dm=doneMap();
   const due=S.bids.filter(b=>{const p=projById(b.projectId);return p&&isOnProject(p,agent)&&reviewDue(b)&&!(dm["review-"+b.id]&&ageDays(dm["review-"+b.id])<SNOOZE_DAYS)})
@@ -4328,7 +4344,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest('[data-act=
   try{await navigator.clipboard.writeText(txt);toast("Review copied")}catch(_){window.prompt("Copy this review:",txt)}},true);
 
 /* ---------- vendors: taking new work, or paused ---------- */
-function availToggle(v){if(kind()!=="vendor"||!S.canWrite||v.approved===false)return"";const on=v.available!==false;
+function availToggle(v){if(kind()!=="vendor"||!S.canWrite||v.approved===false||S.teamMember)return"";const on=v.available!==false;
   if(typeof isPartner==="function"&&isPartner(v))return `<div class="availtoggle"><span class="small strong">Show my listing?</span><div class="seg" role="group" aria-label="Show my listing">
     <button class="segbtn ${on?"on":""}" type="button" data-act="myavail" data-v="1" aria-pressed="${on}">Showing</button><button class="segbtn ${on?"":"on"}" type="button" data-act="myavail" data-v="0" aria-pressed="${!on}">Hidden</button></div>
     <span class="small">${on?"Agents can find you in the directory.":"Your listing is hidden from agents until you switch it back. Hiding doesn't cancel or pause billing."}</span></div>`;
@@ -5051,23 +5067,23 @@ function partnerView(v){
   if(S.tab==="messages"&&typeof messagesView==="function"&&msgOn())return `<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Messages</h1></div><div><button class="btn ghost sm" type="button" data-act="partnerhome">Back to your listing</button></div></section>`+messagesView();
   const st=listingStatus(v),past=(Array.isArray(D.intros)?D.intros:[]).filter(i=>i.vendor_id===v.id),live=v.approved!==false;
   const sec=(id,n,title,sub,right,body)=>`<section class="psec" data-fold="${id}"><div class="psechead"><div><div class="eyebrow">${n}</div><h2>${title}</h2>${sub?`<p class="small">${sub}</p>`:""}</div>${right?`<div>${right}</div>`:""}</div><div class="psecbody">${body}</div></section>`;
-  let h=`<section class="hello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>
+  let h=`<section class="hello vhello"><div><div class="eyebrow">Closing partner · ${esc(vsv(v).join(", "))}</div><h1>Hi, ${esc(v.name)}</h1>
     ${live?"":`<p class="banner" style="margin-top:10px">Welcome to Orbyt. Finish the steps under Get listed below, and I'll check your license and publish your listing.</p>`}</div>
-    <div class="hellore">${ratingHtml(v.id)}${typeof msgAshBtn==="function"&&msgOn()?msgAshBtn(unreadTotal()?`Messages from Ashleigh (${unreadTotal()})`:"Message Ashleigh","btn ghost sm"):""}</div></section>`;
-  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function"&&live)h+=setupCard();
+    <div class="hellore vhside">${ratingHtml(v.id)}${live&&typeof availToggle==="function"?availToggle(v):""}${typeof msgAshBtn==="function"&&msgOn()?msgAshBtn(unreadTotal()?`Messages from Ashleigh (${unreadTotal()})`:"Message Ashleigh","btn ghost sm"):""}</div></section>`;
+  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function"&&live)h+=setupCard();const bx=[];
   if(!live&&typeof approvalSec==="function")h+=approvalSec(v);
-  h+=sec("listing","1 · Your listing","How agents see you",live?"Agents in the network find you in the Orbyt closing partner directory and on their buyers' projects.":"Once it's live, agents in the network can find your listing in the Orbyt closing partner directory.",
+  bx.push(vbox("listing","Your listing",live?"Agents in the network find you in the Orbyt closing partner directory and on their buyers' projects.":"Once it's live, agents in the network can find your listing in the Orbyt closing partner directory.",
     live?`<span class="pill ${st.key==="due"||st.key==="canceled"?"late":st.key==="agree"?"":"set"}">${esc(st.label)}</span>`:"",
-    `${live&&typeof availToggle==="function"?availToggle(v):""}${partnerListing(v)}
-     <p class="small" style="margin:10px 0 0">Your first ${LISTING_FREE_DAYS} days are free with our launch offer, then your marketing listing is $${LISTING_FEE} a month. ${billingOn()?"Cancel anytime from Manage billing.":"Cancel anytime by emailing ashleigh@orbytconnect.com."} It also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p>${live?billingBlock(v):""}`);
-  if(live)h+=`<details class="fold" data-fold="svcs" style="margin:12px 0" ${(v.serviceDetails||[]).length?"":"open"}><summary><span class="foldtitle">Your services</span>${(v.serviceDetails||[]).length?`<span class="pill set">${v.serviceDetails.length} picked</span>`:'<span class="pill late">Pick yours</span>'}<span class="small foldhint">What agents see you offer</span></summary><div class="foldbody">${svcEditCard(v,"partner")}</div></details>`;
-  h+=sec("port","2 · Your ad","Tell agents why to call you","This is your advertisement on your listing. Write it the way you'd pitch an agent over coffee.","",adCard(v));
+    `${partnerListing(v)}
+     <p class="small" style="margin:10px 0 0">Your first ${LISTING_FREE_DAYS} days are free with our launch offer, then your marketing listing is $${LISTING_FEE} a month. ${billingOn()?"Cancel anytime from Manage billing.":"Cancel anytime by emailing ashleigh@orbytconnect.com."} It also includes rotating spotlights in Orbyt's emails and posts to agents, and invitations to Orbyt networking and education events.</p>${live?billingBlock(v):""}`));
+  if(live)bx.push(vbox("svcs","Your services","What agents see you offer in each line of work.",(v.serviceDetails||[]).length?`<span class="pill set">${v.serviceDetails.length} picked</span>`:'<span class="pill late">Pick yours</span>',svcEditCard(v,"partner")));
+  bx.push(vbox("port","Your ad","This is your advertisement on your listing. Write it the way you'd pitch an agent over coffee.",(v.adHeadline||v.adBody)?'<span class="pill set">Written</span>':'<span class="pill late">Write it</span>',adCard(v)));
   if(live){const sent=typeof rrFor==="function"?rrFor(v.id):[];
-    h+=sec("myrev","3 · Reviews","What agents say about you","",myReviewsPill(v),
-      myReviewsCard(v)+(typeof reviewInviteCard==="function"?`<details class="fold" data-fold="rr" style="margin-top:12px" ${S.rrMore?"open":""}><summary><span class="foldtitle">Invite agents to review you</span>${sent.length?`<span class="pill">${sent.length} invited</span>`:""}</summary><div class="foldbody">${reviewInviteCard(v)}</div></details>`:""));
-    h+=sec("refer","4 · Spread the word","Refer someone to Orbyt","",refCountPill(),referralCard("partner"))}
-  if(past.length)h+=`<details class="fold" style="margin-top:12px"><summary><span class="foldtitle">Earlier introductions</span><span class="pill">${past.length}</span></summary><div class="foldbody"><div class="introlist">${past.map(i=>`<div class="introcard"><div class="eyebrow">${esc(i.category)} · ${esc(ago(i.introduced_at))}</div><div class="strong">${esc(i.agent_name||"Agent")}</div><div class="small">${esc(i.address||"")}</div></div>`).join("")}</div></div></details>`;
-  return h}
+    bx.push(vbox("myrev","Reviews","What agents say about you.",myReviewsPill(v),
+      myReviewsCard(v)+(typeof reviewInviteCard==="function"?`<details class="fold" data-fold="rr" style="margin-top:12px" ${S.rrMore?"open":""}><summary><span class="foldtitle">Invite agents to review you</span>${sent.length?`<span class="pill">${sent.length} invited</span>`:""}</summary><div class="foldbody">${reviewInviteCard(v)}</div></details>`:"")));
+    bx.push(vbox("refer","Spread the word","Refer someone to Orbyt with your own sign-up link.",refCountPill(),referralCard("partner")))}
+  if(past.length)bx.push(vbox("intros","Earlier introductions","Agents Orbyt introduced you to before listings.",`<span class="pill">${past.length}</span>`,`<div class="introlist">${past.map(i=>`<div class="introcard"><div class="eyebrow">${esc(i.category)} · ${esc(ago(i.introduced_at))}</div><div class="strong">${esc(i.agent_name||"Agent")}</div><div class="small">${esc(i.address||"")}</div></div>`).join("")}</div>`));
+  return h+`<div class="vboxes">${bx.join("")}</div>`}
 
 /* the partner's own ad on their listing */
 function adCard(v){const img=v.adImage&&typeof ovUrl==="function"?ovUrl(v.adImage):"",ov=v.overviewPdf&&typeof ovUrl==="function"?ovUrl(v.overviewPdf):"";
@@ -5334,6 +5350,8 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="setup
 /* the Help page, written for each role */
 /* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
 const NEWS=[
+  {id:"2026-11-21b",date:"2026-11-17",roles:["agent"],title:"A simpler home page",body:"Your home page now shows setup, what's up next and your to-do list first. Favorites, Always share with, your home team card, closing partners and reviews to leave are boxes underneath. Tap one to open it."},
+  {id:"2026-11-21c",date:"2026-11-17",roles:["partner"],title:"A simpler dashboard",body:"Your listing, services, ad, reviews and referral link are now boxes on one page. Tap any box to open it."},
   {id:"2026-11-21a",date:"2026-11-17",roles:["vendor"],title:"A simpler home page",body:"Your home page now shows your setup progress, your to-do list, and boxes for your profile, reviews, team, fees, special offer and referral link. Tap any box to open it."},
   {id:"2026-11-20a",date:"2026-11-17",roles:["vendor"],title:"Invite your team",body:"On your home page, open Your team to invite the people who help with quotes or run your jobs. They get their own login, and you can tag who's handling each request."},
   {id:"2026-11-19a",date:"2026-11-17",roles:["agent"],title:"Message several vendors at once",body:"On a project, tap Message several vendors, pick who gets it (or everyone booked), and send. Each vendor gets it in their own thread with you."},

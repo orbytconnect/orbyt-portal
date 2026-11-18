@@ -1190,7 +1190,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest('[data-act=
   try{await navigator.clipboard.writeText(txt);toast("Review copied")}catch(_){window.prompt("Copy this review:",txt)}},true);
 
 /* ---------- vendors: taking new work, or paused ---------- */
-function availToggle(v){if(kind()!=="vendor"||!S.canWrite||v.approved===false)return"";const on=v.available!==false;
+function availToggle(v){if(kind()!=="vendor"||!S.canWrite||v.approved===false||S.teamMember)return"";const on=v.available!==false;
   if(typeof isPartner==="function"&&isPartner(v))return `<div class="availtoggle"><span class="small strong">Show my listing?</span><div class="seg" role="group" aria-label="Show my listing">
     <button class="segbtn ${on?"on":""}" type="button" data-act="myavail" data-v="1" aria-pressed="${on}">Showing</button><button class="segbtn ${on?"":"on"}" type="button" data-act="myavail" data-v="0" aria-pressed="${!on}">Hidden</button></div>
     <span class="small">${on?"Agents can find you in the directory.":"Your listing is hidden from agents until you switch it back. Hiding doesn't cancel or pause billing."}</span></div>`;

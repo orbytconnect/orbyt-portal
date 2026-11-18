@@ -78,6 +78,8 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="setup
 /* the Help page, written for each role */
 /* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
 const NEWS=[
+  {id:"2026-11-21b",date:"2026-11-17",roles:["agent"],title:"A simpler home page",body:"Your home page now shows setup, what's up next and your to-do list first. Favorites, Always share with, your home team card, closing partners and reviews to leave are boxes underneath. Tap one to open it."},
+  {id:"2026-11-21c",date:"2026-11-17",roles:["partner"],title:"A simpler dashboard",body:"Your listing, services, ad, reviews and referral link are now boxes on one page. Tap any box to open it."},
   {id:"2026-11-21a",date:"2026-11-17",roles:["vendor"],title:"A simpler home page",body:"Your home page now shows your setup progress, your to-do list, and boxes for your profile, reviews, team, fees, special offer and referral link. Tap any box to open it."},
   {id:"2026-11-20a",date:"2026-11-17",roles:["vendor"],title:"Invite your team",body:"On your home page, open Your team to invite the people who help with quotes or run your jobs. They get their own login, and you can tag who's handling each request."},
   {id:"2026-11-19a",date:"2026-11-17",roles:["agent"],title:"Message several vendors at once",body:"On a project, tap Message several vendors, pick who gets it (or everyone booked), and send. Each vendor gets it in their own thread with you."},

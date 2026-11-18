@@ -150,6 +150,10 @@ textarea{resize:vertical;min-height:64px}
 .vrevs{display:grid;gap:8px;margin-top:6px}
 .vrevs blockquote{margin:0;font-size:14px;background:var(--surface-2);border-radius:8px;padding:10px 12px}
 .reqsec{padding-block:18px;border-bottom:1px solid var(--line)}
+.jobgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:0 28px;align-items:start;border-bottom:1px solid var(--line)}.jobside{position:sticky;top:12px;padding:16px 0}.jobside .msginline .mlist{max-height:260px;min-height:90px}.jobside .reqsec{border:0;padding-top:0}
+@media(max-width:820px){.jobgrid{grid-template-columns:1fr}.jobside{position:static;padding-top:0}}
+.timefold>summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.timefold>summary::-webkit-details-marker{display:none}.timefold>summary h3{margin:0}.timefold>summary h3::before{content:"▸ ";color:var(--muted)}.timefold[open]>summary h3::before{content:"▾ "}.timefold[open]>summary{margin-bottom:8px}
+.feeline{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}.feeline b.num{font-size:22px}
 .rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 28px;border-bottom:1px solid var(--line)}
 .rgrid .reqsec{border-bottom:0}
 .needs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
@@ -686,7 +690,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
   else if(a==="ordreset"){const pid=t.dataset.id;S.orderDraft=null;S.openForm=null;guard(()=>col("projects").doc(pid).update({workOrder:null}),"Back to the typical order")}});
 document.addEventListener("change",e=>{const el=e.target;if(el.dataset&&el.dataset.ordwith!==undefined&&S.orderDraft){const x=S.orderDraft.items[+el.dataset.ordwith];if(x){x.withPrev=el.checked;render()}}});
 document.addEventListener("toggle",e=>{const d=e.target;if(d.classList&&d.classList.contains("timingwrap")&&d.dataset.p)S.openTiming=d.open?d.dataset.p:(S.openTiming===d.dataset.p?null:S.openTiming)},true);
-function timingBlock(p,mine){
+function timingBlock(p,mine,flat){
   const steps=seqSteps(p);if(!steps.length)return"";const buyer=p.clientType==="Buyer",d=daysTo(p.targetDate);
   const st=c=>{if(c===mine)return"";const t=teamBid(p.id,c);if(!t)return`<span class="small">Not booked yet</span>`;
     return `<span class="small">${t.status==="chosen"?"Being confirmed":"Booked"}${t.startDate?" · starts "+esc(fmtDate(t.startDate)):""}${t.days?" · about "+workDays(t):""}</span>`};
@@ -695,7 +699,7 @@ function timingBlock(p,mine){
   // a vendor sees their own step, with the work before and after them folded away
   const grp=(label,list,off)=>{if(!list.length)return"";const all=list.flat(),bk=all.filter(c=>teamBid(p.id,c)).length;
     return `<details class="seqfold"><summary><span class="strong">${label}</span> <span class="small">${all.length} ${all.length===1?"service":"services"}${bk?`, ${bk} booked`:""}: ${esc(all.join(", "))}</span></summary><ol class="seq">${list.map((g,j)=>li(g,off+j)).join("")}</ol></details>`};
-  const seqHtml=mine&&myIdx>=0&&steps.length>1?grp("Before your work",steps.slice(0,myIdx),0)+`<ol class="seq">${li(steps[myIdx],myIdx)}</ol>`+grp("After your work",steps.slice(myIdx+1),myIdx+1)
+  const seqHtml=mine&&myIdx>=0&&steps.length>1&&!flat?grp("Before your work",steps.slice(0,myIdx),0)+`<ol class="seq">${li(steps[myIdx],myIdx)}</ol>`+grp("After your work",steps.slice(myIdx+1),myIdx+1)
     :`<ol class="seq">${steps.map(li).join("")}</ol>`;
   return `<div class="timing">${seqHtml}
     ${mine?`<p class="paynote" style="margin:10px 0 0"><b>Plan around the other work.</b> ${steps.length>1?`${myIdx>0?`On most homes, ${esc(steps.slice(0,myIdx).flat().join(", ").toLowerCase())} ${steps.slice(0,myIdx).flat().length===1?"happens":"happen"} before you.`:""} ${myIdx<steps.length-1?`${esc(capF(steps.slice(myIdx+1).flat().join(", ").toLowerCase()))} ${steps.slice(myIdx+1).flat().length===1?"comes":"come"} after, so leave room for ${steps.slice(myIdx+1).flat().length===1?"it":"them"}.`:"Yours is usually the last step, so the home should be ready for you."} `:""}This is the typical order, and ${esc(firstName(p.agent))} sets the final schedule, so confirm your dates with them before you start.${p.targetDate&&!p.listed?` Everything needs to wrap before ${buyer?"move-in":"the list date"} on ${esc(fmtDate(p.targetDate))}${d!==null&&d>=0?` (${d} ${d===1?"day":"days"} away)`:""}.`:""}</p>`
@@ -1311,36 +1315,40 @@ function requestDetail(b){
       <div class="eyebrow">${esc(b.category)} bid ${b.status==="requested"?'<span class="pill requested">Requested</span>':statusPill(b)} ${late?'<span class="pill late">Overdue</span>':""}</div>
       <h1 style="font-size:28px;margin-top:4px;overflow-wrap:anywhere">${esc(p.address)}</h1>${p.refCode?`<div class="small refline">Project ${esc(p.refCode)}</div>`:""}
       ${typeof handledBy==="function"?handledBy(b):""}<div class="facts"><span>${b.introducedBy==="auto"?"Matched by":"Introduced by"} <b>${b.introducedBy==="auto"?"Orbyt":"Ashleigh at Orbyt"}</b>, for ${esc(p.agent)}</span><span>Area <b>${esc(p.area)}</b></span>${p.sqft?`<span>Size <b>${Number(p.sqft).toLocaleString("en-US")} sq ft</b></span>`:""}<span>Requested <b>${esc(reqDate)}</b> (${ago(b.requestedAt)})</span><span>For a <b>${p.clientType==="Buyer"?"buyer move-in":p.clientType==="Both"?"listing and buyer":"listing"}</b></span></div></div>
-    <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>
-    ${p.notes||(p.addedServices||{})[b.category]?.note?`<div class="reqsec"><h3>Notes from the agent</h3>${p.notes?`<p class="note" style="margin-top:8px">${esc(p.notes)}</p>`:""}${(p.addedServices||{})[b.category]?.note?`<p class="note" style="margin-top:8px"><span class="strong">About ${esc(b.category.toLowerCase())}:</span> ${esc(p.addedServices[b.category].note)}</p>`:""}</div>`:""}
-    <div class="rgrid"><div class="reqsec"><h3>Timing on this home</h3>
-        <p class="small" style="margin:4px 0 8px">Here's everything ${esc(firstName(p.agent))} needs done, ${hasCustomOrder(p)?"in the order "+esc(firstName(p.agent))+" set":"in the usual order"}. You'll only see your own bid, not the other vendors' names or prices.</p>${timingBlock(p,b.category)}</div>
-      <div class="reqsec"><h3>Agent</h3><div class="strong" style="margin:8px 0">${esc(p.agent)}</div>${b.status==="selected"||typeof msgBtn!=="function"||!msgOn()?`<div class="clines">${cl("Phone",p.agentPhone)}${cl("Email",p.agentEmail)}</div>
-        ${!p.agentPhone&&!p.agentEmail?`<p class="small" style="margin:0">This agent's contact info isn't on file yet. Ashleigh can connect you.</p>`:""}`
-        :`<p class="small" style="margin:0 0 8px">Questions about the job? Message ${esc(firstName(p.agent))} below. Contact details show once you're booked.</p>`}
-        ${(p.members||[]).length?`<div class="small" style="margin-top:8px"><span class="strong">Shared with:</span> ${(p.members||[]).map(m=>esc(m.name)+" ("+esc(m.role)+(m.email&&(b.status==="selected"||!msgOn())?", "+esc(m.email):"")+")").join("; ")}</div>`:""}</div></div>
-    ${typeof msgInline==="function"&&msgOn()?`<div class="reqsec">${msgInline(p.id,b.vendorId,{title:"Messages with "+firstName(p.agent)})}</div>`:""}
-    <div class="reqsec"><h3>Your bid</h3>`;
+    <div class="countdown">${p.listed?`<span class="eyebrow">Status</span><b>Listed</b>`:d!==null?`<span class="eyebrow">Target list date</span><b class="num">${d<0?Math.abs(d)+" days late":d+" days"}</b><span class="small">${fmtDate(p.targetDate)}</span>`:""}</div></div>`;
+  // the job first, a smaller chat beside it, Orbyt's fee in the middle, and the full timeline folded at the bottom
+  let bid="";
   const sum=`<div class="bidsum"><div><span class="eyebrow">Amount</span><b class="num">${money(b.amount)}</b>${b.prevAmount&&b.prevAmount!==b.amount?`<div class="small num">Was ${money(b.prevAmount)}</div>`:""}</div><div><span class="eyebrow">Timeline</span><b>${esc(workDays(b)||"Not given")}</b>${b.availableFrom?`<div class="small">Can start ${esc(fmtDate(b.availableFrom))}</div>`:""}</div>
       <div><span class="eyebrow">Sent</span><b>${b.submittedAt?ago(b.submittedAt):""}</b></div><div><span class="eyebrow">PDF</span>${pdfLink(b)}</div></div>${b.note?`<p class="note">${esc(b.note)}</p>`:""}`;
   const payLine=`<p class="paynote"><b>How payment works:</b> Orbyt made the introduction. Your agreement, scheduling and payment are handled directly with ${esc(p.agent)}'s client, using the terms in your bid. Send them your agreement and payment details when you reach out.</p>`;
-  if(b.status==="requested")h+=S.canWrite?submitForm(b):`<p class="small">You can view this request but not send a bid from this account.</p>`;
-  else if(b.status==="changes")h+=`<div class="callout warn"><div class="eyebrow">Changes requested ${b.changesAt?ago(b.changesAt):""}</div><p>${esc(b.changeNote||"The agent asked for an updated bid.")}</p><div class="small">From ${esc(b.changesBy||p.agent)}</div></div>`+
+  if(b.status==="requested")bid+=S.canWrite?submitForm(b):`<p class="small">You can view this request but not send a bid from this account.</p>`;
+  else if(b.status==="changes")bid+=`<div class="callout warn"><div class="eyebrow">Changes requested ${b.changesAt?ago(b.changesAt):""}</div><p>${esc(b.changeNote||"The agent asked for an updated bid.")}</p><div class="small">From ${esc(b.changesBy||p.agent)}</div></div>`+
     (S.canWrite?submitForm(b):"");
-  else if(b.status==="chosen")h+=sum+`<div class="callout good"><h3>You're on the team</h3><p>${esc(p.agent)} and their client chose your bid of ${money(b.amount)}. Confirm you can take the job, then reach out to ${esc(p.agent.split(" ")[0])} to schedule.</p>${payLine}
+  else if(b.status==="chosen")bid+=sum+`<div class="callout good"><h3>You're on the team</h3><p>${esc(p.agent)} and their client chose your bid of ${money(b.amount)}. Confirm you can take the job, then reach out to ${esc(p.agent.split(" ")[0])} to schedule.</p>${payLine}
       ${S.canWrite?(S.openForm==="decline:"+b.id?declineForm(b,"chosen")
         :`<form class="form" data-form="confirm" data-id="${esc(b.id)}"><div class="grid"><label class="field"><span>Proposed start date</span><input type="date" id="cf-d-${esc(b.id)}" name="startDate" value="${esc(b.availableFrom||"")}"></label>
           <label class="field"><span>Note to the agent (optional)</span><input type="text" id="cf-n-${esc(b.id)}" name="note" placeholder="I'll call tomorrow to set the walkthrough"></label></div>
           <div class="actions"><button class="btn" type="submit">Confirm job</button><button class="btn ghost" type="button" data-act="form" data-key="decline:${esc(b.id)}">Can't take it</button></div></form>`):""}</div>`;
-  else if(b.status==="selected")h+=sum+`<div class="callout good"><h3>Booked</h3><p>You confirmed ${b.confirmedAt?ago(b.confirmedAt):""}${b.startDate?", starting "+fmtDate(b.startDate):""}. Reach out to ${esc(p.agent.split(" ")[0])} if you haven't yet.</p>${payLine}
+  else if(b.status==="selected")bid+=sum+`<div class="callout good"><h3>Booked</h3><p>You confirmed ${b.confirmedAt?ago(b.confirmedAt):""}${b.startDate?", starting "+fmtDate(b.startDate):""}. Reach out to ${esc(p.agent.split(" ")[0])} if you haven't yet.</p>${payLine}
     ${b.done&&b.finalAmount!=null?`<p class="small" style="margin:0">Job marked complete ${ago(b.doneAt)}. Final amount ${money(b.finalAmount)}, ${b.finalConfirmedAt?"confirmed by "+esc(firstName(p.agent)):b.finalDispute?esc(firstName(p.agent))+" asked about it. Ashleigh will follow up.":"waiting on "+esc(firstName(p.agent))+" to confirm"}.${reviewed(b)?" The agent left a review.":""}</p>`
       :S.canWrite?`<form class="form" data-form="vendordone" data-id="${esc(b.id)}" style="margin-top:4px"><h3>${b.done?"Report your final invoice amount":"Mark the job complete"}</h3><div class="grid">
         <label class="field"><span>Final invoice amount ($)</span><input type="number" id="vd-a-${esc(b.id)}" name="amount" min="0" step="1" required value="${esc(b.amount??"")}"></label>
         <label class="field"><span>What changed from your bid? (optional)</span><input type="text" id="vd-n-${esc(b.id)}" name="note" placeholder="Added the garage door, +$150"></label></div>
         <div class="actions"><button class="btn sm" type="submit">${b.done?"Send final amount":"Mark job complete"}</button><span class="small">${esc(firstName(p.agent))} confirms the amount, and Orbyt's fee is based on it.</span></div></form>`:""}</div>`;
-  else h+=(b.status==="declined"&&b.declineStage==="request"?"":sum)+`<p class="small" style="margin:10px 0 0">${b.status==="passed"?"The client went another way on this one. Thanks for bidding.":b.status==="declined"?(b.declineStage==="request"?"You let Ashleigh know you can't bid on this one":"You let them know you can't take this one")+(b.declineReason&&b.declineReason!=="Other"?` (${esc(b.declineReason.toLowerCase())}).`:"."):"Your bid is with the agent and their client. You'll see it here when they decide."}</p>`;
-  if(b.status==="passed"&&typeof lostBox==="function")h+=lostBox(b);
-  return h+`</div></article>`;
+  else bid+=(b.status==="declined"&&b.declineStage==="request"?"":sum)+`<p class="small" style="margin:10px 0 0">${b.status==="passed"?"The client went another way on this one. Thanks for bidding.":b.status==="declined"?(b.declineStage==="request"?"You let Ashleigh know you can't bid on this one":"You let them know you can't take this one")+(b.declineReason&&b.declineReason!=="Other"?` (${esc(b.declineReason.toLowerCase())}).`:"."):"Your bid is with the agent and their client. You'll see it here when they decide."}</p>`;
+  if(b.status==="passed"&&typeof lostBox==="function")bid+=lostBox(b);
+  const chat=typeof msgInline==="function"&&msgOn()?msgInline(p.id,b.vendorId,{title:"Messages with "+firstName(p.agent)}):"";
+  const agentBox=`<div class="reqsec"><h3>Agent</h3><div class="strong" style="margin:8px 0">${esc(p.agent)}</div>${b.status==="selected"||typeof msgBtn!=="function"||!msgOn()?`<div class="clines">${cl("Phone",p.agentPhone)}${cl("Email",p.agentEmail)}</div>
+        ${!p.agentPhone&&!p.agentEmail?`<p class="small" style="margin:0">This agent's contact info isn't on file yet. Ashleigh can connect you.</p>`:""}`
+        :`<p class="small" style="margin:0 0 8px">Questions about the job? Message ${esc(firstName(p.agent))} in the chat. Contact details show once you're booked.</p>`}
+        ${(p.members||[]).length?`<div class="small" style="margin-top:8px"><span class="strong">Shared with:</span> ${(p.members||[]).map(m=>esc(m.name)+" ("+esc(m.role)+(m.email&&(b.status==="selected"||!msgOn())?", "+esc(m.email):"")+")").join("; ")}</div>`:""}</div>`;
+  h+=`<div class="jobgrid"><div class="jobmain">${p.notes||(p.addedServices||{})[b.category]?.note?`<div class="reqsec"><h3>Notes from the agent</h3>${p.notes?`<p class="note" style="margin-top:8px">${esc(p.notes)}</p>`:""}${(p.addedServices||{})[b.category]?.note?`<p class="note" style="margin-top:8px"><span class="strong">About ${esc(b.category.toLowerCase())}:</span> ${esc(p.addedServices[b.category].note)}</p>`:""}</div>`:""}
+      <div class="reqsec"><h3>Your bid</h3>${bid}</div>${chat?agentBox:""}</div>
+    <aside class="jobside">${chat||agentBox}</aside></div>
+    ${typeof jobFeeSec==="function"?jobFeeSec(b,p):""}
+    <details class="reqsec timefold" ${S.timeOpen===b.id?"open":""}><summary><h3>Timing on this home</h3><span class="small">${esc(timingSummary(p,b.category))}</span></summary>
+        <p class="small" style="margin:0 0 8px">Here's everything ${esc(firstName(p.agent))} needs done, ${hasCustomOrder(p)?"in the order "+esc(firstName(p.agent))+" set":"in the usual order"}. You'll only see your own bid, not the other vendors' names or prices.</p>${timingBlock(p,b.category,true)}</details>`;
+  return h+`</article>`;
 }
 const STATUS_LABEL={requested:"Requested",submitted:"Submitted",changes:"Changes requested",chosen:"Waiting to confirm",selected:"Booked",passed:"Not picked",declined:"Can't take it"};
 const statusPill=b=>`<span class="pill ${b.status}">${STATUS_LABEL[b.status]||b.status}${b.rev&&b.status==="submitted"?" · updated":""}</span>`;
@@ -4662,6 +4670,22 @@ document.addEventListener("click",async e=>{const t=e.target.closest('[data-act=
   if(t.dataset.act==="teamremove"){if(S.teamRemove!==t.dataset.id){S.teamRemove=t.dataset.id;t.textContent="Tap again to remove";setTimeout(()=>{if(S.teamRemove===t.dataset.id){S.teamRemove="";t.textContent="Remove"}},4000);return}
     S.teamRemove="";const{error}=await sb.rpc("vendor_member_remove",{p_id:t.dataset.id});if(error)return toast(error.message);await loadTeam();await S.db.reload();render();toast(t.dataset.name+" was removed from your team");return}
   const{error}=await sb.rpc("vendor_member_resend",{p_id:t.dataset.id});toast(error?error.message:"Invite sent again")},true);
+
+/* ---------- vendor job view: where this job sits in the timeline, and Orbyt's fee on it ---------- */
+function timingSummary(p,cat){const steps=seqSteps(p);if(!steps.length)return"";const i=steps.findIndex(g=>g.includes(cat));if(i<0)return steps.flat().length+" services on this home";
+  const before=steps.slice(0,i).flat().length,after=steps.slice(i+1).flat().length;
+  return `Step ${i+1} of ${steps.length}`+(before||after?` · ${before} ${before===1?"service":"services"} before you, ${after} after`:"")}
+function jobFeeSec(b,p){if(S.teamMember||kind()!=="vendor"||typeof invRow!=="function")return"";
+  if(["passed","declined"].includes(b.status))return"";
+  const r=invRow(b),first=r.type==="first",who=firstName(p.agent);
+  const kindLine=r.type==="waived"?"No Orbyt fee on this job.":first?`Your first job with ${esc(who)}, so the first-job rates apply.`:`You've worked with ${esc(who)} before, so the 2% repeat rate applies.`;
+  let body;
+  if(b.status==="selected"&&r.status==="paid")body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="pill set">Paid</span></div>`;
+  else if(b.status==="selected"&&r.status==="invoiced")body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="pill ${r.overdue?"late":"comparing"}">${r.overdue?"Overdue":"Due "+esc(fmtDate(r.due))}</span>${r.inv.number?`<span class="small">Invoice ${esc(r.inv.number)}</span>`:""}</div>`;
+  else if(b.status==="selected"&&r.doneAt)body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="small">on ${b.finalAmount!=null?"your final amount of "+money2(r.value):"your bid of "+money2(r.value)}${r.due?`, due ${esc(fmtDate(r.due))}`:""}</span></div>`;
+  else if(b.amount)body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="small">estimated, if you're booked at ${money2(b.amount)}. The final fee is based on your final invoice amount.</span></div>`;
+  else body=`<p class="small" style="margin:0">Once you send your bid, you'll see the estimated fee here. You only pay if you're booked.</p>`;
+  return `<div class="reqsec jobfee"><h3>Orbyt fee</h3>${body}<p class="small" style="margin:6px 0 0">${kindLine} The client pays you directly, and Orbyt invoices you ${PAY_DAYS} days after the job wraps. Ongoing service after the first job is never charged.</p></div>`}
 
 
 /* ---------- home team cards: a printable card agents give buyer clients, and the request page behind its QR code ---------- */

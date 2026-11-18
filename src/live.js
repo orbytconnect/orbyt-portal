@@ -1560,3 +1560,19 @@ document.addEventListener("click",async e=>{const t=e.target.closest('[data-act=
   if(t.dataset.act==="teamremove"){if(S.teamRemove!==t.dataset.id){S.teamRemove=t.dataset.id;t.textContent="Tap again to remove";setTimeout(()=>{if(S.teamRemove===t.dataset.id){S.teamRemove="";t.textContent="Remove"}},4000);return}
     S.teamRemove="";const{error}=await sb.rpc("vendor_member_remove",{p_id:t.dataset.id});if(error)return toast(error.message);await loadTeam();await S.db.reload();render();toast(t.dataset.name+" was removed from your team");return}
   const{error}=await sb.rpc("vendor_member_resend",{p_id:t.dataset.id});toast(error?error.message:"Invite sent again")},true);
+
+/* ---------- vendor job view: where this job sits in the timeline, and Orbyt's fee on it ---------- */
+function timingSummary(p,cat){const steps=seqSteps(p);if(!steps.length)return"";const i=steps.findIndex(g=>g.includes(cat));if(i<0)return steps.flat().length+" services on this home";
+  const before=steps.slice(0,i).flat().length,after=steps.slice(i+1).flat().length;
+  return `Step ${i+1} of ${steps.length}`+(before||after?` · ${before} ${before===1?"service":"services"} before you, ${after} after`:"")}
+function jobFeeSec(b,p){if(S.teamMember||kind()!=="vendor"||typeof invRow!=="function")return"";
+  if(["passed","declined"].includes(b.status))return"";
+  const r=invRow(b),first=r.type==="first",who=firstName(p.agent);
+  const kindLine=r.type==="waived"?"No Orbyt fee on this job.":first?`Your first job with ${esc(who)}, so the first-job rates apply.`:`You've worked with ${esc(who)} before, so the 2% repeat rate applies.`;
+  let body;
+  if(b.status==="selected"&&r.status==="paid")body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="pill set">Paid</span></div>`;
+  else if(b.status==="selected"&&r.status==="invoiced")body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="pill ${r.overdue?"late":"comparing"}">${r.overdue?"Overdue":"Due "+esc(fmtDate(r.due))}</span>${r.inv.number?`<span class="small">Invoice ${esc(r.inv.number)}</span>`:""}</div>`;
+  else if(b.status==="selected"&&r.doneAt)body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="small">on ${b.finalAmount!=null?"your final amount of "+money2(r.value):"your bid of "+money2(r.value)}${r.due?`, due ${esc(fmtDate(r.due))}`:""}</span></div>`;
+  else if(b.amount)body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="small">estimated, if you're booked at ${money2(b.amount)}. The final fee is based on your final invoice amount.</span></div>`;
+  else body=`<p class="small" style="margin:0">Once you send your bid, you'll see the estimated fee here. You only pay if you're booked.</p>`;
+  return `<div class="reqsec jobfee"><h3>Orbyt fee</h3>${body}<p class="small" style="margin:6px 0 0">${kindLine} The client pays you directly, and Orbyt invoices you ${PAY_DAYS} days after the job wraps. Ongoing service after the first job is never charged.</p></div>`}

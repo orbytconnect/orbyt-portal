@@ -1083,7 +1083,8 @@ function vendorFolds(v,mine){
   prof.push(fold("port","Business overview and portfolio",c?`<span class="pill set">${c} added</span>`:`<span class="pill late">Add your work</span>`,"Business overview, website, Instagram and your work",portfolioCard(v),false));
   const pr=vPricing(v),hasP=statedTier(v)||priceItems(v).length||pr.minimum;
   prof.push(fold("price","Typical pricing",hasP?'<span class="pill set">Added</span>':'<span class="pill">Not added yet</span>',"Helps me match you to the right homes",vendorPricingCard(v),S.openForm==="pricing"));
-  out.push(psec("profile",num(),"Your profile","What agents see when I introduce you. Tap a row to open it.","",`<div class="folds">${prof.join("")}</div>`));
+  {const todo=(prof.join("").match(/pill (late|needed)/g)||[]).length;
+    out.push(vbox("profile","Your profile","Services, portfolio, pricing and insurance: what agents see when I introduce you.",todo?`<span class="pill late">${todo} to add</span>`:'<span class="pill set">Complete</span>',`<div class="folds">${prof.join("")}</div>`))}
   // 2 reviews and results
   const rv=[];
   if(ok)rv.push(fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false));
@@ -1092,17 +1093,17 @@ function vendorFolds(v,mine){
   {const lc=typeof lostCard==="function"?lostCard(v):"";if(lc){const k=S.bids.filter(b=>b.vendorId===v.id&&b.lostReason).length;
     rv.push(fold("lost","Why quotes didn't win",`<span class="pill">${k}</span>`,"What agents told you",lc,false))}}
   const stats=vendorStats(v,mine||[]);
-  if(stats||rv.length)out.push(psec("results",num(),"Reviews and results","How agents rate you and how your bids are doing.","",stats+(rv.length?`<div class="folds">${rv.join("")}</div>`:"")));
+  if(stats||rv.length)out.push(vbox("results","Reviews and results","How agents rate you and how your bids are doing.",rating(v.id)?`<span class="pill">★ ${rating(v.id).avg.toFixed(1)}</span>`:"",stats+(rv.length?`<div class="folds">${rv.join("")}</div>`:"")));
   // the team: people who help with quotes and jobs (owner only)
-  if(!S.teamMember&&typeof teamCard==="function"){const n=(S.team||[]).filter(m=>!m.owner).length;out.push(psec("team",num(),"Your team","Invite the people who help with quotes or run your jobs.",n?`<span class="pill">${n} ${n===1?"person":"people"}</span>`:"",teamCard()))}
+  if(!S.teamMember&&typeof teamCard==="function"){const n=(S.team||[]).filter(m=>!m.owner).length;out.push(vbox("team","Your team","Invite the people who help with quotes or run your jobs.",n?`<span class="pill">${n} ${n===1?"person":"people"}</span>`:"",teamCard()))}
   // fees owed, one row per booked job
-  if(ok&&typeof vendorFeesCard==="function"){const fc=vendorFeesCard(v);if(fc)out.push(psec("fees",num(),"Orbyt fees","What you owe Orbyt, job by job.",fc.pill,fc.body))}
+  if(ok&&typeof vendorFeesCard==="function"){const fc=vendorFeesCard(v);if(fc)out.push(vbox("fees","Orbyt fees","What you owe Orbyt, job by job.",fc.pill,fc.body))}
   // 3 special offer
   if(ok){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
-    out.push(psec("promo",num(),"Special offer","Share a deal with Orbyt clients, $20 for up to 30 days.",on?`<span class="pill featured">Live until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"",promoCard(v)))}
+    out.push(vbox("promo","Special offer","Share a deal with Orbyt clients, $20 for up to 30 days.",on?`<span class="pill featured">Live until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"",promoCard(v)))}
   // 4 spread the word
-  out.push(psec("refer",num(),"Spread the word","A ready-made message with your own sign-up link.",refCountPill(),referralCard("vendor")));
-  return `<div class="vsecs">${out.join("")}</div>`}
+  out.push(vbox("refer","Spread the word","A ready-made message with your own sign-up link.",refCountPill(),referralCard("vendor")));
+  return `<div class="vboxes">${out.join("")}</div>`}
 function agentFolds(){if(kind()!=="agent"||!S.canWrite)return"";
   return psec("refer","","Spread the word","A ready-made message with your own sign-up link.",refCountPill(),referralCard("agent"))}
 // portfolio card
@@ -1597,3 +1598,9 @@ function jobBoard(p){const cats=p.categories||[];if(!cats.length)return"";
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="gocat"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   if(t.dataset.review){S.openForm="review:proj:"+t.dataset.review;render()}
   setTimeout(()=>{const el=document.getElementById("cat-"+t.dataset.c);if(el){el.scrollIntoView({behavior:"smooth",block:"start"});el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),1600)}},30)},true);
+
+/* ---------- vendor home: boxes that open in place ---------- */
+function vbox(id,title,sub,right,body){const open=S.vbox===id;
+  return `<section class="vbox ${open?"open":""}" data-fold="${id}" data-box="${id}"><button class="vboxhead" type="button" data-act="vbox" data-id="${id}" aria-expanded="${open}"><span class="vboxtitle"><span class="h2">${title}</span>${sub?`<span class="small">${sub}</span>`:""}</span><span class="vboxright">${right||""}<span class="caret" aria-hidden="true">${open?"▾":"▸"}</span></span></button><div class="vboxbody">${body}</div></section>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="vbox"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  const id=t.dataset.id;S.vbox=S.vbox===id?"":id;render();if(S.vbox)setTimeout(()=>{const el=document.querySelector(`.vbox[data-box="${id}"]`);if(el)el.scrollIntoView({block:"nearest",behavior:"smooth"})},30)},true);

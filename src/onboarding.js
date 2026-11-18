@@ -64,26 +64,27 @@ function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="b
 function setupUnmark(id){const key=roleKey();if(!key||!S.canWrite)return Promise.resolve();const dm={...doneMap()};delete dm[id];
   return S.db.doc("taskstate/"+key).set({done:dm,nudged:nudgedMap()})}
 function setupCard(){if(!S.canWrite||!S.session)return"";
-  const items=setupItems();if(!items.length)return"";const left=items.filter(x=>!x.done);
-  // hidden, or all done: a one-line way back in
-  if((setupDone("setup-hide")||!left.length)&&!S.setupOpen)return `<p class="small setupback">${left.length?`Setup checklist hidden, ${left.length} ${left.length===1?"step":"steps"} left.`:"You're all set up."} <button class="linkbtn" type="button" data-act="setupshow">Show the checklist</button> · <button class="linkbtn" type="button" data-act="help">How Orbyt works</button></p>`;
-  const n=items.length-left.length;
-  return `<section class="setup" aria-label="Get set up"><div class="setuphead"><div><div class="eyebrow">Get set up</div><h2>${!left.length?"All done. Nice work.":n?`${n} of ${items.length} done`:"A few quick steps to get the most out of Orbyt"}</h2></div>
-      <div class="actions"><button class="linkbtn" type="button" data-act="help">How Orbyt works</button><button class="linkbtn" type="button" data-act="setupdone" data-id="setup-hide">Hide this</button></div></div>
-    <div class="setupbar" role="progressbar" aria-valuemin="0" aria-valuemax="${items.length}" aria-valuenow="${n}"><span style="width:${Math.round(n/items.length*100)}%"></span></div>
-    <ol class="setuplist">${[...left,...items.filter(x=>x.done)].map(x=>`<li class="${x.done?"done":""}"><span class="setupdot" aria-hidden="true">${x.done?"✓":""}</span><div class="setuptext"><span class="strong">${esc(x.label)}</span>${x.done?"":`<div class="small">${esc(x.hint)}</div>`}</div>${x.done?`<span class="small">Done</span>`:`<div>${x.act}</div>`}</li>`).join("")}</ol>
-    <p class="small" style="margin:10px 0 0">${contactLine()}</p></section>`}
+  const items=setupItems();if(!items.length)return"";const left=items.filter(x=>!x.done);if(!left.length)return"";
+  // stays until it's done; small by default, with the next step and a caret for the rest
+  const n=items.length-left.length,open=!!S.setupOpen,nx=left[0];
+  return `<section class="setup mini ${open?"open":""}" aria-label="Get set up"><div class="setupmini">
+      <button class="setuptoggle" type="button" data-act="setuptoggle" aria-expanded="${open}"><span class="caret" aria-hidden="true">${open?"▾":"▸"}</span><span class="eyebrow">Get set up</span><span class="strong">${n} of ${items.length} done</span></button>
+      <div class="setupbar" role="progressbar" aria-valuemin="0" aria-valuemax="${items.length}" aria-valuenow="${n}"><span style="width:${Math.round(n/items.length*100)}%"></span></div>
+      ${open?`<button class="linkbtn" type="button" data-act="help">How Orbyt works</button>`:`<div class="setupnext"><span class="small">Next: <span class="strong">${esc(nx.label)}</span></span>${nx.act}</div>`}</div>
+    ${open?`<ol class="setuplist">${[...left,...items.filter(x=>x.done)].map(x=>`<li class="${x.done?"done":""}"><span class="setupdot" aria-hidden="true">${x.done?"✓":""}</span><div class="setuptext"><span class="strong">${esc(x.label)}</span>${x.done?"":`<div class="small">${esc(x.hint)}</div>`}</div>${x.done?`<span class="small">Done</span>`:`<div>${x.act}</div>`}</li>`).join("")}</ol>
+    <p class="small" style="margin:10px 0 0">${contactLine()}</p>`:""}</section>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="setuptoggle"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();S.setupOpen=!S.setupOpen;render()},true);
 
 /* the Help page, written for each role */
 /* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
 const NEWS=[
-  {id:"2026-11-20a",date:"2026-11-17",roles:["vendor"],title:"Invite your team",body:"On your Profile tab, under Your team, invite the people who help with quotes or run your jobs. They get their own login, and you can tag who's handling each request."},
+  {id:"2026-11-21a",date:"2026-11-18",roles:["vendor"],title:"A simpler home page",body:"Your home page now shows your setup progress, your to-do list, and boxes for your profile, reviews, team, fees, special offer and referral link. Tap any box to open it."},
+  {id:"2026-11-20a",date:"2026-11-17",roles:["vendor"],title:"Invite your team",body:"On your home page, open Your team to invite the people who help with quotes or run your jobs. They get their own login, and you can tag who's handling each request."},
   {id:"2026-11-19a",date:"2026-11-17",roles:["agent"],title:"Message several vendors at once",body:"On a project, tap Message several vendors, pick who gets it (or everyone booked), and send. Each vendor gets it in their own thread with you."},
   {id:"2026-11-19b",date:"2026-11-17",roles:["agent"],title:"More detailed reviews",body:"Reviews now ask about quality of work, timing, communication and value, and whether you'd hire them again. Vendor profiles show the averages once there are three or more."},
   {id:"2026-11-19c",date:"2026-11-17",roles:["vendor","partner"],title:"Pick the services you actually offer",body:"Open Your services and tick exactly what you do in each kind of work, like vacant staging or move-out cleans. It helps me match you, and agents see it on your profile."},
   {id:"2026-11-19d",date:"2026-11-17",roles:["vendor"],title:"Offers for specific services",body:"When you run a special offer, you can choose which of your services it's for. Agents see it next to your quotes for those services."},
-  {id:"2026-11-18a",date:"2026-11-17",roles:["vendor"],title:"Your fees, job by job",body:"Open the Profile tab to see what you owe Orbyt for each booked job, what's coming up, and what you've paid this year."},
-  {id:"2026-11-18b",date:"2026-11-17",roles:["vendor"],title:"A Profile tab",body:"Your profile, reviews, special offer and referral link now live on their own Profile tab, so Tasks shows just your work."},
+  {id:"2026-11-18a",date:"2026-11-17",roles:["vendor"],title:"Your fees, job by job",body:"Open Orbyt fees on your home page to see what you owe Orbyt for each booked job, what's coming up, and what you've paid this year."},
   {id:"2026-11-18c",date:"2026-11-17",roles:["vendor"],title:"A simpler timeline on requests",body:"On a bid request, the work before and after yours is folded away. Tap Before your work or After your work to see the details."},
   {id:"2026-11-17a",date:"2026-11-17",roles:["agent"],title:"Message vendors from the project",body:"Open a project and tap Message next to any vendor. The conversation opens right on the project page, and every thread for that home is listed under Messages about this home."},
   {id:"2026-11-17b",date:"2026-11-17",roles:["vendor"],title:"Messages on every request",body:"Your conversation with the agent now shows right on the request, before and after you're booked."},
@@ -168,9 +169,12 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="getap
   if(a==="helpclose"){S.help=false;render();return}
   if(a==="setupdone"){if(t.dataset.id==="setup-hide")S.setupOpen=false;guard(()=>setupMark(t.dataset.id),t.dataset.id==="setup-hide"?"Hidden. Bring it back anytime with Show the checklist, or from Help.":"Checked off");return}
   if(a==="setupshow"){S.help=false;S.setupOpen=true;guard(()=>setupUnmark("setup-hide"));setTimeout(()=>document.querySelector(".setup,.setupback")?.scrollIntoView({behavior:"smooth",block:"center"}),300);return}
-  const openFold=k=>{const d=document.querySelector(`[data-fold="${k}"]`);if(d){if(d.tagName==="DETAILS")d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"});return true}return false};
+  const openFold=k=>{const q=()=>document.querySelector(`[data-fold="${k}"]:not([data-act])`);let d=q();if(!d)return false;
+    // inside a closed box on the vendor home: open the box first
+    const box=d.closest(".vbox");if(box&&!box.classList.contains("open")){S.vbox=box.dataset.box;render();d=q();if(!d)return false}
+    if(d.tagName==="DETAILS")d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"});return true};
   if(a==="gofold"){if(openFold(t.dataset.fold))return;
-    if(kind()==="vendor"&&S.tab!=="profile"&&!(typeof isPartner==="function"&&isPartner(vendorById(roleVal())))){S.tab="profile";render();setTimeout(()=>{if(!openFold(t.dataset.fold))toast("You'll find it under Profile once you're approved.")},40);return}
+    if(kind()==="vendor"&&S.tab!=="tasks"&&!(typeof isPartner==="function"&&isPartner(vendorById(roleVal())))){S.tab="tasks";render();setTimeout(()=>{if(!openFold(t.dataset.fold))toast("You'll find it under Profile once you're approved.")},40);return}
     toast("You'll find it under Your profile once you're approved.");return}
   if(a==="setupref"){S.refWho=t.dataset.who;render();setTimeout(()=>openFold("refer"),30)}},true);
 // sending a referral (copy, email or text) checks off the matching step

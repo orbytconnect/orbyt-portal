@@ -77,14 +77,14 @@ function setupCard(){if(!S.canWrite||!S.session)return"";
 /* the Help page, written for each role */
 /* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
 const NEWS=[
-  {id:"2026-11-20a",date:"2026-11-20",roles:["vendor"],title:"Invite your team",body:"On your Profile tab, under Your team, invite the people who help with quotes or run your jobs. They get their own login, and you can tag who's handling each request."},
-  {id:"2026-11-19a",date:"2026-11-19",roles:["agent"],title:"Message several vendors at once",body:"On a project, tap Message several vendors, pick who gets it (or everyone booked), and send. Each vendor gets it in their own thread with you."},
-  {id:"2026-11-19b",date:"2026-11-19",roles:["agent"],title:"More detailed reviews",body:"Reviews now ask about quality of work, timing, communication and value, and whether you'd hire them again. Vendor profiles show the averages once there are three or more."},
-  {id:"2026-11-19c",date:"2026-11-19",roles:["vendor","partner"],title:"Pick the services you actually offer",body:"Open Your services and tick exactly what you do in each kind of work, like vacant staging or move-out cleans. It helps me match you, and agents see it on your profile."},
-  {id:"2026-11-19d",date:"2026-11-19",roles:["vendor"],title:"Offers for specific services",body:"When you run a special offer, you can choose which of your services it's for. Agents see it next to your quotes for those services."},
-  {id:"2026-11-18a",date:"2026-11-18",roles:["vendor"],title:"Your fees, job by job",body:"Open the Profile tab to see what you owe Orbyt for each booked job, what's coming up, and what you've paid this year."},
-  {id:"2026-11-18b",date:"2026-11-18",roles:["vendor"],title:"A Profile tab",body:"Your profile, reviews, special offer and referral link now live on their own Profile tab, so Tasks shows just your work."},
-  {id:"2026-11-18c",date:"2026-11-18",roles:["vendor"],title:"A simpler timeline on requests",body:"On a bid request, the work before and after yours is folded away. Tap Before your work or After your work to see the details."},
+  {id:"2026-11-20a",date:"2026-11-17",roles:["vendor"],title:"Invite your team",body:"On your Profile tab, under Your team, invite the people who help with quotes or run your jobs. They get their own login, and you can tag who's handling each request."},
+  {id:"2026-11-19a",date:"2026-11-17",roles:["agent"],title:"Message several vendors at once",body:"On a project, tap Message several vendors, pick who gets it (or everyone booked), and send. Each vendor gets it in their own thread with you."},
+  {id:"2026-11-19b",date:"2026-11-17",roles:["agent"],title:"More detailed reviews",body:"Reviews now ask about quality of work, timing, communication and value, and whether you'd hire them again. Vendor profiles show the averages once there are three or more."},
+  {id:"2026-11-19c",date:"2026-11-17",roles:["vendor","partner"],title:"Pick the services you actually offer",body:"Open Your services and tick exactly what you do in each kind of work, like vacant staging or move-out cleans. It helps me match you, and agents see it on your profile."},
+  {id:"2026-11-19d",date:"2026-11-17",roles:["vendor"],title:"Offers for specific services",body:"When you run a special offer, you can choose which of your services it's for. Agents see it next to your quotes for those services."},
+  {id:"2026-11-18a",date:"2026-11-17",roles:["vendor"],title:"Your fees, job by job",body:"Open the Profile tab to see what you owe Orbyt for each booked job, what's coming up, and what you've paid this year."},
+  {id:"2026-11-18b",date:"2026-11-17",roles:["vendor"],title:"A Profile tab",body:"Your profile, reviews, special offer and referral link now live on their own Profile tab, so Tasks shows just your work."},
+  {id:"2026-11-18c",date:"2026-11-17",roles:["vendor"],title:"A simpler timeline on requests",body:"On a bid request, the work before and after yours is folded away. Tap Before your work or After your work to see the details."},
   {id:"2026-11-17a",date:"2026-11-17",roles:["agent"],title:"Message vendors from the project",body:"Open a project and tap Message next to any vendor. The conversation opens right on the project page, and every thread for that home is listed under Messages about this home."},
   {id:"2026-11-17b",date:"2026-11-17",roles:["vendor"],title:"Messages on every request",body:"Your conversation with the agent now shows right on the request, before and after you're booked."},
   {id:"2026-11-17c",date:"2026-11-17",roles:["agent","vendor"],title:"Project IDs",body:"Every project now has a short ID, like CA-1042, next to its address. Use it when you need to refer to a job."},
@@ -106,7 +106,7 @@ const NEWS_ROLE={agent:"Agents",vendor:"Vendors",partner:"Closing partners"};
 function newsSeen(){try{return localStorage.getItem("orbyt-news-"+S.uid)||""}catch(_){return S.newsSeen||""}}
 function newsCard(){return"";const r=setupRole(),seen=S.newsSeen??newsSeen();
   const cutoff=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
-  const items=newsFor(r).filter(n=>seen?n.id>seen:n.date>=cutoff).slice(0,3);if(!items.length)return"";
+  const j=joinedDay(),items=newsFor(r).filter(n=>(seen?n.id>seen:n.date>=cutoff)&&(!j||n.date>j)).slice(0,3);if(!items.length)return"";
   return `<section class="newscard" aria-label="What's new"><div class="newshead"><div><div class="eyebrow">What's new</div><h2>${items.length===1?"One update":items.length+" updates"} since you were last here</h2></div>
     <div class="actions" style="margin:0"><button class="linkbtn" type="button" data-act="newsall">See all updates</button><button class="btn ghost sm" type="button" data-act="newsok">Got it</button></div></div>
     <ul class="newslist">${items.map(n=>`<li><span class="strong">${esc(n.title)}</span>${r==="orbyt"?` <span class="pill">${n.roles.map(x=>NEWS_ROLE[x]).join(", ")}</span>`:""}<p class="small">${esc(n.body)}</p></li>`).join("")}</ul></section>`}
@@ -248,8 +248,10 @@ function faqHelp(r){const l=FAQ[r];if(!l)return"";
   return `<div class="helpsec" id="help-faq"><h3>FAQs</h3>${l.map(([q,a])=>`<details class="faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("")}</div>`}
 
 /* ---------- Help menu and What's new bell (header) ---------- */
-function newsUnseen(){const r=setupRole(),seen=S.newsSeen??newsSeen();const cutoff=new Date(Date.now()-21*864e5).toISOString().slice(0,10);
-  return newsFor(r).filter(n=>seen?n.id>seen:n.date>=cutoff)}
+// updates that came out before someone joined aren't news to them
+const joinedDay=()=>{const c=S.me&&S.me.created_at;return c?new Date(c).toLocaleDateString("en-CA",{timeZone:"America/Los_Angeles"}):""};
+function newsUnseen(){const r=setupRole(),seen=S.newsSeen??newsSeen();const cutoff=new Date(Date.now()-21*864e5).toISOString().slice(0,10),j=joinedDay();
+  return newsFor(r).filter(n=>(seen?n.id>seen:n.date>=cutoff)&&(!j||n.date>j))}
 function headerTools(){if(!S.session)return"";const n=newsUnseen().length;
   return `<button class="iconbtn bell" type="button" data-act="newsopen" aria-label="What's new${n?`, ${n} new`:""}"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>${n?`<span class="bdot">${n>9?"9+":n}</span>`:""}</button>
     <div class="menuwrap"><button class="btn ghost sm" type="button" data-act="helpmenu" aria-haspopup="true" aria-expanded="${S.helpMenu?"true":"false"}">Help <span aria-hidden="true">▾</span></button>

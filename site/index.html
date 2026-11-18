@@ -156,6 +156,7 @@ textarea{resize:vertical;min-height:64px}
 .dashgrid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:0 24px;align-items:start}.dashside{position:sticky;top:12px}.dashside .setup{margin:0;padding:14px 16px}.dashside .setuphead{flex-direction:column;align-items:flex-start;gap:4px}.dashside .setuphead h2{font-size:18px}.dashside .setuplist li{grid-template-columns:22px minmax(0,1fr)!important;align-items:start}.dashside .setuplist li>div:last-child,.dashside .setuplist li>span.small:last-child{grid-column:2}.dashside .setuplist li .actions{margin:0}.dashside .setuplist li.done{display:none}
 @media(max-width:980px){.dashgrid{grid-template-columns:minmax(0,1fr)}.dashside{position:static;margin-top:18px}}
 .dash.one{display:block}
+.msearch{padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}.msearch input{width:100%}.msearch .mnone{margin:8px 2px 0}.mthread[hidden]{display:none!important}
 .vboxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:18px}.vbox{border:1px solid var(--line);border-radius:12px;background:var(--surface);min-width:0}.vbox.open{grid-column:1/-1}
 .vboxhead{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 16px}.vboxhead:focus-visible{outline:2px solid var(--gold,#A8871F);outline-offset:-2px;border-radius:12px}
 .vboxtitle{display:grid;gap:3px;min-width:0}.vboxtitle .h2{font-size:18px;color:var(--ink);font-weight:500}.vboxright{display:flex;align-items:center;gap:8px;flex-shrink:0}.caret{color:var(--muted);font-size:13px}
@@ -5592,8 +5593,12 @@ function vendorContactGate(v){if(kind()!=="agent"||bookedWithMe(v.id)||(typeof i
   return `<p class="small" style="margin:0">Contact details show once you book ${esc(v.name)}. Until then, message them here so everything about the job stays in one place.</p>${ps.length?`<div class="actions" style="margin-top:8px">${ps.map(p=>msgBtn(p.id,v.id,ps.length>1?"Message about "+p.address:"Message "+v.name,"btn sm")).join("")}</div>`:""}`}
 
 /* the Messages tab */
-function threadRow(t,open){const last=t.msgs[t.msgs.length-1]||{},n=unreadOf(t);
-  return `<button class="mthread ${open?"on":""} ${n?"unread":""} ${isOrbytThread(t)?"morbyt":""}" type="button" data-act="msgopen" ${threadAttrs(t)}>
+// what a conversation can be found by: the home, project ID, people, services and what was said
+function threadSearch(t){const p=t.p||projById(t.project_id),v=t.v||vendorById(t.vendor_id);
+  return [threadTitle(t),otherSide(t),threadServices(t),p&&p.refCode,p&&p.address,p&&p.agent,v&&v.name,...(t.msgs||[]).map(m=>m.body+" "+(m.sender_name||""))].filter(Boolean).join(" ").toLowerCase()}
+const msgHit=(t,q)=>!q||q.split(/\s+/).every(w=>threadSearch(t).includes(w));
+function threadRow(t,open){const last=t.msgs[t.msgs.length-1]||{},n=unreadOf(t),q=(S.msgQ||"").trim().toLowerCase();
+  return `<button class="mthread ${open?"on":""} ${n?"unread":""} ${isOrbytThread(t)?"morbyt":""}" type="button" data-act="msgopen" ${threadAttrs(t)} data-q="${esc(threadSearch(t))}" ${msgHit(t,q)?"":"hidden"}>
     <span class="mtop"><span class="maddr">${esc(threadTitle(t))}</span><span class="small num">${last.created_at?ago(last.created_at):""}</span></span>
     <span class="small mwho">${esc(otherSide(t))}${threadServices(t)?" · "+esc(threadServices(t)):""}</span>
     <span class="small msnip">${n?`<span class="count">${n}</span> `:""}${last.body?esc((last.sender_name?last.sender_name+": ":"")+String(last.body).slice(0,110)):"Message me anytime"}</span></button>`}
@@ -5631,7 +5636,12 @@ function messagesView(){
           <p class="small mnote">${esc(who)} gets a notification right away.</p>`
         :admin?`<p class="small mnote">You can read every agent and vendor thread. They don't get a notice when you do, and you don't get notified about their messages.</p>`:""}`}
   else pane=`<div class="mempty"><p class="small">${all.length?"Pick a conversation.":admin?"Your conversations and agent and vendor threads show up here.":"Your conversations show up here."}</p></div>`;
-  return `<section class="msgwrap ${cur?"open":""}"><div class="mside">${list}</div><div class="mpane">${pane}</div></section>`}
+  const search=all.length>1?`<div class="msearch"><input type="search" id="msg-q" data-msgq value="${esc(S.msgQ||"")}" placeholder="Search by address, project ID, name or message" aria-label="Search conversations" autocomplete="off"><p class="small mnone" ${(S.msgQ||"").trim()&&!all.some(t=>msgHit(t,(S.msgQ||"").trim().toLowerCase()))?"":"hidden"}>No conversations match.</p></div>`:"";
+  return `<section class="msgwrap ${cur?"open":""}"><div class="mside">${search}${list}</div><div class="mpane">${pane}</div></section>`}
+// filter as they type, without redrawing (keeps the cursor in the box)
+document.addEventListener("input",e=>{const t=e.target;if(!t.matches||!t.matches("input[data-msgq]"))return;S.msgQ=t.value;const q=t.value.trim().toLowerCase(),side=t.closest(".mside");let n=0;
+  side.querySelectorAll(".mthread").forEach(r=>{const hit=!q||q.split(/\s+/).every(w=>(r.dataset.q||"").includes(w));r.hidden=!hit;if(hit)n++});
+  const none=side.querySelector(".mnone");if(none)none.hidden=!q||n>0});
 function msgTime(iso){const d=new Date(iso),today=new Date();
   return d.toDateString()===today.toDateString()?d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}):d.toLocaleDateString("en-US",{month:"short",day:"numeric"})+", "+d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}
 // a tile in the stats bar

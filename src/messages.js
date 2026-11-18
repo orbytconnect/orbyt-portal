@@ -42,8 +42,12 @@ function vendorContactGate(v){if(kind()!=="agent"||bookedWithMe(v.id)||(typeof i
   return `<p class="small" style="margin:0">Contact details show once you book ${esc(v.name)}. Until then, message them here so everything about the job stays in one place.</p>${ps.length?`<div class="actions" style="margin-top:8px">${ps.map(p=>msgBtn(p.id,v.id,ps.length>1?"Message about "+p.address:"Message "+v.name,"btn sm")).join("")}</div>`:""}`}
 
 /* the Messages tab */
-function threadRow(t,open){const last=t.msgs[t.msgs.length-1]||{},n=unreadOf(t);
-  return `<button class="mthread ${open?"on":""} ${n?"unread":""} ${isOrbytThread(t)?"morbyt":""}" type="button" data-act="msgopen" ${threadAttrs(t)}>
+// what a conversation can be found by: the home, project ID, people, services and what was said
+function threadSearch(t){const p=t.p||projById(t.project_id),v=t.v||vendorById(t.vendor_id);
+  return [threadTitle(t),otherSide(t),threadServices(t),p&&p.refCode,p&&p.address,p&&p.agent,v&&v.name,...(t.msgs||[]).map(m=>m.body+" "+(m.sender_name||""))].filter(Boolean).join(" ").toLowerCase()}
+const msgHit=(t,q)=>!q||q.split(/\s+/).every(w=>threadSearch(t).includes(w));
+function threadRow(t,open){const last=t.msgs[t.msgs.length-1]||{},n=unreadOf(t),q=(S.msgQ||"").trim().toLowerCase();
+  return `<button class="mthread ${open?"on":""} ${n?"unread":""} ${isOrbytThread(t)?"morbyt":""}" type="button" data-act="msgopen" ${threadAttrs(t)} data-q="${esc(threadSearch(t))}" ${msgHit(t,q)?"":"hidden"}>
     <span class="mtop"><span class="maddr">${esc(threadTitle(t))}</span><span class="small num">${last.created_at?ago(last.created_at):""}</span></span>
     <span class="small mwho">${esc(otherSide(t))}${threadServices(t)?" · "+esc(threadServices(t)):""}</span>
     <span class="small msnip">${n?`<span class="count">${n}</span> `:""}${last.body?esc((last.sender_name?last.sender_name+": ":"")+String(last.body).slice(0,110)):"Message me anytime"}</span></button>`}
@@ -81,7 +85,12 @@ function messagesView(){
           <p class="small mnote">${esc(who)} gets a notification right away.</p>`
         :admin?`<p class="small mnote">You can read every agent and vendor thread. They don't get a notice when you do, and you don't get notified about their messages.</p>`:""}`}
   else pane=`<div class="mempty"><p class="small">${all.length?"Pick a conversation.":admin?"Your conversations and agent and vendor threads show up here.":"Your conversations show up here."}</p></div>`;
-  return `<section class="msgwrap ${cur?"open":""}"><div class="mside">${list}</div><div class="mpane">${pane}</div></section>`}
+  const search=all.length>1?`<div class="msearch"><input type="search" id="msg-q" data-msgq value="${esc(S.msgQ||"")}" placeholder="Search by address, project ID, name or message" aria-label="Search conversations" autocomplete="off"><p class="small mnone" ${(S.msgQ||"").trim()&&!all.some(t=>msgHit(t,(S.msgQ||"").trim().toLowerCase()))?"":"hidden"}>No conversations match.</p></div>`:"";
+  return `<section class="msgwrap ${cur?"open":""}"><div class="mside">${search}${list}</div><div class="mpane">${pane}</div></section>`}
+// filter as they type, without redrawing (keeps the cursor in the box)
+document.addEventListener("input",e=>{const t=e.target;if(!t.matches||!t.matches("input[data-msgq]"))return;S.msgQ=t.value;const q=t.value.trim().toLowerCase(),side=t.closest(".mside");let n=0;
+  side.querySelectorAll(".mthread").forEach(r=>{const hit=!q||q.split(/\s+/).every(w=>(r.dataset.q||"").includes(w));r.hidden=!hit;if(hit)n++});
+  const none=side.querySelector(".mnone");if(none)none.hidden=!q||n>0});
 function msgTime(iso){const d=new Date(iso),today=new Date();
   return d.toDateString()===today.toDateString()?d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}):d.toLocaleDateString("en-US",{month:"short",day:"numeric"})+", "+d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})}
 // a tile in the stats bar

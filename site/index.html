@@ -155,6 +155,13 @@ textarea{resize:vertical;min-height:64px}
 @media(max-width:700px){.vhside{align-items:flex-start}.vhside .availtoggle{justify-content:flex-start}}
 .dashgrid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:0 24px;align-items:start}.dashside{position:sticky;top:12px}.dashside .setup{margin:0;padding:14px 16px}.dashside .setuphead{flex-direction:column;align-items:flex-start;gap:4px}.dashside .setuphead h2{font-size:18px}.dashside .setuplist li{grid-template-columns:22px minmax(0,1fr)!important;align-items:start}.dashside .setuplist li>div:last-child,.dashside .setuplist li>span.small:last-child{grid-column:2}.dashside .setuplist li .actions{margin:0}.dashside .setuplist li.done{display:none}
 @media(max-width:980px){.dashgrid{grid-template-columns:minmax(0,1fr)}.dashside{position:static;margin-top:18px}}
+.vboxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:18px}.vbox{border:1px solid var(--line);border-radius:12px;background:var(--surface);min-width:0}.vbox.open{grid-column:1/-1}
+.vboxhead{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 16px}.vboxhead:focus-visible{outline:2px solid var(--gold,#A8871F);outline-offset:-2px;border-radius:12px}
+.vboxtitle{display:grid;gap:3px;min-width:0}.vboxtitle .h2{font-size:18px;color:var(--ink);font-weight:500}.vboxright{display:flex;align-items:center;gap:8px;flex-shrink:0}.caret{color:var(--muted);font-size:13px}
+.vbox:not(.open) .vboxbody{display:none}.vboxbody{padding:0 16px 16px;border-top:1px solid var(--line);padding-top:14px}
+.todobar{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px 16px;margin-top:14px}.todohead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}.todohead .h2{font-size:18px;color:var(--ink);font-weight:500}.todobar .emptystate{padding:4px 0 8px;margin:0;border:0;background:none;text-align:left}.todobar .emptystate p{margin:2px 0 0}.todobar .emptystate .eyebrow{display:none}.todobar .emptystate h2{font-size:16px;margin:0}
+.setup.mini{padding:12px 16px}.setupmini{display:grid;grid-template-columns:auto minmax(120px,1fr) auto;gap:14px;align-items:center}.setuptoggle{all:unset;cursor:pointer;display:flex;align-items:baseline;gap:8px}.setuptoggle .eyebrow{margin:0}.setupnext{display:flex;align-items:center;gap:10px}.setup.mini .setupbar{margin:0}.setup.mini.open .setuplist{margin-top:10px}
+@media(max-width:760px){.setupmini{grid-template-columns:1fr}.setupnext{justify-content:space-between}}
 .projgrid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:0 28px;align-items:start}.projside{position:sticky;top:12px;padding-top:14px}.projside .team{margin-top:18px}
 .projside .projmsgs{margin:0;padding:0;border:0}.projside .projmsgs h2{font-size:18px}.projside .pmgrid{grid-template-columns:1fr!important;gap:10px}.projside .mside.inline{max-height:300px;overflow:auto}.projside .msginline .mlist{max-height:260px}
 @media(max-width:980px){.projgrid{grid-template-columns:minmax(0,1fr)}.projside{position:static}}
@@ -1234,10 +1241,10 @@ function vendorView(){
   if(v&&typeof isPartner==="function"&&isPartner(v))return partnerView(v);
   if(!v)return `<div class="emptystate" style="margin-top:28px"><h2>Your profile is almost ready</h2><p>Ashleigh is finishing your vendor profile. Email ashleigh@orbytconnect.com if this doesn't clear up within a day.</p></div>`;
   if(typeof msgPending==="function")msgPending();
-  if(!["tasks","projects","messages","profile"].includes(S.tab))S.tab="tasks";
+  if(!["tasks","projects","messages"].includes(S.tab))S.tab="tasks";
   const tm=!!S.teamMember,ok=v.approved!==false;
   const T=vendorTasks(v.id).map(t=>t.bid&&t.bid.assignedTo&&typeof handledName==="function"?{...t,meta:t.meta+" · "+handledName(t.bid.assignedTo)}:t);const openN=splitTasks(T).open.length;
-  if(tm&&S.tab==="profile")S.tab="tasks";
+
   const mine=S.bids.filter(b=>b.vendorId===v.id&&projById(b.projectId));
   let h=`<section class="hello vhello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""}</div><h1>Hi, ${esc(tm?(S.me&&firstName(S.me.full_name||"")||v.name):v.name)}</h1>${tm?`<p class="banner" style="margin-top:10px">You're on the ${esc(v.name)} team. ${esc(firstName(v.contactName||"")||"The owner")} manages the profile and billing.</p>`:ok?"":`<p class="banner" style="margin-top:10px">Welcome to Orbyt. Finish the steps under Get approved below, and I'll check your references and approve you for introductions.</p>`}</div>
     <div class="vhside">${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}${typeof availToggle==="function"?availToggle(v):""}</div></section>`;
@@ -1245,21 +1252,20 @@ function vendorView(){
   if(typeof newsCard==="function")h+=newsCard();const setup=typeof setupCard==="function"&&ok&&!tm?setupCard():"";
   const folds=typeof vendorFolds==="function"?vendorFolds(v,mine):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
   // before approval: Get approved, then the profile, right on the dashboard. After: the profile lives on its own tab
-  const pre=!ok&&!tm&&typeof approvalSec==="function"?approvalSec(v):"",foot=ok||tm?"":folds;
+  const pre=!ok&&!tm&&typeof approvalSec==="function"?approvalSec(v):"",foot="";
   h+=statStrip([
     {key:"requested",label:"Bids requested",list:req,render:l=>bidTable(l,"vendor"),empty:"No open requests right now."},
     {key:"overdue",label:"Overdue",list:req.filter(b=>b.status==="requested"&&ageDays(b.requestedAt)>=REMIND_DAYS),render:l=>bidTable(l,"vendor"),empty:"Nothing overdue. Nice work."},
     {key:"sent",label:"Bids sent",list:mine.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"vendor"),empty:"No bids waiting on a decision."},
     {key:"accepted",label:"Bids accepted",list:mine.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"vendor"),empty:"No accepted bids yet."},...(typeof msgStat==="function"?msgStat():[])]);
-  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],...(tm?[]:[["profile","Profile",0]]),...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[])]);
+  h+=tabs([["tasks","Home",openN],["projects","Projects",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[])]);
   if(S.tab==="messages"&&typeof messagesView==="function")return h+messagesView();
-  if(S.tab==="profile")return h+(ok?"":pre)+folds;
   const ob=S.openRequest&&mine.find(b=>b.id===S.openRequest);
   if(ob)return h+`<div class="back"><button class="linkbtn" data-act="closereq">${S.tab==="tasks"?"Back to tasks":"All projects"}</button></div>`+requestDetail(ob);
-  if(S.tab==="tasks"){const main=pre+tasksView(T,ok?"New bid requests show up here as soon as a listing needs you.":"Bid requests show up here once you're approved.")+
-    (ok?`<p class="small" style="margin-top:14px">If a request goes ${REMIND_DAYS} days without a bid, it comes back here as a reminder and you'll get an email.</p>`:"");
-    // the work first; setup steps wait in a side column
-    return h+(setup?`<div class="dashgrid"><div class="dashmain">${main}</div><aside class="dashside">${setup}</aside></div>`:main)+foot}
+  if(S.tab==="tasks"){
+    // home: setup (until it's done), the to-do list, then boxes that open in place
+    const todo=`<section class="todobar"><div class="todohead"><span class="h2">To do</span><span class="small">${openN?`${openN} open`:"All caught up"}${ok?` · Requests without a bid for ${REMIND_DAYS} days come back here as reminders`:""}</span></div>${tasksView(T,ok?"New bid requests show up here as soon as a listing needs you.":"Bid requests show up here once you're approved.")}</section>`;
+    return h+setup+pre+todo+(tm?"":folds)}
   if(!mine.length)return h+`<div class="emptystate"><h2>No projects yet</h2><p>Projects you're asked to bid on will be listed here with the agent and your bid status.</p></div>`+foot;
   const rows=sortRows(mine.filter(b=>inRange(projById(b.projectId))),{address:b=>projById(b.projectId).address,agent:b=>projById(b.projectId).agent,date:b=>projById(b.projectId).targetDate||"9999"});
   h+=rangeFilter(mine.length,rows.length);
@@ -4215,7 +4221,8 @@ function vendorFolds(v,mine){
   prof.push(fold("port","Business overview and portfolio",c?`<span class="pill set">${c} added</span>`:`<span class="pill late">Add your work</span>`,"Business overview, website, Instagram and your work",portfolioCard(v),false));
   const pr=vPricing(v),hasP=statedTier(v)||priceItems(v).length||pr.minimum;
   prof.push(fold("price","Typical pricing",hasP?'<span class="pill set">Added</span>':'<span class="pill">Not added yet</span>',"Helps me match you to the right homes",vendorPricingCard(v),S.openForm==="pricing"));
-  out.push(psec("profile",num(),"Your profile","What agents see when I introduce you. Tap a row to open it.","",`<div class="folds">${prof.join("")}</div>`));
+  {const todo=(prof.join("").match(/pill (late|needed)/g)||[]).length;
+    out.push(vbox("profile","Your profile","Services, portfolio, pricing and insurance: what agents see when I introduce you.",todo?`<span class="pill late">${todo} to add</span>`:'<span class="pill set">Complete</span>',`<div class="folds">${prof.join("")}</div>`))}
   // 2 reviews and results
   const rv=[];
   if(ok)rv.push(fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false));
@@ -4224,17 +4231,17 @@ function vendorFolds(v,mine){
   {const lc=typeof lostCard==="function"?lostCard(v):"";if(lc){const k=S.bids.filter(b=>b.vendorId===v.id&&b.lostReason).length;
     rv.push(fold("lost","Why quotes didn't win",`<span class="pill">${k}</span>`,"What agents told you",lc,false))}}
   const stats=vendorStats(v,mine||[]);
-  if(stats||rv.length)out.push(psec("results",num(),"Reviews and results","How agents rate you and how your bids are doing.","",stats+(rv.length?`<div class="folds">${rv.join("")}</div>`:"")));
+  if(stats||rv.length)out.push(vbox("results","Reviews and results","How agents rate you and how your bids are doing.",rating(v.id)?`<span class="pill">★ ${rating(v.id).avg.toFixed(1)}</span>`:"",stats+(rv.length?`<div class="folds">${rv.join("")}</div>`:"")));
   // the team: people who help with quotes and jobs (owner only)
-  if(!S.teamMember&&typeof teamCard==="function"){const n=(S.team||[]).filter(m=>!m.owner).length;out.push(psec("team",num(),"Your team","Invite the people who help with quotes or run your jobs.",n?`<span class="pill">${n} ${n===1?"person":"people"}</span>`:"",teamCard()))}
+  if(!S.teamMember&&typeof teamCard==="function"){const n=(S.team||[]).filter(m=>!m.owner).length;out.push(vbox("team","Your team","Invite the people who help with quotes or run your jobs.",n?`<span class="pill">${n} ${n===1?"person":"people"}</span>`:"",teamCard()))}
   // fees owed, one row per booked job
-  if(ok&&typeof vendorFeesCard==="function"){const fc=vendorFeesCard(v);if(fc)out.push(psec("fees",num(),"Orbyt fees","What you owe Orbyt, job by job.",fc.pill,fc.body))}
+  if(ok&&typeof vendorFeesCard==="function"){const fc=vendorFeesCard(v);if(fc)out.push(vbox("fees","Orbyt fees","What you owe Orbyt, job by job.",fc.pill,fc.body))}
   // 3 special offer
   if(ok){const on=featuredNow(v),req=v.promoRequestedAt&&(!on||v.promoRequestedAt>(v.featuredUntil||""));
-    out.push(psec("promo",num(),"Special offer","Share a deal with Orbyt clients, $20 for up to 30 days.",on?`<span class="pill featured">Live until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"",promoCard(v)))}
+    out.push(vbox("promo","Special offer","Share a deal with Orbyt clients, $20 for up to 30 days.",on?`<span class="pill featured">Live until ${esc(fmtDate(v.featuredUntil)||"")}</span>`:req?'<span class="pill comparing">Requested</span>':"",promoCard(v)))}
   // 4 spread the word
-  out.push(psec("refer",num(),"Spread the word","A ready-made message with your own sign-up link.",refCountPill(),referralCard("vendor")));
-  return `<div class="vsecs">${out.join("")}</div>`}
+  out.push(vbox("refer","Spread the word","A ready-made message with your own sign-up link.",refCountPill(),referralCard("vendor")));
+  return `<div class="vboxes">${out.join("")}</div>`}
 function agentFolds(){if(kind()!=="agent"||!S.canWrite)return"";
   return psec("refer","","Spread the word","A ready-made message with your own sign-up link.",refCountPill(),referralCard("agent"))}
 // portfolio card
@@ -4729,6 +4736,12 @@ function jobBoard(p){const cats=p.categories||[];if(!cats.length)return"";
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="gocat"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   if(t.dataset.review){S.openForm="review:proj:"+t.dataset.review;render()}
   setTimeout(()=>{const el=document.getElementById("cat-"+t.dataset.c);if(el){el.scrollIntoView({behavior:"smooth",block:"start"});el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),1600)}},30)},true);
+
+/* ---------- vendor home: boxes that open in place ---------- */
+function vbox(id,title,sub,right,body){const open=S.vbox===id;
+  return `<section class="vbox ${open?"open":""}" data-fold="${id}" data-box="${id}"><button class="vboxhead" type="button" data-act="vbox" data-id="${id}" aria-expanded="${open}"><span class="vboxtitle"><span class="h2">${title}</span>${sub?`<span class="small">${sub}</span>`:""}</span><span class="vboxright">${right||""}<span class="caret" aria-hidden="true">${open?"▾":"▸"}</span></span></button><div class="vboxbody">${body}</div></section>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="vbox"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  const id=t.dataset.id;S.vbox=S.vbox===id?"":id;render();if(S.vbox)setTimeout(()=>{const el=document.querySelector(`.vbox[data-box="${id}"]`);if(el)el.scrollIntoView({block:"nearest",behavior:"smooth"})},30)},true);
 
 
 /* ---------- home team cards: a printable card agents give buyer clients, and the request page behind its QR code ---------- */
@@ -5307,26 +5320,27 @@ function setupItems(){const r=setupRole(),a=(label,act,extra)=>`<button class="b
 function setupUnmark(id){const key=roleKey();if(!key||!S.canWrite)return Promise.resolve();const dm={...doneMap()};delete dm[id];
   return S.db.doc("taskstate/"+key).set({done:dm,nudged:nudgedMap()})}
 function setupCard(){if(!S.canWrite||!S.session)return"";
-  const items=setupItems();if(!items.length)return"";const left=items.filter(x=>!x.done);
-  // hidden, or all done: a one-line way back in
-  if((setupDone("setup-hide")||!left.length)&&!S.setupOpen)return `<p class="small setupback">${left.length?`Setup checklist hidden, ${left.length} ${left.length===1?"step":"steps"} left.`:"You're all set up."} <button class="linkbtn" type="button" data-act="setupshow">Show the checklist</button> · <button class="linkbtn" type="button" data-act="help">How Orbyt works</button></p>`;
-  const n=items.length-left.length;
-  return `<section class="setup" aria-label="Get set up"><div class="setuphead"><div><div class="eyebrow">Get set up</div><h2>${!left.length?"All done. Nice work.":n?`${n} of ${items.length} done`:"A few quick steps to get the most out of Orbyt"}</h2></div>
-      <div class="actions"><button class="linkbtn" type="button" data-act="help">How Orbyt works</button><button class="linkbtn" type="button" data-act="setupdone" data-id="setup-hide">Hide this</button></div></div>
-    <div class="setupbar" role="progressbar" aria-valuemin="0" aria-valuemax="${items.length}" aria-valuenow="${n}"><span style="width:${Math.round(n/items.length*100)}%"></span></div>
-    <ol class="setuplist">${[...left,...items.filter(x=>x.done)].map(x=>`<li class="${x.done?"done":""}"><span class="setupdot" aria-hidden="true">${x.done?"✓":""}</span><div class="setuptext"><span class="strong">${esc(x.label)}</span>${x.done?"":`<div class="small">${esc(x.hint)}</div>`}</div>${x.done?`<span class="small">Done</span>`:`<div>${x.act}</div>`}</li>`).join("")}</ol>
-    <p class="small" style="margin:10px 0 0">${contactLine()}</p></section>`}
+  const items=setupItems();if(!items.length)return"";const left=items.filter(x=>!x.done);if(!left.length)return"";
+  // stays until it's done; small by default, with the next step and a caret for the rest
+  const n=items.length-left.length,open=!!S.setupOpen,nx=left[0];
+  return `<section class="setup mini ${open?"open":""}" aria-label="Get set up"><div class="setupmini">
+      <button class="setuptoggle" type="button" data-act="setuptoggle" aria-expanded="${open}"><span class="caret" aria-hidden="true">${open?"▾":"▸"}</span><span class="eyebrow">Get set up</span><span class="strong">${n} of ${items.length} done</span></button>
+      <div class="setupbar" role="progressbar" aria-valuemin="0" aria-valuemax="${items.length}" aria-valuenow="${n}"><span style="width:${Math.round(n/items.length*100)}%"></span></div>
+      ${open?`<button class="linkbtn" type="button" data-act="help">How Orbyt works</button>`:`<div class="setupnext"><span class="small">Next: <span class="strong">${esc(nx.label)}</span></span>${nx.act}</div>`}</div>
+    ${open?`<ol class="setuplist">${[...left,...items.filter(x=>x.done)].map(x=>`<li class="${x.done?"done":""}"><span class="setupdot" aria-hidden="true">${x.done?"✓":""}</span><div class="setuptext"><span class="strong">${esc(x.label)}</span>${x.done?"":`<div class="small">${esc(x.hint)}</div>`}</div>${x.done?`<span class="small">Done</span>`:`<div>${x.act}</div>`}</li>`).join("")}</ol>
+    <p class="small" style="margin:10px 0 0">${contactLine()}</p>`:""}</section>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="setuptoggle"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();S.setupOpen=!S.setupOpen;render()},true);
 
 /* the Help page, written for each role */
 /* what's new: newest first. roles: agent, vendor, partner (orbyt sees everything) */
 const NEWS=[
-  {id:"2026-11-20a",date:"2026-11-17",roles:["vendor"],title:"Invite your team",body:"On your Profile tab, under Your team, invite the people who help with quotes or run your jobs. They get their own login, and you can tag who's handling each request."},
+  {id:"2026-11-21a",date:"2026-11-18",roles:["vendor"],title:"A simpler home page",body:"Your home page now shows your setup progress, your to-do list, and boxes for your profile, reviews, team, fees, special offer and referral link. Tap any box to open it."},
+  {id:"2026-11-20a",date:"2026-11-17",roles:["vendor"],title:"Invite your team",body:"On your home page, open Your team to invite the people who help with quotes or run your jobs. They get their own login, and you can tag who's handling each request."},
   {id:"2026-11-19a",date:"2026-11-17",roles:["agent"],title:"Message several vendors at once",body:"On a project, tap Message several vendors, pick who gets it (or everyone booked), and send. Each vendor gets it in their own thread with you."},
   {id:"2026-11-19b",date:"2026-11-17",roles:["agent"],title:"More detailed reviews",body:"Reviews now ask about quality of work, timing, communication and value, and whether you'd hire them again. Vendor profiles show the averages once there are three or more."},
   {id:"2026-11-19c",date:"2026-11-17",roles:["vendor","partner"],title:"Pick the services you actually offer",body:"Open Your services and tick exactly what you do in each kind of work, like vacant staging or move-out cleans. It helps me match you, and agents see it on your profile."},
   {id:"2026-11-19d",date:"2026-11-17",roles:["vendor"],title:"Offers for specific services",body:"When you run a special offer, you can choose which of your services it's for. Agents see it next to your quotes for those services."},
-  {id:"2026-11-18a",date:"2026-11-17",roles:["vendor"],title:"Your fees, job by job",body:"Open the Profile tab to see what you owe Orbyt for each booked job, what's coming up, and what you've paid this year."},
-  {id:"2026-11-18b",date:"2026-11-17",roles:["vendor"],title:"A Profile tab",body:"Your profile, reviews, special offer and referral link now live on their own Profile tab, so Tasks shows just your work."},
+  {id:"2026-11-18a",date:"2026-11-17",roles:["vendor"],title:"Your fees, job by job",body:"Open Orbyt fees on your home page to see what you owe Orbyt for each booked job, what's coming up, and what you've paid this year."},
   {id:"2026-11-18c",date:"2026-11-17",roles:["vendor"],title:"A simpler timeline on requests",body:"On a bid request, the work before and after yours is folded away. Tap Before your work or After your work to see the details."},
   {id:"2026-11-17a",date:"2026-11-17",roles:["agent"],title:"Message vendors from the project",body:"Open a project and tap Message next to any vendor. The conversation opens right on the project page, and every thread for that home is listed under Messages about this home."},
   {id:"2026-11-17b",date:"2026-11-17",roles:["vendor"],title:"Messages on every request",body:"Your conversation with the agent now shows right on the request, before and after you're booked."},
@@ -5411,9 +5425,12 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="getap
   if(a==="helpclose"){S.help=false;render();return}
   if(a==="setupdone"){if(t.dataset.id==="setup-hide")S.setupOpen=false;guard(()=>setupMark(t.dataset.id),t.dataset.id==="setup-hide"?"Hidden. Bring it back anytime with Show the checklist, or from Help.":"Checked off");return}
   if(a==="setupshow"){S.help=false;S.setupOpen=true;guard(()=>setupUnmark("setup-hide"));setTimeout(()=>document.querySelector(".setup,.setupback")?.scrollIntoView({behavior:"smooth",block:"center"}),300);return}
-  const openFold=k=>{const d=document.querySelector(`[data-fold="${k}"]`);if(d){if(d.tagName==="DETAILS")d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"});return true}return false};
+  const openFold=k=>{const q=()=>document.querySelector(`[data-fold="${k}"]:not([data-act])`);let d=q();if(!d)return false;
+    // inside a closed box on the vendor home: open the box first
+    const box=d.closest(".vbox");if(box&&!box.classList.contains("open")){S.vbox=box.dataset.box;render();d=q();if(!d)return false}
+    if(d.tagName==="DETAILS")d.open=true;d.scrollIntoView({behavior:"smooth",block:"start"});return true};
   if(a==="gofold"){if(openFold(t.dataset.fold))return;
-    if(kind()==="vendor"&&S.tab!=="profile"&&!(typeof isPartner==="function"&&isPartner(vendorById(roleVal())))){S.tab="profile";render();setTimeout(()=>{if(!openFold(t.dataset.fold))toast("You'll find it under Profile once you're approved.")},40);return}
+    if(kind()==="vendor"&&S.tab!=="tasks"&&!(typeof isPartner==="function"&&isPartner(vendorById(roleVal())))){S.tab="tasks";render();setTimeout(()=>{if(!openFold(t.dataset.fold))toast("You'll find it under Profile once you're approved.")},40);return}
     toast("You'll find it under Your profile once you're approved.");return}
   if(a==="setupref"){S.refWho=t.dataset.who;render();setTimeout(()=>openFold("refer"),30)}},true);
 // sending a referral (copy, email or text) checks off the matching step

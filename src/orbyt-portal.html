@@ -141,6 +141,13 @@ textarea{resize:vertical;min-height:64px}
 @media(max-width:700px){.vhside{align-items:flex-start}.vhside .availtoggle{justify-content:flex-start}}
 .dashgrid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:0 24px;align-items:start}.dashside{position:sticky;top:12px}.dashside .setup{margin:0;padding:14px 16px}.dashside .setuphead{flex-direction:column;align-items:flex-start;gap:4px}.dashside .setuphead h2{font-size:18px}.dashside .setuplist li{grid-template-columns:22px minmax(0,1fr)!important;align-items:start}.dashside .setuplist li>div:last-child,.dashside .setuplist li>span.small:last-child{grid-column:2}.dashside .setuplist li .actions{margin:0}.dashside .setuplist li.done{display:none}
 @media(max-width:980px){.dashgrid{grid-template-columns:minmax(0,1fr)}.dashside{position:static;margin-top:18px}}
+.vboxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:18px}.vbox{border:1px solid var(--line);border-radius:12px;background:var(--surface);min-width:0}.vbox.open{grid-column:1/-1}
+.vboxhead{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 16px}.vboxhead:focus-visible{outline:2px solid var(--gold,#A8871F);outline-offset:-2px;border-radius:12px}
+.vboxtitle{display:grid;gap:3px;min-width:0}.vboxtitle .h2{font-size:18px;color:var(--ink);font-weight:500}.vboxright{display:flex;align-items:center;gap:8px;flex-shrink:0}.caret{color:var(--muted);font-size:13px}
+.vbox:not(.open) .vboxbody{display:none}.vboxbody{padding:0 16px 16px;border-top:1px solid var(--line);padding-top:14px}
+.todobar{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px 16px;margin-top:14px}.todohead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}.todohead .h2{font-size:18px;color:var(--ink);font-weight:500}.todobar .emptystate{padding:4px 0 8px;margin:0;border:0;background:none;text-align:left}.todobar .emptystate p{margin:2px 0 0}.todobar .emptystate .eyebrow{display:none}.todobar .emptystate h2{font-size:16px;margin:0}
+.setup.mini{padding:12px 16px}.setupmini{display:grid;grid-template-columns:auto minmax(120px,1fr) auto;gap:14px;align-items:center}.setuptoggle{all:unset;cursor:pointer;display:flex;align-items:baseline;gap:8px}.setuptoggle .eyebrow{margin:0}.setupnext{display:flex;align-items:center;gap:10px}.setup.mini .setupbar{margin:0}.setup.mini.open .setuplist{margin-top:10px}
+@media(max-width:760px){.setupmini{grid-template-columns:1fr}.setupnext{justify-content:space-between}}
 .projgrid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:0 28px;align-items:start}.projside{position:sticky;top:12px;padding-top:14px}.projside .team{margin-top:18px}
 .projside .projmsgs{margin:0;padding:0;border:0}.projside .projmsgs h2{font-size:18px}.projside .pmgrid{grid-template-columns:1fr!important;gap:10px}.projside .mside.inline{max-height:300px;overflow:auto}.projside .msginline .mlist{max-height:260px}
 @media(max-width:980px){.projgrid{grid-template-columns:minmax(0,1fr)}.projside{position:static}}
@@ -1128,10 +1135,10 @@ function vendorView(){
   if(v&&typeof isPartner==="function"&&isPartner(v))return partnerView(v);
   if(!v)return `<div class="emptystate" style="margin-top:28px"><h2>Pick a vendor</h2><p>Choose a vendor in "Viewing as" to see their requests.</p></div>`;
   if(typeof msgPending==="function")msgPending();
-  if(!["tasks","projects","messages","profile"].includes(S.tab))S.tab="tasks";
+  if(!["tasks","projects","messages"].includes(S.tab))S.tab="tasks";
   const tm=!!S.teamMember,ok=v.approved!==false;
   const T=vendorTasks(v.id).map(t=>t.bid&&t.bid.assignedTo&&typeof handledName==="function"?{...t,meta:t.meta+" · "+handledName(t.bid.assignedTo)}:t);const openN=splitTasks(T).open.length;
-  if(tm&&S.tab==="profile")S.tab="tasks";
+
   const mine=S.bids.filter(b=>b.vendorId===v.id&&projById(b.projectId));
   let h=`<section class="hello vhello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""}</div><h1>Hi, ${esc(tm?(S.me&&firstName(S.me.full_name||"")||v.name):v.name)}</h1>${tm?`<p class="banner" style="margin-top:10px">You're on the ${esc(v.name)} team. ${esc(firstName(v.contactName||"")||"The owner")} manages the profile and billing.</p>`:ok?"":`<p class="banner" style="margin-top:10px">Welcome to Orbyt. Finish the steps under Get approved below, and I'll check your references and approve you for introductions.</p>`}</div>
     <div class="vhside">${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}${typeof availToggle==="function"?availToggle(v):""}</div></section>`;
@@ -1139,21 +1146,20 @@ function vendorView(){
   if(typeof newsCard==="function")h+=newsCard();const setup=typeof setupCard==="function"&&ok&&!tm?setupCard():"";
   const folds=typeof vendorFolds==="function"?vendorFolds(v,mine):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
   // before approval: Get approved, then the profile, right on the dashboard. After: the profile lives on its own tab
-  const pre=!ok&&!tm&&typeof approvalSec==="function"?approvalSec(v):"",foot=ok||tm?"":folds;
+  const pre=!ok&&!tm&&typeof approvalSec==="function"?approvalSec(v):"",foot="";
   h+=statStrip([
     {key:"requested",label:"Bids requested",list:req,render:l=>bidTable(l,"vendor"),empty:"No open requests right now."},
     {key:"overdue",label:"Overdue",list:req.filter(b=>b.status==="requested"&&ageDays(b.requestedAt)>=REMIND_DAYS),render:l=>bidTable(l,"vendor"),empty:"Nothing overdue. Nice work."},
     {key:"sent",label:"Bids sent",list:mine.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"vendor"),empty:"No bids waiting on a decision."},
     {key:"accepted",label:"Bids accepted",list:mine.filter(b=>ONTEAM.includes(b.status)),render:l=>bidTable(l,"vendor"),empty:"No accepted bids yet."},...(typeof msgStat==="function"?msgStat():[])]);
-  h+=tabs([["tasks","Tasks",openN],["projects","Projects",0],...(tm?[]:[["profile","Profile",0]]),...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[])]);
+  h+=tabs([["tasks","Home",openN],["projects","Projects",0],...(typeof messagesView==="function"&&msgOn()?[["messages","Messages",unreadTotal()]]:[])]);
   if(S.tab==="messages"&&typeof messagesView==="function")return h+messagesView();
-  if(S.tab==="profile")return h+(ok?"":pre)+folds;
   const ob=S.openRequest&&mine.find(b=>b.id===S.openRequest);
   if(ob)return h+`<div class="back"><button class="linkbtn" data-act="closereq">${S.tab==="tasks"?"Back to tasks":"All projects"}</button></div>`+requestDetail(ob);
-  if(S.tab==="tasks"){const main=pre+tasksView(T,ok?"New bid requests show up here as soon as a listing needs you.":"Bid requests show up here once you're approved.")+
-    (ok?`<p class="small" style="margin-top:14px">If a request goes ${REMIND_DAYS} days without a bid, it comes back here as a reminder and you'll get an email.</p>`:"");
-    // the work first; setup steps wait in a side column
-    return h+(setup?`<div class="dashgrid"><div class="dashmain">${main}</div><aside class="dashside">${setup}</aside></div>`:main)+foot}
+  if(S.tab==="tasks"){
+    // home: setup (until it's done), the to-do list, then boxes that open in place
+    const todo=`<section class="todobar"><div class="todohead"><span class="h2">To do</span><span class="small">${openN?`${openN} open`:"All caught up"}${ok?` · Requests without a bid for ${REMIND_DAYS} days come back here as reminders`:""}</span></div>${tasksView(T,ok?"New bid requests show up here as soon as a listing needs you.":"Bid requests show up here once you're approved.")}</section>`;
+    return h+setup+pre+todo+(tm?"":folds)}
   if(!mine.length)return h+`<div class="emptystate"><h2>No projects yet</h2><p>Projects you're asked to bid on will be listed here with the agent and your bid status.</p></div>`+foot;
   const rows=sortRows(mine.filter(b=>inRange(projById(b.projectId))),{address:b=>projById(b.projectId).address,agent:b=>projById(b.projectId).agent,date:b=>projById(b.projectId).targetDate||"9999"});
   h+=rangeFilter(mine.length,rows.length);

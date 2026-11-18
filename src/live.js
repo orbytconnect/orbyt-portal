@@ -1576,3 +1576,24 @@ function jobFeeSec(b,p){if(S.teamMember||kind()!=="vendor"||typeof invRow!=="fun
   else if(b.amount)body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="small">estimated, if you're booked at ${money2(b.amount)}. The final fee is based on your final invoice amount.</span></div>`;
   else body=`<p class="small" style="margin:0">Once you send your bid, you'll see the estimated fee here. You only pay if you're booked.</p>`;
   return `<div class="reqsec jobfee"><h3>Orbyt fee</h3>${body}<p class="small" style="margin:6px 0 0">${kindLine} The client pays you directly, and Orbyt invoices you ${PAY_DAYS} days after the job wraps. Ongoing service after the first job is never charged.</p></div>`}
+
+/* ---------- agent project page: one row per service, what needs the agent first ---------- */
+const slugify=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+function jobBoard(p){const cats=p.categories||[];if(!cats.length)return"";
+  const rows=cats.map(c=>{const bids=bidsFor(p.id,c),sel=teamBid(p.id,c),priced=bids.filter(b=>b.amount&&!["requested","declined","passed"].includes(b.status)),waiting=bids.filter(b=>b.status==="requested").length,ch=bids.filter(b=>b.status==="changes").length;
+    let need=false,st,act="";
+    if(sel&&sel.status==="selected"){st=`<span class="pill set">Booked</span> ${esc(bidName(sel))} · ${money(sel.amount)}${sel.done?" · done":sel.startDate?" · starts "+esc(fmtDate(sel.startDate)):""}`;
+      if(reviewDue(sel)&&S.canWrite){need=true;act=`<button class="btn ghost sm" data-act="gocat" data-c="${esc(slugify(c))}" data-review="${esc(sel.id)}">Review them</button>`}}
+    else if(sel){st=`<span class="pill comparing">Confirming</span> Waiting for ${esc(bidName(sel))} to confirm`}
+    else if(priced.length){need=true;st=`<span class="pill late">${priced.length} ${priced.length===1?"bid":"bids"} in</span> ${esc(money(Math.min(...priced.map(b=>b.amount))))}${priced.length>1?" to "+esc(money(Math.max(...priced.map(b=>b.amount)))):""}${waiting?` · ${waiting} still coming`:""}`;
+      act=`<button class="btn sm" data-act="gocat" data-c="${esc(slugify(c))}">Compare and pick</button>`}
+    else if(ch)st=`<span class="pill">Changes asked</span> Waiting on an updated bid`;
+    else if(waiting)st=`<span class="pill">Waiting</span> ${waiting} ${waiting===1?"vendor is":"vendors are"} sending a bid`;
+    else st=`<span class="pill">Lining up</span> ${matchMode()==="hand"?"Ashleigh is picking vendors":"Orbyt is finding vendors"}`;
+    return{need,html:`<div class="jbrow ${need?"jbneed":""}"><span class="strong">${esc(c)}</span><span class="small">${st}</span><span>${act}</span></div>`}});
+  const n=rows.filter(r=>r.need).length,booked=cats.filter(c=>{const b=teamBid(p.id,c);return b&&b.status==="selected"}).length;
+  return `<section class="jobboard"><div class="jbhead"><span class="strong">${n?`${n} ${n===1?"thing needs":"things need"} you`:"Nothing needs you right now"}</span><span class="small">${booked} of ${cats.length} booked</span></div>
+    ${[...rows.filter(r=>r.need),...rows.filter(r=>!r.need)].map(r=>r.html).join("")}</section>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="gocat"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  if(t.dataset.review){S.openForm="review:proj:"+t.dataset.review;render()}
+  setTimeout(()=>{const el=document.getElementById("cat-"+t.dataset.c);if(el){el.scrollIntoView({behavior:"smooth",block:"start"});el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),1600)}},30)},true);

@@ -150,8 +150,19 @@ textarea{resize:vertical;min-height:64px}
 .vrevs{display:grid;gap:8px;margin-top:6px}
 .vrevs blockquote{margin:0;font-size:14px;background:var(--surface-2);border-radius:8px;padding:10px 12px}
 .reqsec{padding-block:18px;border-bottom:1px solid var(--line)}
+.hello.slim{padding-bottom:6px}.hello.slim h1{font-size:26px}section.cat.flash{animation:flash 1.6s}@keyframes flash{0%,40%{background:color-mix(in srgb,var(--gold,#A8871F) 12%,transparent)}100%{background:transparent}}
+.vhello{align-items:flex-start}.vhello h1{margin-top:2px}.vhside{display:flex;flex-direction:column;align-items:flex-end;gap:8px}.vhside .availtoggle{justify-content:flex-end}
+@media(max-width:700px){.vhside{align-items:flex-start}.vhside .availtoggle{justify-content:flex-start}}
+.dashgrid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:0 24px;align-items:start}.dashside{position:sticky;top:12px}.dashside .setup{margin:0;padding:14px 16px}.dashside .setuphead{flex-direction:column;align-items:flex-start;gap:4px}.dashside .setuphead h2{font-size:18px}.dashside .setuplist li{grid-template-columns:22px minmax(0,1fr)!important;align-items:start}.dashside .setuplist li>div:last-child,.dashside .setuplist li>span.small:last-child{grid-column:2}.dashside .setuplist li .actions{margin:0}.dashside .setuplist li.done{display:none}
+@media(max-width:980px){.dashgrid{grid-template-columns:minmax(0,1fr)}.dashside{position:static;margin-top:18px}}
+.projgrid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:0 28px;align-items:start}.projside{position:sticky;top:12px;padding-top:14px}.projside .team{margin-top:18px}
+.projside .projmsgs{margin:0;padding:0;border:0}.projside .projmsgs h2{font-size:18px}.projside .pmgrid{grid-template-columns:1fr!important;gap:10px}.projside .mside.inline{max-height:300px;overflow:auto}.projside .msginline .mlist{max-height:260px}
+@media(max-width:980px){.projgrid{grid-template-columns:minmax(0,1fr)}.projside{position:static}}
+.projmore{display:grid;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}.morefold,.projmore .timingwrap{border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--surface);margin:0}.morefold>summary{cursor:pointer;font-weight:500;color:var(--ink)}.morefold[open]>summary{margin-bottom:10px}.morefold .teampanel{margin:0;border:0;padding:0;background:none}
+.jobboard{border:1px solid var(--line);border-radius:12px;margin:16px 0 4px;overflow:hidden}.jobboard .jbhead{padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}.jbrow{display:grid;grid-template-columns:150px 1fr auto;gap:12px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line)}.jbrow:last-child{border-bottom:0}.jbrow.jbneed{background:color-mix(in srgb,var(--gold,#A8871F) 7%,transparent)}.jbrow .strong{font-size:15px}
+@media(max-width:560px){.jbrow{grid-template-columns:1fr auto}.jbrow>.small{grid-column:1/-1;order:3}}
 .jobgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:0 28px;align-items:start;border-bottom:1px solid var(--line)}.jobside{position:sticky;top:12px;padding:16px 0}.jobside .msginline .mlist{max-height:260px;min-height:90px}.jobside .reqsec{border:0;padding-top:0}
-@media(max-width:820px){.jobgrid{grid-template-columns:1fr}.jobside{position:static;padding-top:0}}
+@media(max-width:820px){.jobgrid{grid-template-columns:minmax(0,1fr)}.jobside{position:static;padding-top:0}}
 .timefold>summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.timefold>summary::-webkit-details-marker{display:none}.timefold>summary h3{margin:0}.timefold>summary h3::before{content:"▸ ";color:var(--muted)}.timefold[open]>summary h3::before{content:"▾ "}.timefold[open]>summary{margin-bottom:8px}
 .feeline{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}.feeline b.num{font-size:22px}
 .rgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0 28px;border-bottom:1px solid var(--line)}
@@ -1112,17 +1123,18 @@ function agentView(){
   const ps=S.projects.filter(p=>isOnProject(p,agent));
   if(typeof msgPending==="function")msgPending();
   if(!["tasks","projects","messages","favorites","team","card","closingdir"].includes(S.tab))S.tab="tasks";
-  let h=`<section class="hello"><div><h1>Hi ${esc(agent.split(" ")[0])}</h1>
-    <p>See new quotes as they come in, review them in one place, open a PDF of each vendor's quote, and see who's booked for every project. Check off tasks as you go, or save them for later.</p>
-    ${S.canWrite?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
+  const inProj=S.tab==="projects"&&S.openProject&&ps.some(p=>p.id===S.openProject);
+  let h=`<section class="hello ${inProj?"slim":""}"><div><h1>Hi ${esc(agent.split(" ")[0])}</h1>
+    ${inProj?"":`<p>See new quotes as they come in, compare them side by side and see who's booked on every project.</p>`}
+    ${S.canWrite&&!inProj?`<p class="small" style="margin-top:6px">Have listings somewhere I'm not yet? <button class="linkbtn" data-act="form" data-key="newarea">Request a new area</button></p>`:""}</div>
     ${S.canWrite?`<div class="actions"><button class="btn" data-act="newproject">New project</button></div>`:""}</section>`;
-  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function")h+=setupCard();
+  if(!inProj){if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function")h+=setupCard()}
   if(S.openForm==="newarea")h+=`<form class="form" data-form="market" data-agent="1" style="margin-bottom:20px"><h3>Where should Orbyt go next?</h3><p class="small" style="margin:0">Tell me where you have listings or buyers outside ${esc(AREAS.slice(0,3).join(", "))} and the rest of my current areas. Enough requests and I'll start recruiting vendors there.</p>
     <div class="grid"><label class="field"><span>Area</span><input type="text" id="na-area" name="area" required placeholder="Temecula, Orange County"></label><label class="field"><span>Note (optional)</span><input type="text" id="na-note" name="note" placeholder="I list 6 to 8 homes a year there"></label></div>
     <div class="actions"><button class="btn sm" type="submit">Send request</button><button class="btn ghost sm" type="button" data-act="cancel">Cancel</button></div></form>`;
-  h+=upNext(agent,openN)+reviewStrip(agent);
+  if(!inProj)h+=upNext(agent,openN)+reviewStrip(agent);
   const ab=S.bids.filter(b=>ps.some(p=>p.id===b.projectId));
-  h+=statStrip([
+  if(!inProj)h+=statStrip([
     {key:"active",label:"Active projects",list:ps.filter(p=>!p.listed).sort(byDate),render:l=>projTable(l,"open"),empty:"No active projects."},
     {key:"requested",label:"Bids requested",list:ab.filter(b=>b.status==="requested"),render:l=>bidTable(l,"agent"),empty:"No bids are waiting on vendors."},
     {key:"received",label:"Bids received",list:ab.filter(b=>b.status==="submitted"),render:l=>bidTable(l,"agent"),empty:"No new bids to look at."},
@@ -1227,11 +1239,10 @@ function vendorView(){
   const T=vendorTasks(v.id).map(t=>t.bid&&t.bid.assignedTo&&typeof handledName==="function"?{...t,meta:t.meta+" · "+handledName(t.bid.assignedTo)}:t);const openN=splitTasks(T).open.length;
   if(tm&&S.tab==="profile")S.tab="tasks";
   const mine=S.bids.filter(b=>b.vendorId===v.id&&projById(b.projectId));
-  let h=`<section class="hello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""}</div><h1>Hi, ${esc(tm?(S.me&&firstName(S.me.full_name||"")||v.name):v.name)}</h1>${tm?`<p class="banner" style="margin-top:10px">You're on the ${esc(v.name)} team. ${esc(firstName(v.contactName||"")||"The owner")} manages the profile and billing.</p>`:ok?"":`<p class="banner" style="margin-top:10px">Welcome to Orbyt. Finish the steps under Get approved below, and I'll check your references and approve you for introductions.</p>`}
-    <p>See the bid requests agents have sent you, upload your quote as a PDF or photo, and track which jobs you've booked. Check off tasks as you go, or save them for later.</p>${typeof availToggle==="function"?availToggle(v):""}</div>
-    <div>${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}</div></section>`;
+  let h=`<section class="hello vhello"><div><div class="eyebrow">${esc(vsv(v).join(", "))} ${featuredNow(v)?'<span class="pill featured">Special offer</span>':""}</div><h1>Hi, ${esc(tm?(S.me&&firstName(S.me.full_name||"")||v.name):v.name)}</h1>${tm?`<p class="banner" style="margin-top:10px">You're on the ${esc(v.name)} team. ${esc(firstName(v.contactName||"")||"The owner")} manages the profile and billing.</p>`:ok?"":`<p class="banner" style="margin-top:10px">Welcome to Orbyt. Finish the steps under Get approved below, and I'll check your references and approve you for introductions.</p>`}</div>
+    <div class="vhside">${typeof myReviewsCard==="function"&&rating(v.id)?`<button class="linkbtn" data-act="myrevs" title="Read your reviews">${ratingHtml(v.id)}</button>`:ratingHtml(v.id)}${typeof availToggle==="function"?availToggle(v):""}</div></section>`;
   const req=mine.filter(b=>b.status==="requested"||b.status==="changes");
-  if(typeof newsCard==="function")h+=newsCard();if(typeof setupCard==="function"&&ok&&!tm)h+=setupCard();
+  if(typeof newsCard==="function")h+=newsCard();const setup=typeof setupCard==="function"&&ok&&!tm?setupCard():"";
   const folds=typeof vendorFolds==="function"?vendorFolds(v,mine):(typeof insuranceCard==="function"?insuranceCard(v):"")+vendorPricingCard(v);
   // before approval: Get approved, then the profile, right on the dashboard. After: the profile lives on its own tab
   const pre=!ok&&!tm&&typeof approvalSec==="function"?approvalSec(v):"",foot=ok||tm?"":folds;
@@ -1245,8 +1256,10 @@ function vendorView(){
   if(S.tab==="profile")return h+(ok?"":pre)+folds;
   const ob=S.openRequest&&mine.find(b=>b.id===S.openRequest);
   if(ob)return h+`<div class="back"><button class="linkbtn" data-act="closereq">${S.tab==="tasks"?"Back to tasks":"All projects"}</button></div>`+requestDetail(ob);
-  if(S.tab==="tasks")return h+pre+tasksView(T,ok?"New bid requests show up here as soon as a listing needs you.":"Bid requests show up here once you're approved.")+
-    (ok?`<p class="small" style="margin-top:14px">If a request goes ${REMIND_DAYS} days without a bid, it comes back here as a reminder and you'll get an email.</p>`:"")+foot;
+  if(S.tab==="tasks"){const main=pre+tasksView(T,ok?"New bid requests show up here as soon as a listing needs you.":"Bid requests show up here once you're approved.")+
+    (ok?`<p class="small" style="margin-top:14px">If a request goes ${REMIND_DAYS} days without a bid, it comes back here as a reminder and you'll get an email.</p>`:"");
+    // the work first; setup steps wait in a side column
+    return h+(setup?`<div class="dashgrid"><div class="dashmain">${main}</div><aside class="dashside">${setup}</aside></div>`:main)+foot}
   if(!mine.length)return h+`<div class="emptystate"><h2>No projects yet</h2><p>Projects you're asked to bid on will be listed here with the agent and your bid status.</p></div>`+foot;
   const rows=sortRows(mine.filter(b=>inRange(projById(b.projectId))),{address:b=>projById(b.projectId).address,agent:b=>projById(b.projectId).agent,date:b=>projById(b.projectId).targetDate||"9999"});
   h+=rangeFilter(mine.length,rows.length);
@@ -2344,17 +2357,24 @@ function projectDetail(p,mode){
     <div class="actions" style="margin-top:8px"><button class="btn sm" data-act="listed" data-id="${esc(p.id)}" data-v="1">Yes, mark it listed</button><button class="btn ghost sm" data-act="form" data-key="listdate:${esc(p.id)}">No, change the date</button></div></div>`;
   if(mode!=="vendor"&&(p.clientEmail||p.clientPhone))h+=`<p class="small" style="margin:8px 0 0">Reach ${esc(cfn(p)||"the client")}: ${[p.clientPhone?`<a href="tel:${esc(p.clientPhone.replace(/[^\d+]/g,""))}">${esc(p.clientPhone)}</a>`:"",p.clientEmail?`<a href="mailto:${esc(p.clientEmail)}">${esc(p.clientEmail)}</a>`:""].filter(Boolean).join(" · ")}</p>`;
   if(p.notes)h+=`<p class="note">${esc(p.notes)}</p>`;
-  if(mode==="agent"&&typeof hcProjectBtn==="function")h+=hcProjectBtn(p);
-  if(mode!=="vendor")h+=teamPanel(p,isOrbyt);
-  if(typeof closingPanel==="function")h+=closingPanel(p,mode);
-  if((p.categories||[]).length>1&&!p.listed)h+=`<details class="timingwrap" data-p="${esc(p.id)}" ${S.openTiming===p.id?"open":""}><summary>Order of work <span class="small">· ${seqSteps(p).map(g=>esc(g.join(" + "))).join(" → ")}</span></summary>${S.openForm==="order:"+p.id?orderEditor(p):timingBlock(p,null)+(canReorder(p)?`<div class="actions" style="margin-top:8px"><button class="btn ghost sm" data-act="ordedit" data-id="${esc(p.id)}">Change the order</button></div>`:"")}</details>`;
-  for(const c of p.categories||[]){
+  // agents: the job board and services on the left, chats on the right, the rest folded at the bottom
+  const lat=mode==="agent";let side="",more="";
+  if(mode==="agent"&&typeof hcProjectBtn==="function")side+=hcProjectBtn(p);
+  if(mode!=="vendor"){const tp=teamPanel(p,isOrbyt);if(lat){const n=(p.members||[]).length;more+=`<details class="morefold" ${S.openForm==="team:"+p.id?"open":""}><summary>Shared with <span class="small">· ${n>1?n+" people":"Just you"}</span></summary>${tp}</details>`}else h+=tp}
+  if(typeof closingPanel==="function"){const cp=closingPanel(p,mode);if(lat&&cp){const n=(p.closing||[]).length;more+=`<details class="morefold" ${n?"open":""} data-fold="closing-${esc(p.id)}"><summary>Closing partners <span class="small">· ${n?esc((p.closing||[]).join(", ")):"Lender, title, escrow and more"}</span></summary>${cp}</details>`}else h+=cp}
+  if(lat&&typeof jobBoard==="function")h+=jobBoard(p);
+  const mainAt=h.length;
+  if((p.categories||[]).length>1&&!p.listed)(lat?(x=>{more=x+more}):(x=>{h+=x}))(`<details class="timingwrap" data-p="${esc(p.id)}" ${S.openTiming===p.id?"open":""}><summary>Order of work <span class="small">· ${seqSteps(p).map(g=>esc(g.join(" + "))).join(" → ")}</span></summary>${S.openForm==="order:"+p.id?orderEditor(p):timingBlock(p,null)+(canReorder(p)?`<div class="actions" style="margin-top:8px"><button class="btn ghost sm" data-act="ordedit" data-id="${esc(p.id)}">Change the order</button></div>`:"")}</details>`);
+  // agents see what needs a decision first, booked work last
+  const catRank=c=>{const sel=teamBid(p.id,c);if(sel)return sel.status==="selected"?3:2;return bidsFor(p.id,c).some(b=>b.amount&&b.status==="submitted")?0:1};
+  const catList=lat?[...(p.categories||[])].sort((a,b)=>catRank(a)-catRank(b)):(p.categories||[]);
+  for(const c of catList){
     const bids=bidsFor(p.id,c).sort((a,b)=>(a.status==="requested")-(b.status==="requested")||String(a.submittedAt||"").localeCompare(String(b.submittedAt||"")));
     const priced=bids.filter(b=>b.amount&&b.status!=="requested");
     const fd=priced.filter(b=>b.availableFrom);const fast=fd.length>1?fd.map(b=>b.availableFrom).sort()[0]:null;
     const sel=teamBid(p.id,c);const key="bid:"+p.id+":"+c;
     const waiting=bids.filter(b=>b.status==="requested").length;
-    h+=`<section class="cat"><div class="cathead"><div><h3>${esc(c)}</h3>${sel?`<span class="booked">${sel.status==="chosen"?"Chosen":"Booked"}: ${vLink(sel)}</span>${sel.status==="chosen"?' <span class="small">waiting to confirm</span>':""}`:`<span class="small">${bids.length?`${bids.length} introduced · ${priced.length} ${priced.length===1?"bid":"bids"} in`:"Not matched yet"}</span>`}</div>
+    h+=`<section class="cat" id="cat-${esc(slugify(c))}"><div class="cathead"><div><h3>${esc(c)}</h3>${sel?`<span class="booked">${sel.status==="chosen"?"Chosen":"Booked"}: ${vLink(sel)}</span>${sel.status==="chosen"?' <span class="small">waiting to confirm</span>':""}`:`<span class="small">${bids.length?`${bids.length} introduced · ${priced.length} ${priced.length===1?"bid":"bids"} in`:"Not matched yet"}</span>`}</div>
       <div class="actions">${isOrbyt&&S.canWrite?`<button class="btn ghost sm" data-act="form" data-key="${esc(key)}">Add a bid you received</button>`:""}${canRmSvc(p,sel)?`<button class="linkbtn" data-act="rmsvc" data-key="${esc(p.id+"|"+c)}">Remove service</button>`:""}
       ${!isOrbyt&&!sel&&priced.length?`<button class="btn ghost sm" data-act="clientshare" data-id="${esc(p.id)}">Send quotes to client</button>`:""}
       ${!isOrbyt&&!sel&&S.canWrite&&!openOptReq(p,c)&&bids.length?`<button class="btn ghost sm" data-act="form" data-key="more:${esc(p.id)}:${esc(c)}">Find me another option</button>`:""}</div></div>`;
@@ -2391,16 +2411,18 @@ function projectDetail(p,mode){
   }
   const picks=(p.categories||[]).map(c=>[c,teamBid(p.id,c)]).filter(x=>x[1]);
   if(picks.length){const total=picks.reduce((s,[,b])=>s+(b.amount||0),0);
-    h+=`<div class="team"><div class="eyebrow">Who's booked</div><ul>${picks.map(([c,b])=>`<li><span>${esc(c)}: ${vLink(b)}${b.status==="chosen"?' <span class="small">(waiting to confirm)</span>':""}</span><span class="num">${money(b.amount)}</span></li>`).join("")}
+    (lat?(x=>{side+=x}):(x=>{h+=x}))(`<div class="team"><div class="eyebrow">Who's booked</div><ul>${picks.map(([c,b])=>`<li><span>${esc(c)}: ${vLink(b)}${b.status==="chosen"?' <span class="small">(waiting to confirm)</span>':""}</span><span class="num">${money(b.amount)}</span></li>`).join("")}
       <li class="total"><span>Vendor total, ${picks.filter(([,b])=>b.status==="selected").length} of ${(p.categories||[]).length} booked</span><span class="num">${money(total)}</span></li>
-      ${PM_ON&&isOrbyt&&p.pm?`<li><span>Project management (10%, $500 minimum)</span><span class="num">${money(Math.max(500,total*.1))}</span></li>`:""}</ul></div>`}
+      ${PM_ON&&isOrbyt&&p.pm?`<li><span>Project management (10%, $500 minimum)</span><span class="num">${money(Math.max(500,total*.1))}</span></li>`:""}</ul></div>`)}
   if(S.canWrite)h+=`<div class="actions" style="margin-top:18px"><button class="btn ghost sm" data-act="listed" data-id="${esc(p.id)}" data-v="${p.listed?0:1}">${p.listed?"Move back to active":"Mark as listed"}</button>
     ${isOrbyt?`<button class="btn ghost sm" data-act="complete" data-id="${esc(p.id)}" data-v="${p.completed?0:1}">${p.completed?"Reopen project":"Mark completed"}</button>`:""}
     ${!p.listed&&S.openForm!=="addsvc:"+p.id?`<button class="btn ghost sm" data-act="form" data-key="addsvc:${esc(p.id)}">Add a service</button>`:""}
     ${PM_ON&&isOrbyt?`<button class="btn ghost sm" data-act="pm" data-id="${esc(p.id)}">${p.pm?"Remove project management":"Add project management"}</button>`:""}
     ${isOrbyt||(kind()==="agent"&&p.agentId&&p.agentId===S.uid)?(isOrbyt||!picks.length?`<button class="btn ghost sm dangerbtn" data-act="delproject" data-id="${esc(p.id)}">Delete project</button>`:`<span class="small" style="align-self:center">Has a booked vendor, so it can't be deleted</span>`):""}</div>`;
   if(S.openForm==="addsvc:"+p.id)h+=addServiceForm(p,isOrbyt);
-  if(mode!=="vendor"&&typeof projectMsgs==="function")h+=projectMsgs(p);
+  if(lat){const main=h.slice(mainAt),msgs=typeof projectMsgs==="function"?projectMsgs(p):"";
+    h=h.slice(0,mainAt)+`<div class="projgrid"><div class="projmain">${main}</div><aside class="projside">${msgs||`<section class="projmsgs"><h2 style="margin:0 0 6px">Messages about this home</h2><p class="small" style="margin:0">Once vendors are introduced, you can message them here.</p></section>`}${side}</aside></div>${more?`<div class="projmore">${more}</div>`:""}`}
+  else if(mode!=="vendor"&&typeof projectMsgs==="function")h+=projectMsgs(p);
   if(isOrbyt&&S.canWrite){const hrs=S.timelog.filter(e=>e.projectId===p.id).reduce((t,e)=>t+(+e.hours||0),0);
     h+=S.openForm==="logtime:"+p.id?`<form class="form" data-form="timelog" data-p="${esc(p.id)}"><div class="grid"><label class="field"><span>Hours on this project</span><input type="number" id="pl-h-${esc(p.id)}" name="hours" min="0.25" step="0.25" required></label>
       <label class="field"><span>What for?</span><input type="text" id="pl-n-${esc(p.id)}" name="note" placeholder="Vendor calls, walkthrough"></label></div><input type="hidden" name="date" value="${isoDay(new Date())}"><label class="field" style="max-width:260px"><span>Type</span><select id="pl-t-${esc(p.id)}" name="type">${LOGTYPES.map(([v,l])=>`<option value="${v}" ${(p.pm?"pm":"matching")===v?"selected":""}>${l}</option>`).join("")}</select></label><input type="hidden" name="projectId" value="${esc(p.id)}">
@@ -4686,6 +4708,27 @@ function jobFeeSec(b,p){if(S.teamMember||kind()!=="vendor"||typeof invRow!=="fun
   else if(b.amount)body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="small">estimated, if you're booked at ${money2(b.amount)}. The final fee is based on your final invoice amount.</span></div>`;
   else body=`<p class="small" style="margin:0">Once you send your bid, you'll see the estimated fee here. You only pay if you're booked.</p>`;
   return `<div class="reqsec jobfee"><h3>Orbyt fee</h3>${body}<p class="small" style="margin:6px 0 0">${kindLine} The client pays you directly, and Orbyt invoices you ${PAY_DAYS} days after the job wraps. Ongoing service after the first job is never charged.</p></div>`}
+
+/* ---------- agent project page: one row per service, what needs the agent first ---------- */
+const slugify=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+function jobBoard(p){const cats=p.categories||[];if(!cats.length)return"";
+  const rows=cats.map(c=>{const bids=bidsFor(p.id,c),sel=teamBid(p.id,c),priced=bids.filter(b=>b.amount&&!["requested","declined","passed"].includes(b.status)),waiting=bids.filter(b=>b.status==="requested").length,ch=bids.filter(b=>b.status==="changes").length;
+    let need=false,st,act="";
+    if(sel&&sel.status==="selected"){st=`<span class="pill set">Booked</span> ${esc(bidName(sel))} · ${money(sel.amount)}${sel.done?" · done":sel.startDate?" · starts "+esc(fmtDate(sel.startDate)):""}`;
+      if(reviewDue(sel)&&S.canWrite){need=true;act=`<button class="btn ghost sm" data-act="gocat" data-c="${esc(slugify(c))}" data-review="${esc(sel.id)}">Review them</button>`}}
+    else if(sel){st=`<span class="pill comparing">Confirming</span> Waiting for ${esc(bidName(sel))} to confirm`}
+    else if(priced.length){need=true;st=`<span class="pill late">${priced.length} ${priced.length===1?"bid":"bids"} in</span> ${esc(money(Math.min(...priced.map(b=>b.amount))))}${priced.length>1?" to "+esc(money(Math.max(...priced.map(b=>b.amount)))):""}${waiting?` · ${waiting} still coming`:""}`;
+      act=`<button class="btn sm" data-act="gocat" data-c="${esc(slugify(c))}">Compare and pick</button>`}
+    else if(ch)st=`<span class="pill">Changes asked</span> Waiting on an updated bid`;
+    else if(waiting)st=`<span class="pill">Waiting</span> ${waiting} ${waiting===1?"vendor is":"vendors are"} sending a bid`;
+    else st=`<span class="pill">Lining up</span> ${matchMode()==="hand"?"Ashleigh is picking vendors":"Orbyt is finding vendors"}`;
+    return{need,html:`<div class="jbrow ${need?"jbneed":""}"><span class="strong">${esc(c)}</span><span class="small">${st}</span><span>${act}</span></div>`}});
+  const n=rows.filter(r=>r.need).length,booked=cats.filter(c=>{const b=teamBid(p.id,c);return b&&b.status==="selected"}).length;
+  return `<section class="jobboard"><div class="jbhead"><span class="strong">${n?`${n} ${n===1?"thing needs":"things need"} you`:"Nothing needs you right now"}</span><span class="small">${booked} of ${cats.length} booked</span></div>
+    ${[...rows.filter(r=>r.need),...rows.filter(r=>!r.need)].map(r=>r.html).join("")}</section>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="gocat"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  if(t.dataset.review){S.openForm="review:proj:"+t.dataset.review;render()}
+  setTimeout(()=>{const el=document.getElementById("cat-"+t.dataset.c);if(el){el.scrollIntoView({behavior:"smooth",block:"start"});el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),1600)}},30)},true);
 
 
 /* ---------- home team cards: a printable card agents give buyer clients, and the request page behind its QR code ---------- */

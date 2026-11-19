@@ -3917,7 +3917,7 @@ function insRequirement(v,st){
   const t=andList(st.trades);
   if(st.g==="high")return `Because you offer ${t}, Orbyt needs your certificate of general liability insurance, naming Orbyt LLC as an additional insured, before your first introduction.`;
   if(st.g==="mid")return `Because you offer ${t}, Orbyt needs your certificate of general liability insurance, naming Orbyt LLC as an additional insured, ${st.pastDue?`by ${longDate(st.due)}. New introductions are paused until it's in.`:`by ${st.due?longDate(st.due):"30 days after you're approved"}. Introductions keep coming until then.`}`;
-  return `Please upload a current certificate of your general liability insurance${v.approved===false?" before I approve you":st.due?` by ${longDate(st.due)}`:""}. Orbyt doesn't need to be named on it for your services.`}
+  return `Please upload a current certificate of your general liability insurance${st.due?` by ${longDate(st.due)}`:", within 30 days after you're approved"}. Orbyt doesn't need to be named on it for your services.`}
 function insEmailText(v,st){
   const who=[v.contactName,v.name].filter(Boolean);
   return st.needAI?`Hi,
@@ -3976,8 +3976,8 @@ function signupInsNote(){const f=document.querySelector('form[data-proto="signup
   const fd=new FormData(f),svcs=[...fd.getAll("svc"),...String(fd.get("othersvc")||"").split(",").map(x=>x.trim()).filter(Boolean).map(canon)],g=insGroup(svcs);
   if(!svcs.length){el.innerHTML=`<span class="strong">Insurance.</span> Pick your kinds of work above to see what insurance you'll need.`;return}const t=andList(insTrades(svcs,g).map(x=>x.toLowerCase()));
   el.innerHTML=g==="high"?`<span class="strong">Insurance.</span> Because you offer ${esc(t)}, Orbyt needs to be named as an additional insured on your liability insurance before your first introduction. After you're approved, I'll give you a ready-made email to send your insurance agent.`
-    :g==="mid"?`<span class="strong">Insurance.</span> You'll upload your current liability insurance certificate on your dashboard before approval. Because you offer ${esc(t)}, Orbyt also needs to be named as an additional insured within 30 days of approval, and I'll give you a ready-made email to send your insurance agent.`
-    :`<span class="strong">Insurance.</span> You'll upload a current certificate of your general liability insurance on your dashboard before approval.`;el.hidden=false}
+    :g==="mid"?`<span class="strong">Insurance.</span> Because you offer ${esc(t)}, Orbyt needs to be named as an additional insured on your liability insurance within 30 days of approval. I'll give you a ready-made email to send your insurance agent.`
+    :`<span class="strong">Insurance.</span> Within 30 days of approval, you'll upload a current certificate of your general liability insurance.`;el.hidden=false}
 document.addEventListener("change",e=>{if(e.target.closest&&e.target.closest('form[data-proto="signup"]'))signupInsNote();
   if(e.target.name==="closingwork"){const v=e.target.value,y=document.getElementById("su-cwyes"),so=document.getElementById("su-cwsome");if(y)y.hidden=v!=="yes";if(so)so.hidden=v!=="some"}});
 // "Yes, that's my main business": move to closing partner sign-up, keeping what they typed
@@ -4459,7 +4459,8 @@ function setupMissing(v,card){if(!v)return[];
     card&&typeof billingOn==="function"&&billingOn()&&typeof hasCard==="function"&&!hasCard(billingOf(v.id))?"card on file":""].filter(Boolean);
   const out=SETUP_FIELDS.filter(([k])=>k==="references"?String(v.references||"").trim().length<10:!v[k]).map(([,l])=>l);
   if(Array.isArray(v.serviceDetails)&&!v.serviceDetails.length)out.push("specific services");
-  if(v.approved===false&&!((v.insurance||{}).path))out.push("certificate of insurance");
+  // Vendor Terms Schedule 3: the higher-risk group needs its certificate (naming Orbyt) before the first introduction; everyone else within 30 days of approval
+  if(v.services&&typeof insGroup==="function"&&insGroup(vsv(v))==="high"&&!((v.insurance||{}).path))out.push("certificate of insurance");
   return out}
 async function loadSetupV(uid){try{
   const{data:v}=await sb.from("vendors").select("id,name,kind,years_in_business,team_size,lead_time,website,instagram,portfolio_url,license_number").eq("user_id",uid).maybeSingle();
@@ -4503,7 +4504,7 @@ document.addEventListener("submit",async e=>{const f=e.target.closest('form[data
 function setupPill(v){return setupMissing(v,true).length?'<span class="pill late">Setup incomplete</span>':'<span class="pill comparing">Ready to review</span>'}
 function setupMissLine(v){const m=setupMissing(v,true);return m.length?`<span class="small setupmiss">Missing ${esc(m.join(", "))}</span>`:""}
 function setupStat(v){return(S.setupStatus||{})[v.id]||null}
-function setupPanel(v){const m=setupMissing(v,true);if(!m.length)return`<div class="setuppanel ready"><div class="small"><span class="strong">Ready for review.</span> Everything's in: references, insurance, business details and services. Check them, then approve.</div></div>`;const st=setupStat(v);
+function setupPanel(v){const m=setupMissing(v,true);if(!m.length)return`<div class="setuppanel ready"><div class="small"><span class="strong">Ready for review.</span> Everything's in: references, business details and services${""}. Check them, then approve.</div></div>`;const st=setupStat(v);
   const bits=[st&&st.email_confirmed===false?"Hasn't confirmed their email yet":"",st&&st.reminders?`${st.reminders} ${st.reminders===1?"reminder":"reminders"} sent, last ${ago(st.reminded_at)}`:"Reminders go out after 1, 4 and 7 days, then weekly until they finish"].filter(Boolean);
   return `<div class="setuppanel"><div class="small"><span class="strong">Still setting up.</span> Waiting on ${esc(m.join(", "))}. You can approve once it's all in.</div>
     <div class="small">${esc(bits.join(" · "))}</div>
@@ -4575,7 +4576,8 @@ function approvalSec(v){if(!v||v.approved!==false||kind()!=="vendor")return"";
         <label class="field"><span>License number (if your trade is licensed)</span><input type="text" id="fs-license" name="license" value="${esc(v.license)}" placeholder="CSLB, Pest Control Board or other license"></label>
         <p class="autherr small warntext" role="alert" hidden></p><div class="actions"><button class="btn sm" type="submit">Save</button></div></form>`,!(det&&refs)));
     const st=insState(v),has=!!(v.insurance||{}).path;
-    rows.push(fold("ins","Insurance certificate",pill(has,has?INS_PILL[st.state][0]:"Needed"),st.g==="high"?"Naming Orbyt as additional insured, before approval":"Your current liability certificate, before approval",insuranceCard(v),!has))}
+    const need=st.g==="high";
+    rows.push(fold("ins","Insurance certificate",pill(has||!need,has?INS_PILL[st.state][0]:need?"Needed":"Due after approval"),need?"Naming Orbyt as additional insured, before your first introduction":st.g==="mid"?"Naming Orbyt as additional insured, within 30 days of approval":"Your current liability certificate, within 30 days of approval",insuranceCard(v),need&&!has))}
   const left=miss.length;
   const foot=`<p class="small" style="margin:12px 0 0">${left?`Still needed: ${esc(miss.join(", "))}. `:`<span class="strong">Everything's in.</span> `}${cp?"I check every license before a listing goes live, usually within a day. You'll get an email when you're listed.":"Once it's all in, I call your references and approve you, usually within a day or two. You'll get an email as soon as you're approved."}</p>`;
   return `<div class="vsecs approvesec">${psec("approve","Start here",cp?"Get listed":"Get approved",cp?"A few details so I can check your license and publish your listing.":"A few details so I can check your business and start introducing you to agents.",

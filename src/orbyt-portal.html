@@ -143,6 +143,7 @@ textarea{resize:vertical;min-height:64px}
 @media(max-width:980px){.dashgrid{grid-template-columns:minmax(0,1fr)}.dashside{position:static;margin-top:18px}}
 .dash.one{display:block}
 .msearch{padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}.msearch input{width:100%}.msearch .mnone{margin:8px 2px 0}.mthread[hidden]{display:none!important}
+.elogbar{display:flex;gap:8px;flex-wrap:wrap}.elogbar input{flex:1 1 240px}.elogbar select{flex:0 0 auto;width:auto}table.elog td{vertical-align:top}
 .vboxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:18px}.vbox{border:1px solid var(--line);border-radius:12px;background:var(--surface);min-width:0}.vbox.open{grid-column:1/-1}
 .vboxhead{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 16px}.vboxhead:focus-visible{outline:2px solid var(--gold,#A8871F);outline-offset:-2px;border-radius:12px}
 .vboxtitle{display:grid;gap:3px;min-width:0}.vboxtitle .h2{font-size:18px;color:var(--ink);font-weight:500}.vboxright{display:flex;align-items:center;gap:8px;flex-shrink:0}.caret{color:var(--muted);font-size:13px}
@@ -1898,6 +1899,7 @@ function dashView(){
       ${S.openForm==="import"?importPanel():""}
       ${needs.length?`<div class="needgrid">${needs.map(needCard).join("")}</div>`:`<p class="small">You're all caught up. New requests from agents show up here.</p>`}`));
     {const mt=(S.mytasks||[]).filter(t=>!t.done).length;bx.push(vbox("mytasks","Your own tasks","Reminders you add for yourself.",mt?`<span class="pill">${mt} open</span>`:"",myTasksView()))}
+    if(typeof emailLogView==="function")bx.push(vbox("emails","Email log","Every email the portal sends, when and to whom.",emailLogPill(),S.vbox==="emails"?emailLogView():""));
     if(PM_ON)bx.push(vbox("pm","Projects you're managing","Project management, 10% of vendor totals, $500 minimum",pm.length?`<span class="pill">${pm.length}</span>`:"",
       pm.length?`<div class="pmgrid">${pm.map(pmCard).join("")}</div>`:`<p class="small">No active projects with project management. Turn it on from a project in the Matching tab.</p>`));
     bx.push(vbox("allproj","All projects",`${active.length} active${listed.length?", "+listed.length+" listed":""}`,"",`<section class="section"><div class="sechead"><div><h2>All projects</h2><span class="small">${active.length} active${listed.length?", "+listed.length+" listed":""}</span></div>

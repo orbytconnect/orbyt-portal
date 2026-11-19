@@ -387,7 +387,7 @@ async function enter(user){
   S.downloads={save:async({filename,data})=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data]));a.download=filename;document.body.appendChild(a);a.click();a.remove();return{status:"saved"}}};
   subscribeAll(db);render();
   try{await db.reload()}catch(e){console.error(e);toast("Couldn't load your projects. Refresh to try again.")}
-  loadSetupStatus();loadTeam();
+  loadSetupStatus();loadTeam();if(kind()==="orbyt"&&typeof loadEmailLog==="function")loadEmailLog();
   setInterval(()=>{if(document.visibilityState==="visible"&&!S.busy)db.reload().catch(()=>{})},30000);
 }
 function subscribeAll(db){
@@ -1606,3 +1606,32 @@ function vbox(id,title,sub,right,body){const open=S.vbox===id;
   return `<section class="vbox ${open?"open":""}" data-fold="${id}" data-box="${id}"><button class="vboxhead" type="button" data-act="vbox" data-id="${id}" aria-expanded="${open}"><span class="vboxtitle"><span class="h2">${title}</span>${sub?`<span class="small">${sub}</span>`:""}</span><span class="vboxright">${right||""}<span class="caret" aria-hidden="true">${open?"▾":"▸"}</span></span></button><div class="vboxbody">${body}</div></section>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="vbox"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   const id=t.dataset.id;S.vbox=S.vbox===id?"":id;render();if(S.vbox)setTimeout(()=>{const el=document.querySelector(`.vbox[data-box="${id}"]`);if(el)el.scrollIntoView({block:"nearest",behavior:"smooth"})},30)},true);
+
+/* ---------- Ashleigh: a log of every email the portal sends ---------- */
+const EMAIL_KINDS={approved:"You're approved",admin_signup:"New sign-up (to you)",ready_review:"Ready to review (to you)",bid_request:"Bid request",bid_in:"New bid",bid_reminder:"Bid reminder",
+  admin_bid_reminder:"Bid reminder (to you)",agent_intro:"Introduction",partner_intro:"Closing partner intro",job_done:"Job done",message_digest:"New messages",setup_reminder:"Finish setting up",
+  team_invite:"Team invite",assigned:"Tagged on a job",insurance_expiring:"Insurance expiring",insurance_expired:"Insurance expired",insurance_upload:"Insurance uploaded",insurance_fix:"Insurance needs a fix",
+  insurance_ok:"Insurance approved",vendor_list_date_changed:"List date changed",vendor_project_canceled:"Project canceled",stepped_back:"Vendor stepped back",lost_reason:"Not picked",
+  vendor_promo_on:"Special offer on",vendor_promo_renew:"Special offer renewal",card_request_agent:"Home team card",card_request_admin:"Home team card (to you)"};
+const emailKindLabel=k=>{k=String(k||"");const base=k.split(":")[0];return EMAIL_KINDS[base]||(base.startsWith("expiring")?"Insurance expiring":base.startsWith("admin_")?base.slice(6).replace(/_/g," ").replace(/^./,c=>c.toUpperCase())+" (to you)":base.replace(/_/g," ").replace(/^./,c=>c.toUpperCase()))};
+function emailLogPill(){const l=S.emailLog;if(!l)return"";const today=new Date().toDateString(),n=l.filter(e=>new Date(e.sent_at).toDateString()===today).length,f=l.filter(e=>/fail|not sent/.test(e.status||"")).length;
+  return f?`<span class="pill late">${f} failed</span>`:n?`<span class="pill">${n} today</span>`:""}
+async function loadEmailLog(n){if(kind()!=="orbyt")return;S.emailLogN=n||S.emailLogN||300;
+  const{data,error}=await sb.from("email_log").select("*").order("sent_at",{ascending:false}).limit(S.emailLogN);
+  if(!error){S.emailLog=data||[];schedule()}}
+function emailLogView(){if(!S.emailLog){loadEmailLog();return`<p class="small">Loading...</p>`}
+  const f=S.emailF||{q:"",k:"",st:""},q=f.q.trim().toLowerCase();
+  const kinds=[...new Set(S.emailLog.map(e=>emailKindLabel(e.kind)))].sort();
+  const rows=S.emailLog.filter(e=>(!q||(e.to_email+" "+e.subject).toLowerCase().includes(q))&&(!f.k||emailKindLabel(e.kind)===f.k)&&(!f.st||(f.st==="failed"?/fail|not sent|no reply/.test(e.status||""):e.status===f.st)));
+  const stPill=s=>s==="sent"?'<span class="pill set">Sent</span>':s==="queued"?'<span class="pill">Sending</span>':`<span class="pill late">${esc(s==="no reply"?"No reply":/not sent/.test(s)?"Not sent":"Failed")}</span>`;
+  const when=iso=>new Date(iso).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZone:"America/Los_Angeles"});
+  return `<div class="elogbar"><input type="search" data-elog="q" value="${esc(f.q)}" placeholder="Search by email address or subject" aria-label="Search emails">
+      <select data-elog="k" aria-label="Type of email"><option value="">All types</option>${kinds.map(k=>`<option ${k===f.k?"selected":""}>${esc(k)}</option>`).join("")}</select>
+      <select data-elog="st" aria-label="Status"><option value="">Any status</option><option value="sent" ${f.st==="sent"?"selected":""}>Sent</option><option value="failed" ${f.st==="failed"?"selected":""}>Failed or not sent</option><option value="queued" ${f.st==="queued"?"selected":""}>Sending</option></select></div>
+    <p class="small" style="margin:6px 0">${rows.length} of ${S.emailLog.length} shown, newest first. Times are Pacific. Sign-up confirmation and password reset emails come from Supabase's own system and aren't listed here.</p>
+    <div class="tablewrap"><table class="elog"><thead><tr><th>When</th><th>To</th><th>Subject</th><th>Type</th><th>Status</th></tr></thead><tbody>
+    ${rows.slice(0,400).map(e=>`<tr><td class="small" style="white-space:nowrap">${esc(when(e.sent_at))}</td><td>${esc(e.to_email)}</td><td>${esc(e.subject)}</td><td class="small">${esc(emailKindLabel(e.kind))}</td><td>${stPill(e.status||"")}${e.error?`<div class="small warntext">${esc(e.error)}</div>`:""}</td></tr>`).join("")||`<tr><td colspan="5" class="small">No emails match.</td></tr>`}</tbody></table></div>
+    ${S.emailLog.length>=S.emailLogN?`<div class="actions"><button class="btn ghost sm" type="button" data-act="elogmore">Load older emails</button></div>`:""}`}
+document.addEventListener("input",e=>{const t=e.target;if(!t.dataset||!t.dataset.elog)return;S.emailF={...(S.emailF||{q:"",k:"",st:""}),[t.dataset.elog]:t.value};
+  if(t.dataset.elog==="q"){clearTimeout(S.elogT);S.elogT=setTimeout(()=>{const pos=t.selectionStart;render();const n=document.querySelector('[data-elog="q"]');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}},250)}else render()});
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="elogmore"]');if(!t)return;e.preventDefault();loadEmailLog((S.emailLogN||300)+500)});

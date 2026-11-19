@@ -1603,7 +1603,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="gocat
 
 /* ---------- vendor home: boxes that open in place ---------- */
 function vbox(id,title,sub,right,body){const open=S.vbox===id;
-  return `<section class="vbox ${open?"open":""}" data-fold="${id}" data-box="${id}"><button class="vboxhead" type="button" data-act="vbox" data-id="${id}" aria-expanded="${open}"><span class="vboxtitle"><span class="h2">${title}</span>${sub?`<span class="small">${sub}</span>`:""}</span><span class="vboxright">${right||""}<span class="caret" aria-hidden="true">${open?"▾":"▸"}</span></span></button><div class="vboxbody">${body}</div></section>`}
+  return `<section class="vbox ${open?"open":""}" data-fold="${id}" data-box="${id}"><button class="vboxhead" type="button" data-act="vbox" data-id="${id}" aria-expanded="${open}"><span class="vboxtitle"><span class="h2">${title}</span>${sub?`<span class="small">${sub}</span>`:""}</span><span class="vboxright">${right||""}<span class="caret ${open?"open":""}" aria-hidden="true"></span></span></button><div class="vboxbody">${body}</div></section>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="vbox"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   const id=t.dataset.id;S.vbox=S.vbox===id?"":id;render();if(S.vbox)setTimeout(()=>{const el=document.querySelector(`.vbox[data-box="${id}"]`);if(el)el.scrollIntoView({block:"nearest",behavior:"smooth"})},30)},true);
 

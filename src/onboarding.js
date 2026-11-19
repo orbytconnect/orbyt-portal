@@ -68,7 +68,7 @@ function setupCard(){if(!S.canWrite||!S.session)return"";
   // stays until it's done; small by default, with the next step and a caret for the rest
   const n=items.length-left.length,open=!!S.setupOpen,nx=left[0];
   return `<section class="setup mini ${open?"open":""}" aria-label="Get set up"><div class="setupmini">
-      <button class="setuptoggle" type="button" data-act="setuptoggle" aria-expanded="${open}"><span class="caret" aria-hidden="true">${open?"▾":"▸"}</span><span class="eyebrow">Get set up</span><span class="strong">${n} of ${items.length} done</span></button>
+      <button class="setuptoggle" type="button" data-act="setuptoggle" aria-expanded="${open}"><span class="caret ${open?"open":""}" aria-hidden="true"></span><span class="eyebrow">Get set up</span><span class="strong">${n} of ${items.length} done</span></button>
       <div class="setupbar" role="progressbar" aria-valuemin="0" aria-valuemax="${items.length}" aria-valuenow="${n}"><span style="width:${Math.round(n/items.length*100)}%"></span></div>
       ${open?`<button class="linkbtn" type="button" data-act="help">How Orbyt works</button>`:`<div class="setupnext"><span class="small">Next: <span class="strong">${esc(nx.label)}</span></span>${nx.act}</div>`}</div>
     ${open?`<ol class="setuplist">${[...left,...items.filter(x=>x.done)].map(x=>`<li class="${x.done?"done":""}"><span class="setupdot" aria-hidden="true">${x.done?"✓":""}</span><div class="setuptext"><span class="strong">${esc(x.label)}</span>${x.done?"":`<div class="small">${esc(x.hint)}</div>`}</div>${x.done?`<span class="small">Done</span>`:`<div>${x.act}</div>`}</li>`).join("")}</ol>

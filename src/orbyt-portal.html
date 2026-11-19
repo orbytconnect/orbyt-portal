@@ -985,7 +985,7 @@ function formBlock(v){
     <dl class="formlist">${F.map(([k,x])=>`<div><dt>${k}</dt><dd>${x||'<span class="small">Not given</span>'}</dd></div>`).join("")}</dl>
     <p class="small" style="margin:8px 0 0">${v.source?esc(v.source)+" · ":""}${v.createdAt?"Joined "+fmtStamp(v.createdAt)+" · ":""}${v.licensed?"License checked":"License not checked"} · ${v.insured?"Insurance checked":"Insurance not checked"}</p>
     ${v.approved===false&&S.canWrite?setupPanel(v):""}
-    ${v.approved===false&&S.canWrite?`<div class="actions" style="margin-top:8px"><button class="btn sm" data-act="approvevendor" data-id="${esc(v.id)}">Approve, I've checked them</button></div>`:""}${typeof deleteVendorBlock==="function"?deleteVendorBlock(v):""}</div>`;
+    ${v.approved===false&&S.canWrite?`<div class="actions" style="margin-top:8px">${approveBtn(v)}</div>`:""}${typeof deleteVendorBlock==="function"?deleteVendorBlock(v):""}</div>`;
 }
 function profileBlock(v){
   const o=kind()==="orbyt",web=safeUrl(v.web),port=safeUrl(v.portfolioUrl),coi=v.coiId?blobHref(v.coiId):safeUrl(v.coiUrl);
@@ -1002,7 +1002,7 @@ function profileBlock(v){
     ${v.areaNote?`<div class="small"><span class="strong">Service area as written:</span> ${esc(v.areaNote)}</div>`:""}
     ${v.signupNotes?`<div class="small"><span class="strong">From their sign-up:</span> ${esc(v.signupNotes)}</div>`:""}
     ${/^Closing work: some/i.test(v.signupNotes||"")?`<div class="small"><span class="pill late">Some closing work</span> Only introduce them for their non-closing services. No fee on closing work.</div>`:""}
-    ${v.approved===false&&S.canWrite?`<div class="actions"><button class="btn sm" data-act="approvevendor" data-id="${esc(v.id)}">Approve, I've checked them</button></div>`:""}</div>`}
+    ${v.approved===false&&S.canWrite?`<div class="actions">${approveBtn(v)}</div>`:""}</div>`}
   return h;
 }
 function pricingBlock(v){
@@ -1849,7 +1849,7 @@ function orbytAlerts(){
     when:new Date(Date.now()-x.days*864e5).toISOString(),act:x.pid?{a:"openmatch",id:x.pid,label:"Open project"}:null,auto:false,resurface:3,nudge:x.nudge});
   for(const su of (S.signups||[]).filter(x=>x.kind==="agent"))A.push({id:"agentsu-"+su.id,cls:"k-ink",label:"Agent sign-up",title:`${su.name} wants to join${su.brokerage?" ("+su.brokerage+")":""}`,
     meta:[(su.areas||[]).join(", "),su.email,ago(su.createdAt)].filter(Boolean).join(" · "),when:su.createdAt||"",act:{a:"approveagent",id:su.id,label:"Approve"},auto:su.status==="approved",autoLabel:"Approved"});
-  for(const v of S.vendors.filter(v=>v.approved===false)){const cp=typeof isPartner==="function"&&isPartner(v);A.push({id:"vrev-"+v.id,cls:"k-ink",label:cp?"Closing partner sign-up":setupMissing(v).length?"Setup incomplete":"Vendor sign-up",title:setupMissing(v).length?`${v.name} started signing up. Missing ${setupMissing(v).join(", ")}`:`${v.name} wants to join (${vsv(v).join(", ")})`,
+  for(const v of S.vendors.filter(v=>v.approved===false&&!setupMissing(v).length)){const cp=typeof isPartner==="function"&&isPartner(v);A.push({id:"vready-"+v.id,cls:"k-ink",label:"Ready to approve",title:`${v.name} finished setting up (${vsv(v).join(", ")})${cp?", closing partner":""}`,
     meta:[v.areaNote||v.areas?.join(", "),v.source,v.createdAt?ago(v.createdAt):""].filter(Boolean).join(" · "),when:v.createdAt||"",act:{a:"vcard",id:v.id,label:"Review"},auto:false})}
   if(typeof listingAlerts==="function")A.push(...listingAlerts());
   if(typeof msgAlerts==="function")A.push(...msgAlerts());
@@ -2490,6 +2490,9 @@ function favsBody(agent,favs){
         <div>${ratingHtml(v.id)}</div><div class="small">${typeof bookedWithMe==="function"&&msgOn()&&!bookedWithMe(v.id)?"Contact details show once you book them":[vPhone(v),vEmail(v)].filter(Boolean).map(esc).join(" · ")||"No contact info yet"}</div>
         <div class="small num">${jobs} ${jobs===1?"job":"jobs"} with you</div></div>`}).join("")}</div></div>`).join("");
   }
+// approve once everything's in; before that, a small way to approve anyway (an imported vendor, say)
+function approveBtn(v){if(typeof setupMissing==="function"&&setupMissing(v).length)return`<button class="linkbtn small" data-act="approvevendor" data-id="${esc(v.id)}">Approve anyway</button>`;
+  return`<button class="btn sm" data-act="approvevendor" data-id="${esc(v.id)}">Approve, I've checked them</button>`}
 function reviewStrip(agent){
   const dm=doneMap();
   const due=S.bids.filter(b=>{const p=projById(b.projectId);return p&&isOnProject(p,agent)&&reviewDue(b)&&!(dm["review-"+b.id]&&ageDays(dm["review-"+b.id])<SNOOZE_DAYS)})

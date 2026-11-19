@@ -1849,7 +1849,11 @@ function orbytAlerts(){
     when:new Date(Date.now()-x.days*864e5).toISOString(),act:x.pid?{a:"openmatch",id:x.pid,label:"Open project"}:null,auto:false,resurface:3,nudge:x.nudge});
   for(const su of (S.signups||[]).filter(x=>x.kind==="agent"))A.push({id:"agentsu-"+su.id,cls:"k-ink",label:"Agent sign-up",title:`${su.name} wants to join${su.brokerage?" ("+su.brokerage+")":""}`,
     meta:[(su.areas||[]).join(", "),su.email,ago(su.createdAt)].filter(Boolean).join(" · "),when:su.createdAt||"",act:{a:"approveagent",id:su.id,label:"Approve"},auto:su.status==="approved",autoLabel:"Approved"});
-  for(const v of S.vendors.filter(v=>v.approved===false&&!setupMissing(v).length)){const cp=typeof isPartner==="function"&&isPartner(v);A.push({id:"vready-"+v.id,cls:"k-ink",label:"Ready to approve",title:`${v.name} finished setting up (${vsv(v).join(", ")})${cp?", closing partner":""}`,
+  // new sign-ups: a heads-up while they finish setting up (check it off once you've seen it)
+  for(const v of S.vendors.filter(v=>v.approved===false&&setupMissing(v).length&&v.createdAt&&Date.now()-new Date(v.createdAt)<30*864e5)){const cp=typeof isPartner==="function"&&isPartner(v);
+    A.push({id:"vnew-"+v.id,cls:"k-ink",label:cp?"New closing partner":"New sign-up",title:`${v.name} signed up (${vsv(v).join(", ")}). Still setting up`,
+      meta:["Waiting on "+setupMissing(v).join(", "),v.areas?.join(", "),ago(v.createdAt)].filter(Boolean).join(" · "),when:v.createdAt,act:{a:"vcard",id:v.id,label:"View"},auto:false})}
+  for(const v of S.vendors.filter(v=>v.approved===false&&!setupMissing(v).length)){const cp=typeof isPartner==="function"&&isPartner(v);A.push({id:"vready-"+v.id,cls:"k-ink",urgent:true,label:"Ready to approve",title:`${v.name} finished setting up (${vsv(v).join(", ")})${cp?", closing partner":""}`,
     meta:[v.areaNote||v.areas?.join(", "),v.source,v.createdAt?ago(v.createdAt):""].filter(Boolean).join(" · "),when:v.createdAt||"",act:{a:"vcard",id:v.id,label:"Review"},auto:false})}
   if(typeof listingAlerts==="function")A.push(...listingAlerts());
   if(typeof msgAlerts==="function")A.push(...msgAlerts());
@@ -1860,7 +1864,7 @@ function orbytAlerts(){
 const ALERT_GROUPS=[["match","Matching and not booked","New requests, added services, passes and list dates coming up"],["stall","Vendors stalled","Bids or next steps that are taking too long"],["agent","Waiting on agents","Agents who haven't picked or replied"],
   ["msg","Messages","Conversations with you"],["people","Sign-ups and vendors","New sign-ups, insurance and special offers"],["money","Invoicing and fees","Ready to invoice, overdue and fee questions"],["rev","Reviews","New reviews and agents to ask"],["other","Everything else",""]];
 function alertGroup(t){if(t.grp)return t.grp;const k=String(t.id).split("-")[0];
-  return{new:"match",svc:"match",opt:"match",decl:"match",msg:"msg",agentsu:"people",vrev:"people",ins:"people",insexp:"people",promo:"people",inv:"money",overdue:"money",disp:"money",listdue:"money",newrev:"rev",nudge:"rev"}[k]||"other"}
+  return{new:"match",svc:"match",opt:"match",decl:"match",msg:"msg",agentsu:"people",vrev:"people",vnew:"people",vready:"people",ins:"people",insexp:"people",promo:"people",inv:"money",overdue:"money",disp:"money",listdue:"money",newrev:"rev",nudge:"rev"}[k]||"other"}
 function alertsView(){
   const{open,done}=splitTasks(orbytAlerts());
   const groups=ALERT_GROUPS.map(([k,title,hint])=>{const l=open.filter(t=>alertGroup(t)===k);if(!l.length)return"";const urg=l.filter(t=>t.urgent).length;

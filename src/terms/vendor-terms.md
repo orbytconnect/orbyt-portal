@@ -1,6 +1,6 @@
 # ORBYT VENDOR TERMS OF USE
 
-*Last updated: November 20, 2026. The changes to Sections 8.1(c), 8.2 and 8.4 take effect on December 21, 2026, or earlier for a Vendor that accepts this version in the Portal. Jobs awarded before then are invoiced under the prior version.*
+*Last updated: October 25, 2026*
 
 These Vendor Terms of Use (the **\"Terms\"**) are a binding agreement between Orbyt LLC, a California limited liability company located at 711 S Nardo Ave, Suite 308, Solana Beach, California 92075 (**\"Orbyt\"**), and the business that registers to join the Orbyt vendor network (**\"Vendor\"**). Orbyt and Vendor are each a \"party\" and together the \"parties.\"
 
@@ -122,23 +122,15 @@ Vendor agrees to the following for as long as it is in the network.
 >
 > \(b\) **Repeat fee.** Applies to each later Protected Job with the same Introduced Agent or Introduced Client during the Protection Period, whether it is booked through Orbyt or directly.
 >
-> \(c\) **Job value.** Fees are calculated on the amount of the bid the Client accepted for the Job (the **\"Accepted Bid\"**), not including sales tax, and are then adjusted under Section 8.2(c) to the final amount Vendor bills the Client for the Job, not including sales tax.
+> \(c\) **Job value.** Fees are calculated on the final amount Vendor bills the Client for the Job, not including sales tax.
 >
 > \(d\) **Staging extensions.** For staging Jobs, fees apply to the initial staging contract only. Monthly extensions while the home is still on the market are not subject to any fee.
 
-**8.2 Invoicing and payment.**
-
-> \(a\) **Invoice at award.** A Job is **\"awarded\"** when the Introduced Agent or Client selects Vendor's bid and Vendor accepts the Job, by clicking Confirm job in the Portal or otherwise agreeing with the Client or Introduced Agent to do the Job. Orbyt will invoice Vendor for the fee on the Accepted Bid on or after the date the Job is awarded.
->
-> \(b\) **Payment.** Payment of each Orbyt invoice is due within fifteen (15) days after the invoice date.
->
-> \(c\) **Final amount and adjustments.** Within five (5) business days after a Job is completed, Vendor will report the final invoice amount to Orbyt through the Portal or by email to ashleigh@orbytconnect.com. Orbyt may confirm the amount with the Introduced Agent. If the fee on the final amount is more than the fee already invoiced, Orbyt will invoice the difference, due within fifteen (15) days after that invoice date. If it is less, Orbyt will credit the difference against Vendor's next invoice or, if Vendor asks or has no other fees due within sixty (60) days, refund it.
->
-> \(d\) **Protected Jobs booked directly.** For a Protected Job not booked through the Portal, Vendor will report the Job to Orbyt within five (5) business days after it is awarded, and Orbyt will invoice it under this Section 8.2.
+**8.2 Reporting and payment.** Within five (5) business days after a Job is completed, Vendor will report the final invoice amount to Orbyt through the Portal or by email to ashleigh@orbytconnect.com. Orbyt may confirm the amount with the Introduced Agent and will then send Vendor an invoice. Payment is due within fifteen (15) days after the Job is completed.
 
 **8.3 Saved payment methods.** Payments are processed by Orbyt\'s third-party payment processor under its terms. Orbyt does not store full card or bank account numbers. If Vendor saves a card or bank account in the Portal, Vendor authorizes Orbyt, through its processor, to charge it for each Orbyt invoice on or after the due date. Orbyt will send each invoice at least five (5) days before charging it. Vendor may withdraw this authorization by removing the payment method from the Portal. Doing so does not affect amounts already due.
 
-**8.4 Cancelled or unpaid Jobs.** No fee is owed on a Job that is cancelled before any work is done, or for any amount the Client does not pay Vendor. Vendor will tell Orbyt within five (5) business days after a Job is cancelled or the Client fails to pay. Orbyt will then void the fee on that amount or, if it has been paid, credit it against Vendor's next invoice or refund it, as described in Section 8.2(c). If Vendor later collects that amount, the fee on it is due within fifteen (15) days of collection.
+**8.4 Cancelled or unpaid Jobs.** No fee is owed on a Job that is cancelled before any work is done, or for any amount the Client does not pay Vendor. If Vendor later collects that amount, the fee on it is due within fifteen (15) days of collection.
 
 **8.5 Late payment.** If a fee is past due, Orbyt may pause new Introductions and any promoted placement until it is paid. Amounts more than thirty (30) days past due accrue a late charge of 1.5% per month, or the maximum allowed by law if less. Vendor will pay Orbyt\'s reasonable costs of collecting past-due amounts, including attorneys\' fees.
 

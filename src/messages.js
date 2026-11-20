@@ -85,7 +85,7 @@ function messagesView(){
           <p class="small mnote">${esc(who)} gets a notification right away.</p>`
         :admin?`<p class="small mnote">You can read every agent and vendor thread. They don't get a notice when you do, and you don't get notified about their messages.</p>`:""}`}
   else pane=`<div class="mempty"><p class="small">${all.length?"Pick a conversation.":admin?"Your conversations and agent and vendor threads show up here.":"Your conversations show up here."}</p></div>`;
-  const search=all.length>1?`<div class="msearch"><input type="search" id="msg-q" data-msgq value="${esc(S.msgQ||"")}" placeholder="Search by address, project ID, name or message" aria-label="Search conversations" autocomplete="off"><p class="small mnone" ${(S.msgQ||"").trim()&&!all.some(t=>msgHit(t,(S.msgQ||"").trim().toLowerCase()))?"":"hidden"}>No conversations match.</p></div>`:"";
+  const search=all.length||admin?`<div class="msearch"><input type="search" id="msg-q" data-msgq value="${esc(S.msgQ||"")}" placeholder="Search by address, project ID, name or message" aria-label="Search conversations" autocomplete="off"><p class="small mnone" ${(S.msgQ||"").trim()&&!all.some(t=>msgHit(t,(S.msgQ||"").trim().toLowerCase()))?"":"hidden"}>No conversations match.</p></div>`:"";
   return `<section class="msgwrap ${cur?"open":""}"><div class="mside">${search}${list}</div><div class="mpane">${pane}</div></section>`}
 // filter as they type, without redrawing (keeps the cursor in the box)
 document.addEventListener("input",e=>{const t=e.target;if(!t.matches||!t.matches("input[data-msgq]"))return;S.msgQ=t.value;const q=t.value.trim().toLowerCase(),side=t.closest(".mside");let n=0;

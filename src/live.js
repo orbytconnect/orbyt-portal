@@ -63,7 +63,7 @@ function appBids(){const INV=byKey(D.invoices,"bid_id");
     o.vendorId=b.vendor_id||"";o.vendorName=b.vendor_name||"";o.amount=b.amount==null?null:Number(b.amount);o.finalAmount=b.final_amount==null?null:Number(b.final_amount);
     o.prevAmount=b.prev_amount==null?null:Number(b.prev_amount);o.pdfId=b.quote_path?"quotes:"+b.quote_path:"";o.pdfName=b.quote_name||"";o.pdfIsImage=!!b.quote_is_image;
     o.steps={agreement:!!b.step_agreement,paid:!!b.step_paid};o.assignedTo=b.assigned_to||"";o.startDate=b.start_date||"";o.availableFrom=b.available_from||"";o.feeType=b.fee_type||"";
-    const i=INV[b.id];if(i)o.invoice={status:i.status,number:i.number||"",at:i.invoiced_at,paidAt:i.paid_at};
+    const i=INV[b.id];if(i)o.invoice={status:i.status,number:i.number||"",at:i.invoiced_at,paidAt:i.paid_at,fee:i.fee,note:i.note||""};
     for(const k of["changeNote","declineNote","declineReason","note","introNote","confirmNote","finalNote"])if(o[k]==null)o[k]="";
     return o})}
 function appReviews(){return(D.reviews||[]).map(r=>({id:r.id,bidId:r.bid_id,vendorId:r.vendor_id,projectId:r.project_id,agent:r.agent_name||"",agentId:r.agent_id,
@@ -162,7 +162,7 @@ async function write(c,id,op,d){
       if(!v.status)fail((await sb.from("invoices").delete().eq("bid_id",bidId)).error,"invoice");
       else{const cur=(D.invoices||[]).find(i=>i.bid_id===bidId)||{};
         fail((await sb.from("invoices").upsert({bid_id:bidId,status:v.status,number:v.number??cur.number??null,invoiced_at:v.at??cur.invoiced_at??null,
-          paid_at:v.paidAt??(v.status==="paid"?new Date().toISOString():null)})).error,"invoice")}}
+          paid_at:v.paidAt??cur.paid_at??(v.status==="paid"?new Date().toISOString():null),fee:"fee"in v?v.fee:cur.fee??null,note:"note"in v?v.note:cur.note??null})).error,"invoice")}}
     return bidId;
   }
   if(c==="projects"){
@@ -575,7 +575,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="agsta
 
 /* ---------- Terms of Use: a checkbox, no signature. Fees shown up front. ---------- */
 const TERMS={
-  vendor:{version:"vendor-terms-2026-10-25",title:"Orbyt Vendor Terms of Use",path:"terms/vendor.html"},
+  vendor:{version:"vendor-terms-2026-11-20",title:"Orbyt Vendor Terms of Use",path:"terms/vendor.html"},
   agent:{version:"agent-terms-2026-10-25",title:"Orbyt Agent Terms of Use",path:"terms/agent.html"},
   partner:{version:"partner-terms-2026-11-10",title:"Orbyt Closing Partner Marketing Services Agreement",path:"terms/partner.html"}};
 // closing partners sign in as vendors but agree to their own terms
@@ -609,7 +609,7 @@ function feesSection(){
         <span class="eyebrow" style="margin-top:10px;display:block">Optional</span><p class="small" style="margin:0">Special offer for Orbyt clients, $20 for up to 30 days.</p></div></div>
     <p class="small"><b>Example:</b> a $3,000 first job is $120 on the first $1,000 plus $160 on the next $2,000, for a $280 fee. The same job as a repeat is $60.</p>
     ${feeCalc()}
-    <p class="small" style="margin:0"><b>When it's due:</b> report your final invoice amount within 5 business days of finishing a job (you can do it right on the job in the portal). Orbyt sends an invoice, due 15 days after the job wraps. Fees more than 30 days past due add 1.5% a month, and new introductions pause until they're paid.</p></section>`}
+    <p class="small" style="margin:0"><b>When it's due:</b> Orbyt invoices you when you confirm a booking, based on your accepted bid, and payment is due 15 days from the invoice date. If your final invoice to the client ends up different, report it within 5 business days of finishing (right on the job in the portal) and the fee is adjusted. If a job is cancelled before work starts, the fee is voided or refunded. Fees more than 30 days past due add 1.5% a month, and new introductions pause until they're paid.</p></section>`}
 const SHORT={
   vendor:["Reply to each intro within 48 hours with a yes, a no, or a question. Saying no is always fine, and it's much better than no reply. Going quiet on a request means fewer matches down the road.",
     "You contract with and bill the client directly, in your own name, and you're responsible for your work. Add Orbyt's short client notice (Schedule 2) to your quotes.",
@@ -668,6 +668,9 @@ function termsGate(){
       ${shortVersion("partner")}${done?`<div class="actions" style="margin-bottom:28px"><button class="btn" data-act="feesok">Sounds good, take me to my dashboard</button>
         <span class="small">You agreed to the ${termsLink("partner")} when you signed up.</span></div>`:termsForm("partner")}`}
   if(r==="vendor"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
+    if(!done&&acceptancesFor(S.uid).some(x=>/^vendor-terms/.test(x.version||"")))return `<section class="hello"><div><div class="eyebrow">Updated Vendor Terms</div><h1>One change to how invoicing works, ${esc(first)}</h1>
+      <p>Orbyt now invoices when you confirm a booking, based on your accepted bid, with payment due 15 days from the invoice date. If your final amount is different, report it on the job and the fee is adjusted up or down. If a job is cancelled before work starts, the fee is voided or refunded. Fee rates haven't changed.</p>
+      <p class="small">This applies to jobs booked after you accept, and to everyone from December 21, 2026. Jobs booked before then are invoiced the old way, after the job wraps.</p></div></section>${termsForm("vendor")}`;
     return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>You're approved, ${esc(first)}</h1>
       <p>${done?"Before your first introduction, here's a quick look at what Orbyt costs and how it works.":"Before your first introduction, here's exactly what Orbyt costs, and the terms to agree to."}</p></div></section>
       ${feesSection()}${done?`${shortVersion("vendor")}<div class="actions" style="margin-bottom:28px"><button class="btn" data-act="feesok">Sounds good, take me to my dashboard</button>
@@ -1085,7 +1088,7 @@ function vendorFolds(v,mine){
   prof.push(fold("price","Typical pricing",hasP?'<span class="pill set">Added</span>':'<span class="pill">Not added yet</span>',"Helps me match you to the right homes",vendorPricingCard(v),S.openForm==="pricing"));
   {const todo=(prof.join("").match(/pill (late|needed)/g)||[]).length;
     out.push(vbox("profile","Your profile","Services, portfolio, pricing and insurance: what agents see when I introduce you.",todo?`<span class="pill late">${todo} to add</span>`:'<span class="pill set">Complete</span>',`<div class="folds">${prof.join("")}</div>`))}
-  // 2 reviews and results
+  // 2 performance and reviews
   const rv=[];
   if(ok)rv.push(fold("myrev","Your reviews",myReviewsPill(v),"Read them, and copy them for your marketing",myReviewsCard(v),false));
   if(ok&&typeof reviewInviteCard==="function"){const sent=typeof rrFor==="function"?rrFor(v.id):[];
@@ -1093,7 +1096,7 @@ function vendorFolds(v,mine){
   {const lc=typeof lostCard==="function"?lostCard(v):"";if(lc){const k=S.bids.filter(b=>b.vendorId===v.id&&b.lostReason).length;
     rv.push(fold("lost","Why quotes didn't win",`<span class="pill">${k}</span>`,"What agents told you",lc,false))}}
   const stats=vendorStats(v,mine||[]);
-  if(stats||rv.length)out.push(vbox("results","Reviews and results","How agents rate you and how your bids are doing.",rating(v.id)?`<span class="pill">★ ${rating(v.id).avg.toFixed(1)}</span>`:"",stats+(rv.length?`<div class="folds">${rv.join("")}</div>`:"")));
+  if(stats||rv.length)out.push(vbox("results","Performance and reviews","How agents rate you and how your bids are doing.",rating(v.id)?`<span class="pill">★ ${rating(v.id).avg.toFixed(1)}</span>`:"",stats+(rv.length?`<div class="folds">${rv.join("")}</div>`:"")));
   // the team: people who help with quotes and jobs (owner only)
   if(!S.teamMember&&typeof teamCard==="function"){const n=(S.team||[]).filter(m=>!m.owner).length;out.push(vbox("team","Your team","Invite the people who help with quotes or run your jobs.",n?`<span class="pill">${n} ${n===1?"person":"people"}</span>`:"",teamCard()))}
   // fees owed, one row per booked job
@@ -1423,12 +1426,13 @@ function approvalSec(v){if(!v||v.approved!==false||kind()!=="vendor")return"";
 
 /* ---------- a vendor's Orbyt fees, each tied to its job ---------- */
 function vendorFeesCard(v){if(typeof invRow!=="function")return null;
-  const rows=S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected"&&projById(b.projectId)).map(invRow).filter(r=>r.type!=="waived"||r.status==="paid");
+  const rows=S.bids.filter(b=>b.vendorId===v.id&&b.status==="selected"&&projById(b.projectId)).map(invRow).filter(r=>r.status!=="void"&&(r.type!=="waived"||r.status==="paid"));
   if(!rows.length)return null;
-  const owed=rows.filter(r=>r.status==="invoiced"),soon=rows.filter(r=>["ready","needsconfirm","needsfinal","disputed"].includes(r.status)&&r.doneAt),paid=rows.filter(r=>r.status==="paid");
-  const sum=l=>l.reduce((t,r)=>t+r.fee,0),yr=String(new Date().getFullYear()),paidYr=paid.filter(r=>String(r.inv.paidAt||"").startsWith(yr));
+  const owed=rows.filter(r=>r.status==="invoiced"),soon=rows.filter(r=>["ready","needsconfirm","needsfinal","disputed"].includes(r.status)&&(r.doneAt||r.award)),paid=rows.filter(r=>r.status==="paid");
+  const sum=l=>l.reduce((t,r)=>t+(r.status==="invoiced"||r.status==="paid"?r.billedFee:r.fee),0),yr=String(new Date().getFullYear()),paidYr=paid.filter(r=>String(r.inv.paidAt||"").startsWith(yr));
   const st=r=>r.status==="paid"?`<span class="pill set">Paid ${esc(fmtDate(isoDay(new Date(r.inv.paidAt))))}</span>`
-    :r.status==="invoiced"?`<span class="pill ${r.overdue?"late":"comparing"}">${r.overdue?"Overdue":"Due "+esc(fmtDate(r.due))}</span>`
+    :r.status==="invoiced"?`<span class="pill ${r.overdue?"late":"comparing"}">${r.overdue?"Overdue":"Due "+esc(fmtDate(r.due))}</span>${r.inv.at?`<div class="small">Invoiced ${esc(fmtDate(isoDay(new Date(r.inv.at))))}</div>`:""}`
+    :r.award?`<span class="pill">Invoice coming</span><div class="small">Due ${PAY_DAYS} days after it's sent</div>`
     :!r.doneAt?`<span class="pill">Job in progress</span>`
     :r.status==="needsfinal"?`<span class="pill late">Send your final amount</span>`
     :r.status==="disputed"?`<span class="pill">Agent is checking</span>`
@@ -1437,11 +1441,11 @@ function vendorFeesCard(v){if(typeof invRow!=="function")return null;
   const list=[...rows].sort((a,b)=>order(a)-order(b)||String(b.doneAt||"").localeCompare(String(a.doneAt||"")));
   const tile=(l,amt,n)=>`<div class="stat static"><span class="eyebrow">${l}</span><b class="num">${money2(amt)}</b><span class="small">${n} ${n===1?"job":"jobs"}</span></div>`;
   const body=`<div class="stats feestats" style="--n:3;margin-bottom:12px">${tile("Owed now",sum(owed),owed.length)}${tile("Coming up",sum(soon),soon.length)}${tile("Paid in "+yr,sum(paidYr),paidYr.length)}</div>
-    <div class="tablewrap"><table><thead><tr><th>Job</th><th>Service</th><th class="num">Final amount</th><th class="num">Orbyt fee</th><th>Status</th></tr></thead><tbody>
+    <div class="tablewrap"><table><thead><tr><th>Job</th><th>Service</th><th class="num">Job amount</th><th class="num">Orbyt fee</th><th>Status</th></tr></thead><tbody>
     ${list.map(r=>`<tr><td class="strong">${esc(r.p.address)}${typeof refTag==="function"?refTag(r.p):""}${r.inv.number?`<div class="small">Invoice ${esc(r.inv.number)}</div>`:""}</td><td>${esc(r.b.category)}</td>
-      <td class="money">${r.b.finalAmount!=null?money2(r.value):`<span class="small">Bid ${money2(r.value)}</span>`}</td>
-      <td class="money">${r.type==="waived"?"Waived":money2(r.fee)}<div class="small">${r.type==="repeat"?"Repeat job":r.type==="waived"?"":"First job with this agent"}</div></td><td>${st(r)}</td></tr>`).join("")}</tbody></table></div>
-    <p class="small" style="margin:8px 0 0">Fees are based on your final invoice amount and due ${PAY_DAYS} days after a job wraps. Questions about a fee? Message Ashleigh.</p>`;
+      <td class="money">${money2(r.value)}<div class="small">${r.b.finalAmount!=null&&(!r.award||r.b.finalConfirmedAt)?"Final":"Bid"}</div></td>
+      <td class="money">${r.type==="waived"?"Waived":money2(r.status==="invoiced"||r.status==="paid"?r.billedFee:r.fee)}<div class="small">${r.type==="repeat"?"Repeat job":r.type==="waived"?"":"First job with this agent"}</div>${r.adj?`<div class="small strong">Adjusting ${r.adj>0?"+":"−"}${money2(Math.abs(r.adj))} for your final amount</div>`:""}</td><td>${st(r)}</td></tr>`).join("")}</tbody></table></div>
+    <p class="small" style="margin:8px 0 0">Orbyt invoices you when a job is booked, based on your accepted bid. Payment is due ${PAY_DAYS} days from the invoice date. If your final amount is different, report it on the job and the fee is adjusted. Questions about a fee? Message Ashleigh.</p>`;
   return{pill:owed.length?`<span class="pill ${owed.some(r=>r.overdue)?"late":"comparing"}">${money2(sum(owed))} owed</span>`:"",body}}
 
 /* ---------- structured reviews: four areas and "would you hire them again?" ---------- */
@@ -1464,11 +1468,21 @@ function aspectSummary(vid){const rs=S.reviews.filter(r=>r.vendorId===vid&&r.app
     ${pct!=null?`<div class="small" style="margin-top:4px"><span class="strong">${pct}%</span> of agents would hire them again (${ag.length} ${ag.length===1?"review":"reviews"})</div>`:""}</div>`}
 
 /* ---------- special offers tied to services ---------- */
-function promoSvcField(v){const sv=vsv(v).filter(Boolean);if(sv.length<2)return"";const cur=v.promoServices||[];
-  return `<fieldset class="field" style="border:0;padding:0;margin:0"><legend class="legend">Which services is it for?</legend><div class="checks">${sv.map((c,i)=>`<label><input type="checkbox" name="psvc" id="pr-svc-${i}" value="${esc(c)}" ${!cur.length||cur.includes(c)?"checked":""}>${esc(c)}</label>`).join("")}</div>
-    <p class="small" style="margin:4px 0 0">Agents see it next to your quotes for these services.</p></fieldset>`}
-function promoSvcPicked(f,v){const all=vsv(v).filter(Boolean),on=[...f.querySelectorAll('input[name="psvc"]:checked')].map(c=>c.value);
-  return !f.querySelector('input[name="psvc"]')||!on.length||on.length===all.length?null:on}
+/* the vendor's specific services (from the taxonomy), grouped by kind of work; a kind of work with none picked is offered whole */
+function promoOptions(v){const sd=(v.serviceDetails||[]).filter(Boolean);
+  return vsv(v).filter(Boolean).map(c=>({cat:c,items:sd.filter(x=>taxCatOf(x)===c)}))}
+function promoSvcField(v){const g=promoOptions(v),n=g.reduce((a,x)=>a+(x.items.length||1),0);if(n<2)return"";const cur=v.promoServices||[];
+  const on=val=>!cur.length||cur.includes(val)||(val.includes(": ")&&cur.includes(taxCatOf(val)));let i=0;
+  const box=(val,label)=>`<label class="tchip"><input type="checkbox" name="psvc" id="pr-svc-${i++}" value="${esc(val)}" ${on(val)?"checked":""}>${esc(label)}</label>`;
+  return `<fieldset class="field" style="border:0;padding:0;margin:0"><legend class="legend">Which services is it for?</legend>
+    <div class="promosvcs">${g.map(x=>`<div class="promogrp"><div class="small strong">${esc(x.cat)}</div><div class="checks">${x.items.length?x.items.map(it=>box(it,it.slice(it.indexOf(": ")+2))).join(""):box(x.cat,"All "+x.cat.toLowerCase())}</div></div>`).join("")}</div>
+    <p class="small" style="margin:4px 0 0">Agents see it only on quotes and listings for the services you check.</p></fieldset>`}
+function promoSvcPicked(f,v){const boxes=[...f.querySelectorAll('input[name="psvc"]')],on=boxes.filter(c=>c.checked).map(c=>c.value);
+  if(!boxes.length||!on.length||on.length===boxes.length)return null;
+  // a kind of work with every one of its services checked is stored as the kind of work
+  const out=[];for(const x of promoOptions(v)){const vals=x.items.length?x.items:[x.cat],hit=vals.filter(val=>on.includes(val));
+    if(!hit.length)continue;if(hit.length===vals.length)out.push(x.cat);else out.push(...hit)}
+  return out}
 
 /* ---------- a vendor or partner edits the services they offer ---------- */
 function svcEditCard(v,side){
@@ -1568,17 +1582,30 @@ document.addEventListener("click",async e=>{const t=e.target.closest('[data-act=
 function timingSummary(p,cat){const steps=seqSteps(p);if(!steps.length)return"";const i=steps.findIndex(g=>g.includes(cat));if(i<0)return steps.flat().length+" services on this home";
   const before=steps.slice(0,i).flat().length,after=steps.slice(i+1).flat().length;
   return `Step ${i+1} of ${steps.length}`+(before||after?` · ${before} ${before===1?"service":"services"} before you, ${after} after`:"")}
+/* the job's key facts in one row at the top: target date, your bid, PDF, agent, Orbyt fee and when it's due */
+function jobKeyStrip(b,p){if(kind()!=="vendor")return"";const d=daysTo(p.targetDate),cells=[];
+  const cell=(l,v,sub)=>`<div class="jk"><span class="eyebrow">${l}</span><b>${v}</b>${sub?`<span class="small">${sub}</span>`:""}</div>`;
+  cells.push(cell("Target list date",p.listed?"Listed":p.targetDate?esc(fmtDate(p.targetDate)):"Not set",p.listed||d===null?"":d<0?Math.abs(d)+" days late":d===0?"Today":"In "+d+(d===1?" day":" days")));
+  cells.push(cell("Your bid",b.amount?`<span class="num">${money(b.amount)}</span>`:"Not sent yet",b.status==="selected"&&b.finalAmount!=null?"Final "+money(b.finalAmount):b.amount&&workDays(b)?esc(workDays(b)):""));
+  cells.push(`<div class="jk"><span class="eyebrow">PDF</span>${b.pdfId?pdfLink(b):"<b>None yet</b>"}</div>`);
+  cells.push(cell("Agent",esc(p.agent),b.status==="selected"&&p.agentPhone?`<a href="tel:${esc(String(p.agentPhone).replace(/[^0-9+]/g,""))}">${esc(p.agentPhone)}</a>`:""));
+  if(!S.teamMember&&typeof invRow==="function"&&b.amount&&!["passed","declined"].includes(b.status)){const r=invRow(b),billed=r.status==="invoiced"||r.status==="paid",amt=billed?r.billedFee:r.fee;
+    cells.push(cell("Orbyt fee",r.type==="waived"?"None":`<span class="num">${money2(amt)}</span>`,r.type==="waived"?"":r.status==="paid"?"Paid":r.status==="invoiced"?`<span class="${r.overdue?"warntext":""}">Due by ${esc(fmtDate(r.due))}</span>`
+      :b.status==="selected"&&r.due?"Due by "+esc(fmtDate(r.due)):"Estimate, only if you're booked"))}
+  return `<div class="jobkey">${cells.join("")}</div>`}
 function jobFeeSec(b,p){if(S.teamMember||kind()!=="vendor"||typeof invRow!=="function")return"";
   if(["passed","declined"].includes(b.status))return"";
   const r=invRow(b),first=r.type==="first",who=firstName(p.agent);
   const kindLine=r.type==="waived"?"No Orbyt fee on this job.":first?`Your first job with ${esc(who)}, so the first-job rates apply.`:`You've worked with ${esc(who)} before, so the 2% repeat rate applies.`;
-  let body;
-  if(b.status==="selected"&&r.status==="paid")body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="pill set">Paid</span></div>`;
-  else if(b.status==="selected"&&r.status==="invoiced")body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="pill ${r.overdue?"late":"comparing"}">${r.overdue?"Overdue":"Due "+esc(fmtDate(r.due))}</span>${r.inv.number?`<span class="small">Invoice ${esc(r.inv.number)}</span>`:""}</div>`;
-  else if(b.status==="selected"&&r.doneAt)body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="small">on ${b.finalAmount!=null?"your final amount of "+money2(r.value):"your bid of "+money2(r.value)}${r.due?`, due ${esc(fmtDate(r.due))}`:""}</span></div>`;
-  else if(b.amount)body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="small">estimated, if you're booked at ${money2(b.amount)}. The final fee is based on your final invoice amount.</span></div>`;
+  let body;const amt=r.status==="invoiced"||r.status==="paid"?r.billedFee:r.fee;
+  const adjLine=r.adj?`<p class="small strong" style="margin:4px 0 0">Your final amount changed, so the fee is adjusting by ${r.adj>0?"+":"−"}${money2(Math.abs(r.adj))}.</p>`:"";
+  if(b.status==="selected"&&r.status==="paid")body=`<div class="feeline"><b class="num">${money2(amt)}</b><span class="pill set">Paid</span>${r.inv.paidAt?`<span class="small">${esc(fmtDate(isoDay(new Date(r.inv.paidAt))))}</span>`:""}</div>${adjLine}`;
+  else if(b.status==="selected"&&r.status==="invoiced")body=`<div class="feeline"><b class="num">${money2(amt)}</b><span class="pill ${r.overdue?"late":"comparing"}">${r.overdue?"Overdue, was due ":"Due by "}${esc(fmtDate(r.due))}</span><span class="small">${r.inv.at?"Invoiced "+esc(fmtDate(isoDay(new Date(r.inv.at)))):""}${r.inv.number?` · ${esc(r.inv.number)}`:""}</span></div>${adjLine}`;
+  else if(b.status==="selected"&&r.award)body=`<div class="feeline"><b class="num">${money2(amt)}</b><span class="small">on ${r.value===b.amount||b.finalAmount==null?"your accepted bid of ":"your final amount of "}${money2(r.value)}. Invoice coming now, due by ${esc(fmtDate(r.due))}.</span></div>`;
+  else if(b.status==="selected"&&r.doneAt)body=`<div class="feeline"><b class="num">${money2(amt)}</b><span class="small">on ${b.finalAmount!=null?"your final amount of "+money2(r.value):"your bid of "+money2(r.value)}${r.due?`, due by ${esc(fmtDate(r.due))}`:""}</span></div>`;
+  else if(b.amount)body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="small">estimated, if you're booked at ${money2(b.amount)}. Due ${PAY_DAYS} days after Orbyt invoices you, which happens when you confirm the booking.</span></div>`;
   else body=`<p class="small" style="margin:0">Once you send your bid, you'll see the estimated fee here. You only pay if you're booked.</p>`;
-  return `<div class="reqsec jobfee"><h3>Orbyt fee</h3>${body}<p class="small" style="margin:6px 0 0">${kindLine} The client pays you directly, and Orbyt invoices you ${PAY_DAYS} days after the job wraps. Ongoing service after the first job is never charged.</p></div>`}
+  return `<div class="reqsec jobfee"><h3>Orbyt fee</h3>${body}<p class="small" style="margin:6px 0 0">${kindLine} The client pays you directly. Orbyt invoices you when the job is booked, based on your accepted bid, and payment is due ${PAY_DAYS} days from the invoice date. If your final amount is different, the fee is adjusted. Ongoing service after the first job is never charged.</p></div>`}
 
 /* ---------- agent project page: one row per service, what needs the agent first ---------- */
 const slugify=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
@@ -1602,8 +1629,19 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="gocat
   setTimeout(()=>{const el=document.getElementById("cat-"+t.dataset.c);if(el){el.scrollIntoView({behavior:"smooth",block:"start"});el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),1600)}},30)},true);
 
 /* ---------- vendor home: boxes that open in place ---------- */
-function vbox(id,title,sub,right,body){const open=S.vbox===id;
-  return `<section class="vbox ${open?"open":""}" data-fold="${id}" data-box="${id}"><button class="vboxhead" type="button" data-act="vbox" data-id="${id}" aria-expanded="${open}"><span class="vboxtitle"><span class="h2">${title}</span>${sub?`<span class="small">${sub}</span>`:""}</span><span class="vboxright">${right||""}<span class="caret ${open?"open":""}" aria-hidden="true"></span></span></button><div class="vboxbody">${body}</div></section>`}
+/* A box's body renders in a full-width drawer placed after the last box in the same row, so opening a box
+   never moves the boxes beside it or above it. Closed drawers stay in the page, hidden, so links can find what's inside. */
+function vbox(id,title,sub,right,body){const open=S.vbox===id;if(open)requestAnimationFrame(placeDrawers);
+  return `<section class="vbox ${open?"open":""}" data-fold="${id}" data-box="${id}"><button class="vboxhead" type="button" data-act="vbox" data-id="${id}" aria-expanded="${open}" aria-controls="vbd-${id}"><span class="vboxtitle"><span class="h2">${title}</span>${sub?`<span class="small">${sub}</span>`:""}</span><span class="vboxright">${right||""}<span class="caret ${open?"open":""}" aria-hidden="true"></span></span></button></section>`+
+    `<div class="vboxdrawer ${open?"open":""}" id="vbd-${id}" data-box="${id}" data-drawer="${id}" role="region" aria-label="${esc(String(title).replace(/<[^>]*>/g,""))}"><div class="vboxbody">${body}</div></div>`}
+function placeDrawers(){document.querySelectorAll(".vboxdrawer.open").forEach(dr=>{const box=document.querySelector(`.vbox[data-box="${dr.dataset.drawer}"]`);if(!box||box.parentElement!==dr.parentElement)return;
+  // measure the rows as they'd be without the drawer, then put it after the last box in this box's row
+  dr.style.display="none";const top=box.offsetTop,boxes=[...box.parentElement.children].filter(x=>x.classList.contains("vbox"));
+  let last=box;for(const b of boxes)if(Math.abs(b.offsetTop-top)<4)last=b;
+  if(last.nextElementSibling!==dr)last.after(dr);dr.style.display=""})}
+let drawerT;window.addEventListener("resize",()=>{clearTimeout(drawerT);drawerT=setTimeout(()=>{
+  // put drawers back next to their boxes, then re-place for the new column count
+placeDrawers()},120)});
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="vbox"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
   const id=t.dataset.id;S.vbox=S.vbox===id?"":id;render();if(S.vbox)setTimeout(()=>{const el=document.querySelector(`.vbox[data-box="${id}"]`);if(el)el.scrollIntoView({block:"nearest",behavior:"smooth"})},30)},true);
 

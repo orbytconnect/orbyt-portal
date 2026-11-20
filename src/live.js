@@ -609,7 +609,7 @@ function feesSection(){
         <span class="eyebrow" style="margin-top:10px;display:block">Optional</span><p class="small" style="margin:0">Special offer for Orbyt clients, $20 for up to 30 days.</p></div></div>
     <p class="small"><b>Example:</b> a $3,000 first job is $120 on the first $1,000 plus $160 on the next $2,000, for a $280 fee. The same job as a repeat is $60.</p>
     ${feeCalc()}
-    <p class="small" style="margin:0"><b>When it's due:</b> Orbyt invoices you when you confirm a booking, based on your accepted bid, and payment is due 15 days from the invoice date. If your final invoice to the client ends up different, report it within 5 business days of finishing (right on the job in the portal) and the fee is adjusted. If a job is cancelled before work starts, the fee is voided or refunded. Fees more than 30 days past due add 1.5% a month, and new introductions pause until they're paid.</p></section>`}
+    <p class="small" style="margin:0"><b>When it's due:</b> Orbyt invoices you once you're booked (the agent picks your bid and you click <b>Confirm job</b>), based on your accepted bid, and payment is due 15 days from the invoice date. If your final invoice to the client ends up different, report it within 5 business days of finishing (right on the job in the portal) and the fee is adjusted. If a job is cancelled before work starts, the fee is voided or refunded. Fees more than 30 days past due add 1.5% a month, and new introductions pause until they're paid.</p></section>`}
 const SHORT={
   vendor:["Reply to each intro within 48 hours with a yes, a no, or a question. Saying no is always fine, and it's much better than no reply. Going quiet on a request means fewer matches down the road.",
     "You contract with and bill the client directly, in your own name, and you're responsible for your work. Add Orbyt's short client notice (Schedule 2) to your quotes.",
@@ -669,7 +669,12 @@ function termsGate(){
         <span class="small">You agreed to the ${termsLink("partner")} when you signed up.</span></div>`:termsForm("partner")}`}
   if(r==="vendor"){const v=vendorById(myVendorId()),first=String(v.contactName||"").split(" ")[0]||v.name;
     if(!done&&acceptancesFor(S.uid).some(x=>/^vendor-terms/.test(x.version||"")))return `<section class="hello"><div><div class="eyebrow">Updated Vendor Terms</div><h1>One change to how invoicing works, ${esc(first)}</h1>
-      <p>Orbyt now invoices when you confirm a booking, based on your accepted bid, with payment due 15 days from the invoice date. If your final amount is different, report it on the job and the fee is adjusted up or down. If a job is cancelled before work starts, the fee is voided or refunded. Fee rates haven't changed.</p>
+      <p>Fee rates haven't changed. What's changing is when Orbyt sends the invoice.</p>
+      <ol class="stepsl">
+        <li><b>You get booked.</b> When an agent picks your bid, the job shows up in the portal with a <b>Confirm job</b> button. Clicking it is how you accept the job.</li>
+        <li><b>Orbyt invoices you then,</b> based on the bid the agent accepted. Payment is due 15 days from the invoice date.</li>
+        <li><b>If the final amount changes,</b> report it when you mark the job complete, and the fee is adjusted up or down.</li>
+        <li><b>If the job is cancelled</b> before work starts, the fee is voided or refunded.</li></ol>
       <p class="small">This applies to jobs booked after you accept, and to everyone from December 21, 2026. Jobs booked before then are invoiced the old way, after the job wraps.</p></div></section>${termsForm("vendor")}`;
     return `<section class="hello"><div><div class="eyebrow">Welcome to the Orbyt network</div><h1>You're approved, ${esc(first)}</h1>
       <p>${done?"Before your first introduction, here's a quick look at what Orbyt costs and how it works.":"Before your first introduction, here's exactly what Orbyt costs, and the terms to agree to."}</p></div></section>
@@ -1345,7 +1350,7 @@ document.addEventListener("submit",async e=>{const f=e.target.closest('form[data
 function setupPill(v){return setupMissing(v,true).length?'<span class="pill late">Setup incomplete</span>':'<span class="pill comparing">Ready to review</span>'}
 function setupMissLine(v){const m=setupMissing(v,true);return m.length?`<span class="small setupmiss">Missing ${esc(m.join(", "))}</span>`:""}
 function setupStat(v){return(S.setupStatus||{})[v.id]||null}
-function setupPanel(v){const m=setupMissing(v,true);if(!m.length)return`<div class="setuppanel ready"><div class="small"><span class="strong">Ready for review.</span> Everything's in: references, business details and services${""}. Check them, then approve.</div></div>`;const st=setupStat(v);
+function setupPanel(v){const m=setupMissing(v,true);if(!m.length)return`<div class="setuppanel ready"><div class="small"><span class="strong">Ready for review.</span> Everything's in: references, business details and services${(v.insurance||{}).path?", and insurance":""}. Check them, then approve.${!(v.insurance||{}).path&&insGroup(vsv(v))!=="high"?` Insurance isn't needed yet: ${insGroup(vsv(v))==="mid"?"they name Orbyt as additional insured":"they upload their certificate"} within 30 days of approval.`:""}</div></div>`;const st=setupStat(v);
   const bits=[st&&st.email_confirmed===false?"Hasn't confirmed their email yet":"",st&&st.reminders?`${st.reminders} ${st.reminders===1?"reminder":"reminders"} sent, last ${ago(st.reminded_at)}`:"Reminders go out after 1, 4 and 7 days, then weekly until they finish"].filter(Boolean);
   return `<div class="setuppanel"><div class="small"><span class="strong">Still setting up.</span> Waiting on ${esc(m.join(", "))}. You can approve once it's all in.</div>
     <div class="small">${esc(bits.join(" · "))}</div>
@@ -1445,7 +1450,7 @@ function vendorFeesCard(v){if(typeof invRow!=="function")return null;
     ${list.map(r=>`<tr><td class="strong">${esc(r.p.address)}${typeof refTag==="function"?refTag(r.p):""}${r.inv.number?`<div class="small">Invoice ${esc(r.inv.number)}</div>`:""}</td><td>${esc(r.b.category)}</td>
       <td class="money">${money2(r.value)}<div class="small">${r.b.finalAmount!=null&&(!r.award||r.b.finalConfirmedAt)?"Final":"Bid"}</div></td>
       <td class="money">${r.type==="waived"?"Waived":money2(r.status==="invoiced"||r.status==="paid"?r.billedFee:r.fee)}<div class="small">${r.type==="repeat"?"Repeat job":r.type==="waived"?"":"First job with this agent"}</div>${r.adj?`<div class="small strong">Adjusting ${r.adj>0?"+":"−"}${money2(Math.abs(r.adj))} for your final amount</div>`:""}</td><td>${st(r)}</td></tr>`).join("")}</tbody></table></div>
-    <p class="small" style="margin:8px 0 0">Orbyt invoices you when a job is booked, based on your accepted bid. Payment is due ${PAY_DAYS} days from the invoice date. If your final amount is different, report it on the job and the fee is adjusted. Questions about a fee? Message Ashleigh.</p>`;
+    <p class="small" style="margin:8px 0 0">Orbyt invoices you once you're booked (you click Confirm job after an agent picks your bid), based on your accepted bid. Payment is due ${PAY_DAYS} days from the invoice date. If your final amount is different, report it on the job and the fee is adjusted. Questions about a fee? Message Ashleigh.</p>`;
   return{pill:owed.length?`<span class="pill ${owed.some(r=>r.overdue)?"late":"comparing"}">${money2(sum(owed))} owed</span>`:"",body}}
 
 /* ---------- structured reviews: four areas and "would you hire them again?" ---------- */
@@ -1603,9 +1608,9 @@ function jobFeeSec(b,p){if(S.teamMember||kind()!=="vendor"||typeof invRow!=="fun
   else if(b.status==="selected"&&r.status==="invoiced")body=`<div class="feeline"><b class="num">${money2(amt)}</b><span class="pill ${r.overdue?"late":"comparing"}">${r.overdue?"Overdue, was due ":"Due by "}${esc(fmtDate(r.due))}</span><span class="small">${r.inv.at?"Invoiced "+esc(fmtDate(isoDay(new Date(r.inv.at)))):""}${r.inv.number?` · ${esc(r.inv.number)}`:""}</span></div>${adjLine}`;
   else if(b.status==="selected"&&r.award)body=`<div class="feeline"><b class="num">${money2(amt)}</b><span class="small">on ${r.value===b.amount||b.finalAmount==null?"your accepted bid of ":"your final amount of "}${money2(r.value)}. Invoice coming now, due by ${esc(fmtDate(r.due))}.</span></div>`;
   else if(b.status==="selected"&&r.doneAt)body=`<div class="feeline"><b class="num">${money2(amt)}</b><span class="small">on ${b.finalAmount!=null?"your final amount of "+money2(r.value):"your bid of "+money2(r.value)}${r.due?`, due by ${esc(fmtDate(r.due))}`:""}</span></div>`;
-  else if(b.amount)body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="small">estimated, if you're booked at ${money2(b.amount)}. Due ${PAY_DAYS} days after Orbyt invoices you, which happens when you confirm the booking.</span></div>`;
+  else if(b.amount)body=`<div class="feeline"><b class="num">${money2(r.fee)}</b><span class="small">estimated, if you're booked at ${money2(b.amount)}. Due ${PAY_DAYS} days after Orbyt invoices you, which happens when you click Confirm job.</span></div>`;
   else body=`<p class="small" style="margin:0">Once you send your bid, you'll see the estimated fee here. You only pay if you're booked.</p>`;
-  return `<div class="reqsec jobfee"><h3>Orbyt fee</h3>${body}<p class="small" style="margin:6px 0 0">${kindLine} The client pays you directly. Orbyt invoices you when the job is booked, based on your accepted bid, and payment is due ${PAY_DAYS} days from the invoice date. If your final amount is different, the fee is adjusted. Ongoing service after the first job is never charged.</p></div>`}
+  return `<div class="reqsec jobfee"><h3>Orbyt fee</h3>${body}<p class="small" style="margin:6px 0 0">${kindLine} The client pays you directly. Orbyt invoices you once you click Confirm job, based on your accepted bid, and payment is due ${PAY_DAYS} days from the invoice date. If your final amount is different, the fee is adjusted. Ongoing service after the first job is never charged.</p></div>`}
 
 /* ---------- agent project page: one row per service, what needs the agent first ---------- */
 const slugify=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");

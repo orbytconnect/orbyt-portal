@@ -880,14 +880,16 @@ const bookOrder=b=>b.confirmedAt||b.selectedAt||b.chosenAt||b.submittedAt||"";
 function autoFeeType(b){const p=projById(b.projectId);if(!p)return"first";
   return S.bids.some(o=>o.id!==b.id&&o.vendorId===b.vendorId&&o.status==="selected"&&projById(o.projectId)?.agent===p.agent&&bookOrder(o)<bookOrder(b))?"repeat":"first"}
 const addDaysIso=(iso,n)=>{const d=new Date(iso);d.setDate(d.getDate()+n);return isoDay(d)};
-/* Invoicing. Under the Vendor Terms updated Nov 20, 2026, Orbyt invoices when a job is awarded (the vendor confirms the booking),
+/* Invoice on award is built but off until the Vendor Terms are updated: INV_ON_AWARD.
+   Under the Vendor Terms updated Nov 20, 2026, Orbyt invoices when a job is awarded (the vendor confirms the booking),
    on the accepted bid, due PAY_DAYS days from the invoice date. If the final amount differs, the fee is adjusted.
    Jobs awarded before a vendor accepted the update, and before it took effect for everyone, keep the old rule:
    invoiced after the job wraps on the final amount, due PAY_DAYS days after the job wraps. */
 const INV_AWARD_FROM="2026-12-21";
 const awardAt=b=>b.status==="selected"&&b.confirmedAt?b.confirmedAt:null;
-function awardBilled(b){const a=awardAt(b);if(!a)return false;if(isoDay(new Date(a))>=INV_AWARD_FROM)return true;
-  const v=vendorById(b.vendorId),t=v&&v.userId&&typeof currentAcceptance==="function"&&currentAcceptance(v.userId,"vendor");
+const INV_ON_AWARD=false,INV_TERMS="vendor-terms-2026-11-20";
+function awardBilled(b){if(!INV_ON_AWARD)return false;const a=awardAt(b);if(!a)return false;if(isoDay(new Date(a))>=INV_AWARD_FROM)return true;
+  const v=vendorById(b.vendorId),t=v&&v.userId&&typeof acceptancesFor==="function"&&acceptancesFor(v.userId).find(x=>x.version===INV_TERMS);
   return !!(t&&String(t.accepted_at)<=String(a))}
 function invRow(b){
   const p=projById(b.projectId),auto=autoFeeType(b),type=b.feeType||auto,inv=b.invoice||{},award=awardBilled(b);
@@ -1278,13 +1280,13 @@ function requestDetail(b){
       ${S.canWrite?(S.openForm==="decline:"+b.id?declineForm(b,"chosen")
         :`<form class="form" data-form="confirm" data-id="${esc(b.id)}"><div class="grid"><label class="field"><span>Proposed start date</span><input type="date" id="cf-d-${esc(b.id)}" name="startDate" value="${esc(b.availableFrom||"")}"></label>
           <label class="field"><span>Note to the agent (optional)</span><input type="text" id="cf-n-${esc(b.id)}" name="note" placeholder="I'll call tomorrow to set the walkthrough"></label></div>
-          <p class="small" style="margin:0">Confirming books the job. Orbyt's invoice for the fee goes out then, due in 15 days.</p><div class="actions"><button class="btn" type="submit">Confirm job</button><button class="btn ghost" type="button" data-act="form" data-key="decline:${esc(b.id)}">Can't take it</button></div></form>`):""}</div>`;
+          <div class="actions"><button class="btn" type="submit">Confirm job</button><button class="btn ghost" type="button" data-act="form" data-key="decline:${esc(b.id)}">Can't take it</button></div></form>`):""}</div>`;
   else if(b.status==="selected")bid+=sum+`<div class="callout good"><h3>Booked</h3><p>You confirmed ${b.confirmedAt?ago(b.confirmedAt):""}${b.startDate?", starting "+fmtDate(b.startDate):""}. Reach out to ${esc(p.agent.split(" ")[0])} if you haven't yet.</p>${payLine}
     ${b.done&&b.finalAmount!=null?`<p class="small" style="margin:0">Job marked complete ${ago(b.doneAt)}. Final amount ${money(b.finalAmount)}, ${b.finalConfirmedAt?"confirmed by "+esc(firstName(p.agent)):b.finalDispute?esc(firstName(p.agent))+" asked about it. Ashleigh will follow up.":"waiting on "+esc(firstName(p.agent))+" to confirm"}.${reviewed(b)?" The agent left a review.":""}</p>`
       :S.canWrite?`<form class="form" data-form="vendordone" data-id="${esc(b.id)}" style="margin-top:4px"><h3>${b.done?"Report your final invoice amount":"Mark the job complete"}</h3><div class="grid">
         <label class="field"><span>Final invoice amount ($)</span><input type="number" id="vd-a-${esc(b.id)}" name="amount" min="0" step="1" required value="${esc(b.amount??"")}"></label>
         <label class="field"><span>What changed from your bid? (optional)</span><input type="text" id="vd-n-${esc(b.id)}" name="note" placeholder="Added the garage door, +$150"></label></div>
-        <div class="actions"><button class="btn sm" type="submit">${b.done?"Send final amount":"Mark job complete"}</button><span class="small">${esc(firstName(p.agent))} confirms the amount. If it's different from your bid, Orbyt adjusts the fee.</span></div></form>`:""}</div>`;
+        <div class="actions"><button class="btn sm" type="submit">${b.done?"Send final amount":"Mark job complete"}</button><span class="small">${esc(firstName(p.agent))} confirms the amount. Orbyt's fee is based on it.</span></div></form>`:""}</div>`;
   else bid+=(b.status==="declined"&&b.declineStage==="request"?"":sum)+`<p class="small" style="margin:10px 0 0">${b.status==="passed"?"The client went another way on this one. Thanks for bidding.":b.status==="declined"?(b.declineStage==="request"?"You let Ashleigh know you can't bid on this one":"You let them know you can't take this one")+(b.declineReason&&b.declineReason!=="Other"?` (${esc(b.declineReason.toLowerCase())}).`:"."):"Your bid is with the agent and their client. You'll see it here when they decide."}</p>`;
   if(b.status==="passed"&&typeof lostBox==="function")bid+=lostBox(b);
   const chat=typeof msgInline==="function"&&msgOn()?msgInline(p.id,b.vendorId,{title:"Messages with "+firstName(p.agent)}):"";
@@ -1432,7 +1434,7 @@ function forecastPanel(){
       <div><span class="eyebrow">Collected this year</span><b class="num">${money2(ytd)}</b><span class="small">Jan 1 to today</span></div></div>
     ${fcChart(items,from,to)}
     <div class="actions"><button class="linkbtn" data-act="fclist">${S.fc.list?"Hide":"Show"} the ${inR.length} ${inR.length===1?"item":"items"} behind these numbers</button>
-      <span class="small">Estimates use the bid amount until a final amount comes in. Expected money is dated ${PAY_DAYS} days after the invoice, which goes out when the vendor clicks Confirm job.</span></div>
+      <span class="small">Estimates use the bid amount until a final amount comes in. Expected money is dated ${PAY_DAYS} days after the job wraps.</span></div>
     ${S.fc.list&&inR.length?`<div class="tablewrap"><table><thead><tr><th>Expected</th><th>Job</th><th>Stage</th><th>Orbyt fee</th></tr></thead><tbody>${inR.map(i=>`<tr><td class="num">${fmtDate(i.date)}</td><td>${esc(i.label)}</td>
       <td><i class="sw ${i.stage==="paid"?"fcpaid":i.stage==="exp"?"fcexp":"fcpos"}"></i>${esc(i.sub)}</td><td class="money">${i.est?"~":""}${money2(i.amt)}</td></tr>`).join("")}</tbody></table></div>`:""}</section>`;
 }
@@ -1808,18 +1810,18 @@ function invoicingView(){
   const vendGroups=list=>{const g={};list.forEach(r=>{(g[r.b.vendorId]=g[r.b.vendorId]||[]).push(r)});return Object.entries(g)};
   let h=forecastPanel()+`<h2 style="margin:0 0 12px">Right now</h2><div class="stats" style="--n:4">
     <div class="stat static"><span class="eyebrow">Ready to invoice</span><b class="num">${money2(sum(ready))}</b><span class="small">${ready.length} ${ready.length===1?"job":"jobs"}</span></div>
-    <div class="stat static"><span class="eyebrow">Final amounts to check</span><b class="num">${waiting.length}</b><span class="small">${adjs.length?adjs.length+" "+(adjs.length===1?"fee":"fees")+" to adjust":"For adjustments"}</span></div>
+    <div class="stat static"><span class="eyebrow">Waiting on amounts</span><b class="num">${waiting.length}</b><span class="small">${adjs.length?adjs.length+" "+(adjs.length===1?"fee":"fees")+" to adjust":"For adjustments"}</span></div>
     <div class="stat static"><span class="eyebrow">Invoiced, unpaid</span><b class="num">${money2(invd.reduce((a,r)=>a+r.billedFee,0))}</b><span class="small ${invd.some(r=>r.overdue)?"warntext":""}">${invd.filter(r=>r.overdue).length} overdue</span></div>
     <div class="stat static"><span class="eyebrow">Paid</span><b class="num">${money2(paid.reduce((a,r)=>a+r.billedFee,0))}</b><span class="small">${paid.length} ${paid.length===1?"job":"jobs"}</span></div></div>`;
-  h+=`<div class="actions" style="margin:-12px 0 22px"><span class="small">First job with an agent: 12% on the first $1,000, 8% to $5,000, 5% above, $25 minimum, $600 cap. Repeat jobs: 2%, $15 minimum, $100 cap. Invoice when a job is booked, on the accepted bid. Payment is due ${PAY_DAYS} days from the invoice date.</span>${S.downloads&&rows.length?`<button class="btn ghost sm" data-act="invcsv">Download CSV</button>`:""}</div>`;
+  h+=`<div class="actions" style="margin:-12px 0 22px"><span class="small">First job with an agent: 12% on the first $1,000, 8% to $5,000, 5% above, $25 minimum, $600 cap. Repeat jobs: 2%, $15 minimum, $100 cap. Payment is due ${PAY_DAYS} days after the job wraps.</span>${S.downloads&&rows.length?`<button class="btn ghost sm" data-act="invcsv">Download CSV</button>`:""}</div>`;
   if(S.copyFallback)h+=`<div class="form" style="margin-bottom:16px"><label class="field"><span>Invoice details to copy</span><textarea id="inv-copy" rows="10" readonly>${esc(S.copyFallback)}</textarea></label><div><button class="btn ghost sm" data-act="clearcopy">Done</button></div></div>`;
   h+=`<section class="section"><h2>Ready to invoice</h2>${ready.length?`<div class="invgroups">${vendGroups(ready).map(([vid,rs])=>{const v=vendorById(vid),vk=vid.replace(/[^A-Za-z0-9_-]/g,"");
     return `<article class="invcard"><div class="sechead" style="margin:0"><div><h3>${v?`<button class="vlink" data-act="vcard" data-id="${esc(vid)}">${esc(v.name)}</button>`:"Vendor"}</h3><span class="small">${esc([v&&v.contactName,v&&vEmail(v)].filter(Boolean).join(" · "))}</span></div><div class="invtotal num">${money2(sum(rs))}</div></div>
       <div class="tablewrap"><table><thead><tr><th>Project</th><th>Job value</th><th>Fee type</th><th>Orbyt fee</th><th>Due</th></tr></thead><tbody>${rs.map(r=>`<tr><td><span class="strong">${esc(r.p.address)}</span><div class="small">${esc(r.b.category)} · ${esc(r.p.agent)}${r.b.category==="Staging"?" · initial contract only":""}${r.award?" · booked "+esc(fmtDate(isoDay(new Date(r.awardAt)))):""}</div></td>
         <td class="money">${money2(r.value)}<div class="small">${r.award&&!(r.b.finalAmount!=null&&r.b.finalConfirmedAt)?"Accepted bid":"Final amount"}</div></td><td>${typeSel(r)}</td><td class="money" title="${esc(feeBreakdown(r.type,r.value).join("; "))}">${money2(r.fee)}</td><td class="num">${fmtDate(r.award?addDaysIso(new Date().toISOString(),PAY_DAYS):r.due)}</td></tr>`).join("")}</tbody></table></div>
       ${S.canWrite?`<form class="invactions" data-form="markinvoiced" data-v="${esc(vid)}"><button class="btn ghost sm" type="button" data-act="copyinvoice" data-v="${esc(vid)}">Copy invoice details</button>
-        <label class="field"><span>Invoice number (optional)</span><input type="text" id="in-${vk}" name="number" placeholder="ORB-1003"></label><button class="btn sm" type="submit">Mark invoiced</button></form>`:""}</article>`}).join("")}</div>`:`<p class="small">Nothing ready right now. Jobs land here as soon as a vendor confirms a booking.</p>`}</section>`;
-  h+=`<section class="section"><h2>Final amounts</h2><p class="small" style="margin:-6px 0 10px">Booked jobs are invoiced on the accepted bid. When the final amount is different, confirm it here and the fee difference shows up under Adjustments.</p>${waiting.length?`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Project</th><th>Bid</th><th>Status</th><th>Set the amount yourself</th></tr></thead><tbody>${waiting.map(r=>`<tr>
+        <label class="field"><span>Invoice number (optional)</span><input type="text" id="in-${vk}" name="number" placeholder="ORB-1003"></label><button class="btn sm" type="submit">Mark invoiced</button></form>`:""}</article>`}).join("")}</div>`:`<p class="small">Nothing ready right now. Jobs land here once the final amount is confirmed.</p>`}</section>`;
+  h+=`<section class="section"><h2>Waiting on final amounts</h2>${waiting.length?`<div class="tablewrap"><table><thead><tr><th>Vendor</th><th>Project</th><th>Bid</th><th>Status</th><th>Set the amount yourself</th></tr></thead><tbody>${waiting.map(r=>`<tr>
       <td>${r.v?`<button class="vlink strong" data-act="vcard" data-id="${esc(r.v.id)}">${esc(r.v.name)}</button>`:""}</td><td>${esc(r.p.address)}<div class="small">${esc(r.b.category)} · ${esc(r.p.agent)}</div></td><td class="money">${money(r.b.amount)}</td>
       <td class="small">${r.fs==="needsfinal"?"Vendor hasn't sent a final amount":r.fs==="disputed"?`<span class="warntext">${esc(firstName(r.p.agent))} says ${money(r.b.finalAmount)} doesn't match: "${esc(r.b.finalDispute.note)}"</span>`:`${esc(firstName(r.p.agent))} hasn't confirmed ${money(r.b.finalAmount)}`}</td>
       <td>${S.canWrite?`<form class="inline" data-form="setfinal" data-id="${esc(r.b.id)}"><input type="number" id="sf-${esc(r.b.id)}" name="amount" min="0" step="1" required value="${esc(r.b.finalAmount??r.b.amount??"")}" aria-label="Final amount"><button class="btn sm" type="submit">Confirm</button></form>`:""}</td></tr>`).join("")}</tbody></table></div>
@@ -2512,7 +2514,7 @@ function feeCallout(b){const p=projById(b.projectId),ty=feeTypeFor(b);
     <p style="margin:0">${ty==="repeat"?`You've worked with ${esc(firstName(p.agent))} through Orbyt before, so this is a <b>repeat job</b>: 2% of the final invoice, $15 minimum, $100 cap.`
       :`This would be your <b>first job with ${esc(firstName(p.agent))}</b>: 12% of the first $1,000, 8% from $1,000 to $5,000 and 5% above that, with a $25 minimum and $600 cap. Future jobs with ${esc(firstName(p.agent))} drop to 2%.`}</p>
     <p class="strong num" id="fee-est-${esc(b.id)}" style="margin:0">${feeEstLine(b,b.amount)}</p>
-    <p class="small" style="margin:0">You only pay if you're booked. Orbyt invoices you once the agent picks your bid and you click Confirm job, based on your bid, and it's due 15 days from the invoice date. If the final amount changes, the fee adjusts. The client pays you directly, as always.</p></div>`}
+    <p class="small" style="margin:0">You only pay if you're booked. It's based on your final invoice amount and due 15 days after the job wraps. The client pays you directly, as always.</p></div>`}
 function declineForm(b,stage){const R=stage==="request"?["Booked that week","Outside my area","Not the kind of job I do","Job's too small for us","Other"]:["Booked that week now","The scope changed","Can't meet the timeline","Other"];
   return `<form class="form" data-form="decline" data-id="${esc(b.id)}" data-stage="${stage}"><fieldset><legend class="legend">${stage==="request"?"Why can't you bid on this one?":"Why can't you take it?"}</legend>
     <div class="chips">${R.map((r,i)=>`<label class="chip"><input type="radio" name="reason" id="dr-${esc(b.id)}-${i}" value="${esc(r)}" ${i===0?"required":""}>${esc(r)}</label>`).join("")}</div></fieldset>

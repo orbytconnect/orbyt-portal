@@ -128,7 +128,7 @@ Vendor agrees to the following for as long as it is in the network.
 
 **8.2 Invoicing and payment.**
 
-> \(a\) **Invoice at award.** A Job is **\"awarded\"** when Vendor confirms the booking in the Portal or otherwise agrees with the Client or Introduced Agent to do the Job. Orbyt will invoice Vendor for the fee on the Accepted Bid on or after the date the Job is awarded.
+> \(a\) **Invoice at award.** A Job is **\"awarded\"** when the Introduced Agent or Client selects Vendor's bid and Vendor accepts the Job, by clicking Confirm job in the Portal or otherwise agreeing with the Client or Introduced Agent to do the Job. Orbyt will invoice Vendor for the fee on the Accepted Bid on or after the date the Job is awarded.
 >
 > \(b\) **Payment.** Payment of each Orbyt invoice is due within fifteen (15) days after the invoice date.
 >

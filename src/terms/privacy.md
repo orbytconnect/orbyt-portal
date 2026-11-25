@@ -1,6 +1,6 @@
 # Orbyt Privacy Policy
 
-*Last updated: November 10, 2026*
+*Last updated: November 25, 2026*
 
 This Privacy Policy explains how Orbyt LLC (\"Orbyt,\" \"we,\" \"us\") collects, uses, and shares personal information through our website at orbytconnect.com, our portal at portal.orbytconnect.com, and our emails (together, the \"Services\"). Orbyt runs a vendor network that introduces real estate agents to local vendors who help get homes ready to list, sell, or move into.
 
@@ -32,7 +32,7 @@ The Services are for real estate professionals and businesses. If you use the Se
 -   To calculate, invoice, and collect vendor fees, and to confirm that fees were reported correctly.
 -   To keep records of agreements, prevent fraud and misuse, enforce our terms, and meet legal obligations.
 -   To improve the Services, including by looking at information that does not identify anyone.
--   To tell you about Orbyt. You can unsubscribe from marketing emails at any time. If you give us a mobile number and agree to texts, we may text you about matches and your account. Reply STOP to opt out.
+-   To tell you about Orbyt. You can unsubscribe from marketing emails at any time. If you agree to texts, we may text you about matches, bids and your account, as described in "Text messages" below.
 
 ## 3. How we share information
 
@@ -41,9 +41,11 @@ We do not sell personal information, and we do not share it for targeted adverti
 -   **Between agents and vendors.** Sharing is how the network works. When we introduce a vendor, we share the vendor\'s profile, pricing and reviews with the agent, and the property and project details the vendor needs with the vendor. While a vendor is quoting, the agent and vendor talk through Orbyt messages; their phone numbers and email addresses are shared with each other once the agent books the vendor. Vendor reviews are shown to other agents. Closing partners (lenders, title, escrow and insurance providers) are different: they buy an advertising listing in a directory that agents can browse. We show agents a partner\'s listing, and we don\'t share agent or client details with closing partners. Agents and their clients decide whether to contact one.
 -   **Messages.** Messages between an agent (and anyone the agent shares the project with) and a vendor are visible to the people in that conversation and to Orbyt. Orbyt can read them to help resolve questions or problems with a job, and to keep the network running well.
 -   **With people an agent chooses.** Agents can add teammates to a project and can share a private link that shows their client vendor names, prices, timelines and ratings.
--   **With our service providers,** who handle information for us under contracts that limit how they use it: Supabase (database, sign-in and file storage), Netlify (portal hosting), Resend (email delivery), Stripe (card payments), Wix (website hosting), and Google (email and documents). Stripe collects and stores card details when you pay Orbyt by card. Orbyt only receives a payment's status, amount and date, and never sees or stores full card numbers.
+-   **With our service providers,** who handle information for us under contracts that limit how they use it: Supabase (database, sign-in and file storage), Netlify (portal hosting), Resend (email delivery), Twilio (text messages), Stripe (card payments), Wix (website hosting), and Google (email and documents). Stripe collects and stores card details when you pay Orbyt by card. Orbyt only receives a payment's status, amount and date, and never sees or stores full card numbers.
 -   **For legal reasons,** such as to comply with law or a valid legal request, to enforce our terms, or to protect the rights and safety of Orbyt, our users, or others.
 -   **In a business transfer,** such as a merger, sale, or financing, subject to this policy.
+
+**Text messages.** Texts from Orbyt are optional. You can agree to them with the checkbox when you sign up, or in My details in the portal. We record when you agree or opt out, the wording you agreed to, and the phone number. Message frequency varies, and message and data rates may apply. Reply STOP to any text to opt out, or HELP for help, or turn texts off in My details. No mobile information will be shared with third parties or affiliates for marketing or promotional purposes. Your text messaging opt-in data and consent are not shared with any third parties, except Twilio, which sends the texts for us.
 
 ## 4. How long we keep information
 

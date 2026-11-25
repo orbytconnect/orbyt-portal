@@ -75,7 +75,7 @@ function partnerSignupView(){
           ${keyHighlights("partner")}</div></div></div>
       ${suSec(5,"Your login",`<div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}`)}
-      ${suSec(6,"Agree and join",suAgree("partner"))}
+      ${suSec(6,"Agree and join",suAgree("partner")+smsBox("su-sms"))}
       <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",portalHome()).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>${authMsg()}
       <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
     </form></div></section>`}
@@ -89,7 +89,7 @@ async function partnerSignup(f,fd,email,pass,pass2,done,btn){
     [!fd.get("terms"),`Check the box to agree to the ${TERMS.partner.title}.`,"#su-terms"]];
   const hit=checks.find(c=>c[0]);
   if(hit){done(hit[1]);const el=f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}
-  const meta={ref:S.ref||"",role:"vendor",partner_kind:"closing",license:g("license"),full_name:first+" "+last,phone:g("phone"),areas,terms_version:TERMS.partner.version,user_agent:navigator.userAgent.slice(0,300),
+  const meta={ref:S.ref||"",role:"vendor",partner_kind:"closing",license:g("license"),full_name:first+" "+last,phone:g("phone"),areas,terms_version:TERMS.partner.version,user_agent:navigator.userAgent.slice(0,300),...smsMeta(fd),
     ...bizData(fd),marketing_opt_out:!!fd.get("optout"),company:g("company"),website:g("web"),services:svcs,service_details:fd.getAll("sub").map(String),years_in_business:g("years"),references:g("references"),heard_about:g("heard")};
   const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
   if(error)return done(friendlyAuthError(error));

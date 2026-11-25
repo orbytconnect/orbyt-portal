@@ -1,6 +1,6 @@
 # ORBYT AGENT TERMS OF USE
 
-*Last updated: October 25, 2026*
+*Last updated: November 21, 2026. Sections 4.11 and 4.12 take effect on December 21, 2026.*
 
 These Agent Terms of Use (the **\"Terms\"**) are a binding agreement between Orbyt LLC, a California limited liability company located at 711 S Nardo Ave, Suite 308, Solana Beach, California 92075 (**\"Orbyt\"**), and the real estate agent who registers to use the Orbyt vendor network (**\"Agent\"**). Orbyt and Agent are each a \"party\" and together the \"parties.\"
 
@@ -73,6 +73,10 @@ These Agent Terms of Use (the **\"Terms\"**) are a binding agreement between Orb
 **4.9 How Orbyt is paid, and non-circumvention.** Vendors pay Orbyt a fee on paid work they do for Agent, for Agent\'s Clients, and for any client Agent refers to them, for twelve (12) months after Orbyt\'s most recent Introduction between them, whether the work is booked through Orbyt or directly. Agent does not pay these fees. Agent will not ask, encourage, or agree with a Vendor to book work outside of Orbyt, or to split, delay, or under-report a Job, to avoid Orbyt\'s fees.
 
 **4.10 Helping confirm Jobs.** Orbyt may ask Agent whether a Vendor it introduced has done work for Agent or its Clients and what the Vendor billed, so that Orbyt can confirm the Vendor\'s fee. Agent will answer reasonable requests honestly, to the extent it can do so consistently with its duties to its Clients.
+
+**4.11 Picking a Vendor.** When Agent selects a Vendor's bid in the Portal, the Vendor is booked for that work at the price, scope, and timing in the bid. Agent confirms that it has its Client's approval before selecting a bid, and the agreement for the work is between the Vendor and whoever hires it, as described in Section 2.1.
+
+**4.12 Price changes.** If Agent learns that the price of work by a Vendor Orbyt introduced has changed from the bid Agent selected, up or down, Agent will tell Orbyt through the Portal or by email within five (5) business days, to the extent it can do so consistently with its duties to its Clients. Agent does not owe Orbyt any fee because of a price change.
 
 ## 5. When a Job Goes Wrong
 

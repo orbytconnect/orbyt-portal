@@ -1,6 +1,6 @@
 # ORBYT VENDOR TERMS OF USE
 
-*Last updated: October 25, 2026*
+*Last updated: November 21, 2026. For a Vendor that accepted an earlier version, this version takes effect on December 21, 2026, or sooner if Vendor accepts it in the Portal. It does not apply to projects that existed on or before November 21, 2026.*
 
 These Vendor Terms of Use (the **\"Terms\"**) are a binding agreement between Orbyt LLC, a California limited liability company located at 711 S Nardo Ave, Suite 308, Solana Beach, California 92075 (**\"Orbyt\"**), and the business that registers to join the Orbyt vendor network (**\"Vendor\"**). Orbyt and Vendor are each a \"party\" and together the \"parties.\"
 
@@ -29,10 +29,16 @@ These Vendor Terms of Use (the **\"Terms\"**) are a binding agreement between Or
 > \(f\) **\"Orbyt Parties\"** means Orbyt, its affiliates, and each of their owners, members, managers, officers, employees, contractors, agents, successors, and assigns.
 >
 > \(g\) **\"Claim\"** means any claim, demand, complaint, lawsuit, arbitration, investigation, lien, or other proceeding, whether threatened or actual.
+>
+> \(h\) **\"Bid\"** means the price, scope, and timing Vendor submits for a Job through the Portal, or otherwise sends to an Introduced Agent or Client, including any quote or document attached to it.
+>
+> \(i\) **\"Award\"** means an Agent or Client selecting Vendor's Bid in the Portal, or otherwise accepting it. The date of selection is the **\"Award Date\"** and the accepted Bid is the **\"Accepted Bid.\"**
 
 **1.3 No guaranteed work.** Orbyt decides which Introductions to make based on what each property needs. Orbyt does not promise any number of Introductions, Jobs, or any level of income, and may introduce other vendors in the same category or area.
 
-**1.4 Responding to Introductions.** Vendor will respond to each Introduction within forty-eight (48) hours by accepting it, declining it, or asking for more information. Vendor is free to decline any Introduction or Job, and Orbyt will not penalize, suspend, or remove Vendor for declining. If Vendor does not respond in time, Orbyt may offer the Introduction to another vendor.
+**1.4 Responding to Introductions.** Vendor will respond to each Introduction within forty-eight (48) hours by sending a Bid, declining, or asking for more information. Vendor is free to decline any Introduction, and Orbyt will not penalize, suspend, or remove Vendor for declining. If Vendor does not respond in time, Orbyt may offer the Introduction to another vendor.
+
+**1.5 Bids are offers.** Each Bid is Vendor's offer to do the Job at the price, scope, and timing stated in it. A Bid stays open until the target list date shown for the project in the Portal, or, if no target list date is shown or it has already passed when the Bid is sent, for fourteen (14) days after it is sent. Vendor may withdraw or change a Bid at any time before it is Awarded. When a Bid is Awarded, the offer is accepted and Vendor is booked for the Job. No further confirmation from Vendor is needed.
 
 ## 2. Orbyt Is Not a Party to Vendor\'s Jobs
 
@@ -72,11 +78,13 @@ Vendor agrees to the following for as long as it is in the network.
 
 ## 4. Delivering on Jobs
 
-**4.1 Vendor\'s commitment.** Once Vendor accepts a Job, Vendor will perform it on the schedule and to the scope agreed with the Client, and will show up when committed.
+**4.1 Vendor\'s commitment.** Once Vendor\'s Bid is Awarded, Vendor will perform the Job at the Accepted Bid, on the schedule and to the scope in it or as later agreed with the Client, and will show up when committed. If Vendor cannot do an Awarded Job, Vendor will tell the Client and Orbyt right away under Section 4.3.
 
 **4.2 Time-sensitive work.** Vendor understands that listing work is often tied to deadlines such as photography, open houses, list dates, inspections, escrow, and closing, and that late, incomplete, or defective work can cause a Client losses. As between Vendor and the Orbyt Parties, Vendor alone bears all responsibility and liability for those losses.
 
 **4.3 Delays and problems.** Vendor will tell the Client, and Orbyt, as soon as possible and in any case within twenty-four (24) hours after Vendor becomes aware that it may miss a committed date, cannot complete a Job, or needs to materially change the price or scope.
+
+**4.4 Price changes.** If the price of an Awarded Job changes for any reason, up or down, including added or removed work, Vendor will report the new price to Orbyt through the Portal or by email within five (5) business days after Vendor and the Client agree to it.
 
 **4.4 No abandonment.** Vendor will not abandon a Job or fail to appear without notice. If Vendor cannot complete a Job, Vendor will promptly tell the Client, cooperate in handing the work over to a replacement, and refund any payment for work not performed as required by the Client Contract and the law.
 
@@ -122,21 +130,31 @@ Vendor agrees to the following for as long as it is in the network.
 >
 > \(b\) **Repeat fee.** Applies to each later Protected Job with the same Introduced Agent or Introduced Client during the Protection Period, whether it is booked through Orbyt or directly.
 >
-> \(c\) **Job value.** Fees are calculated on the final amount Vendor bills the Client for the Job, not including sales tax.
+> \(c\) **Job value.** Fees are first calculated on the Accepted Bid, not including sales tax, and are then adjusted under Section 8.2(c) to the final amount Vendor bills the Client for the Job, not including sales tax.
 >
 > \(d\) **Staging extensions.** For staging Jobs, fees apply to the initial staging contract only. Monthly extensions while the home is still on the market are not subject to any fee.
 
-**8.2 Reporting and payment.** Within five (5) business days after a Job is completed, Vendor will report the final invoice amount to Orbyt through the Portal or by email to ashleigh@orbytconnect.com. Orbyt may confirm the amount with the Introduced Agent and will then send Vendor an invoice. Payment is due within fifteen (15) days after the Job is completed.
+**8.2 Invoicing and payment.**
+
+> \(a\) **Invoice on Award.** Orbyt will invoice Vendor for the fee on the Accepted Bid on or after the Award Date.
+>
+> \(b\) **Payment.** Payment of each Orbyt invoice is due within fifteen (15) days after the invoice date.
+>
+> \(c\) **Final amount and adjustments.** Within five (5) business days after a Job is completed, Vendor will report the final invoice amount to Orbyt through the Portal or by email to ashleigh@orbytconnect.com. Orbyt may confirm the amount, and any price change, with the Introduced Agent or Client. If the fee on the final amount is more than the fee already invoiced, Orbyt will invoice the difference, due within fifteen (15) days after that invoice date. If it is less, Orbyt will credit the difference against Vendor's next invoice or, if Vendor asks or has no other fees due within sixty (60) days, refund it.
+>
+> \(d\) **Unreported changes.** If Orbyt learns from an Agent, a Client, or any other reliable source that the price of a Job was higher than Vendor reported, Orbyt may invoice Vendor for the fee on the difference, due within fifteen (15) days after that invoice date, in addition to its rights under Section 8.6.
+>
+> \(e\) **Jobs booked outside the Portal.** For a Protected Job not booked through the Portal, Vendor will report the Job and its price to Orbyt within five (5) business days after it is agreed, and that date is the Award Date.
 
 **8.3 Saved payment methods.** Payments are processed by Orbyt\'s third-party payment processor under its terms. Orbyt does not store full card or bank account numbers. If Vendor saves a card or bank account in the Portal, Vendor authorizes Orbyt, through its processor, to charge it for each Orbyt invoice on or after the due date. Orbyt will send each invoice at least five (5) days before charging it. Vendor may withdraw this authorization by removing the payment method from the Portal. Doing so does not affect amounts already due.
 
-**8.4 Cancelled or unpaid Jobs.** No fee is owed on a Job that is cancelled before any work is done, or for any amount the Client does not pay Vendor. If Vendor later collects that amount, the fee on it is due within fifteen (15) days of collection.
+**8.4 Cancelled or unpaid Jobs.** No fee is owed on a Job that is cancelled before any work is done, or for any amount the Client does not pay Vendor. Vendor will tell Orbyt within five (5) business days after a Job is cancelled or the Client fails to pay. Orbyt will then void the fee on that amount or, if it has been paid, credit or refund it as described in Section 8.2(c). If Vendor later collects that amount, the fee on it is due within fifteen (15) days of collection.
 
 **8.5 Late payment.** If a fee is past due, Orbyt may pause new Introductions and any promoted placement until it is paid. Amounts more than thirty (30) days past due accrue a late charge of 1.5% per month, or the maximum allowed by law if less. Vendor will pay Orbyt\'s reasonable costs of collecting past-due amounts, including attorneys\' fees.
 
 **8.6 Records and invoice disputes.** Vendor will keep records of each Job for two (2) years after completion and will provide copies of Client invoices on request. If Vendor under-reports a Job, Vendor will pay the fee shortfall within fifteen (15) days of notice. Vendor must raise any dispute about an Orbyt invoice in writing within thirty (30) days of the invoice date. Otherwise the invoice is final.
 
-**8.7 Changes to fees.** Orbyt may change the Fee Schedule or introduce subscription plans in the same way as any other change to these Terms under Section 18.2. Orbyt will post the updated Fee Schedule in the Portal and on the Orbyt website, with a notice of the change and the date it takes effect, at least thirty (30) days before it takes effect. Fee changes apply only to Introductions made after the change takes effect. Vendor\'s continued use of the Services or the Portal after that date means Vendor accepts the change. If Vendor does not agree, Vendor must leave the network before the change takes effect.
+**8.7 Changes to fees.** Orbyt may change the Fee Schedule or introduce subscription plans in the same way as any other change to these Terms under Section 18.2. Orbyt will post the updated Fee Schedule in the Portal and on the Orbyt website. Fee changes do not apply to any project that existed on or before the day the change is posted.
 
 **8.8 Taxes.** Fees do not include taxes. Vendor is responsible for all taxes on its own income and on the Vendor Services.
 
@@ -284,7 +302,7 @@ Vendor may choose to run promotions that increase its visibility to Agents, at t
 
 **18.1 Changes to the Services.** Orbyt may change, suspend, or discontinue any part of the Services or the Portal at any time.
 
-**18.2 Changes to these Terms.** Orbyt may update these Terms from time to time. Orbyt will post each updated version in the Portal and on the Orbyt website, with a notice of the change and the date it takes effect, at least thirty (30) days before it takes effect. Orbyt may also tell Vendor by email but is not required to. Vendor should check the Portal regularly. Section 8.7 applies the same process to fee changes. Changes apply going forward only. Vendor\'s continued use of the Services or the Portal after a change takes effect means Vendor accepts the updated Terms. If Vendor does not agree, Vendor must leave the network before the change takes effect.
+**18.2 Amendments.** Orbyt may change these Terms and any other Orbyt policies from time to time. Once Vendor has accepted these Terms, each later change takes effect when the updated version is posted in the Portal. Orbyt will show a notice of each change in the Portal for at least thirty (30) days and will email the notice to each registered Vendor when the change is posted. Vendor is responsible for reviewing the notice and the changes. Vendor\'s continued use of the Services or the Portal after a change is posted means Vendor accepts it. If Vendor does not agree, Vendor must stop using the Services and leave the network. For the avoidance of doubt, no change applies to any project that existed in the Portal on or before the day the change is posted.
 
 **18.3 Disputes already pending.** No change to Section 19 applies to a dispute that either party had given notice of before the change was posted.
 

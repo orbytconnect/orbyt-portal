@@ -11,7 +11,7 @@ const portalHome=()=>location.origin+"/";
 const D={};                       // raw rows, by table
 const TABLES=["profiles","vendors","vendor_admin","vendor_private","vendor_notes","projects","project_private","project_admin",
   "project_members","default_shares","bids","invoices","reviews","favorites","task_checks","client_links","my_tasks","time_logs",
-  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards","intros","listing_payments","vendor_billing","message_threads","messages","message_reads"];
+  "spend","contacts","market_requests","settings","vendor_agreements","terms_acceptances","review_requests","home_cards","intros","listing_payments","vendor_billing","message_threads","messages","message_reads","sms_consents"];
 const nz=v=>v===""||v===undefined?null:v;
 const camel=s=>s.replace(/_([a-z])/g,(m,c)=>c.toUpperCase());
 const snake=s=>s.replace(/[A-Z]/g,c=>"_"+c.toLowerCase());
@@ -30,7 +30,7 @@ async function fetchAll(t){
   if(t==="review_requests"){if(!S.uid)return undefined;const{data,error}=await sb.rpc("review_requests_list");return error?undefined:(data||[])}
   let out=[],from=0;
   for(;;){const{data,error}=await sb.from(t).select("*").range(from,from+999);
-    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"||t==="intros"||t==="listing_payments"||t==="vendor_billing"||t==="message_threads"||t==="messages"||t==="message_reads"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
+    if(error){console.error("load "+t,error);return t==="terms_acceptances"||t==="home_cards"||t==="intros"||t==="listing_payments"||t==="vendor_billing"||t==="message_threads"||t==="messages"||t==="message_reads"||t==="sms_consents"?undefined:out} // no terms step until update 8 is in, no home team cards until update 13
     out=out.concat(data||[]);if(!data||data.length<1000)return out;from+=1000}
 }
 
@@ -340,7 +340,7 @@ function signupView(m){
         <label class="field"><span>Email</span><input type="email" id="su-email" name="email" autocomplete="email" required></label>`)}
       ${suSec(2,"Your login",`<div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}`)}
-      ${suSec(3,"Agree and join",`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>`)}`
+      ${suSec(3,"Agree and join",`<label class="checkrow top"><input type="checkbox" id="su-terms" name="terms"> <span>I agree to the ${termsLink(m)}.</span></label>${smsBox("su-sms")}`)}`
       :`<div class="stepnote"><span class="strong">Step 1 of 2: create your account.</span> About 2 minutes. Then you'll go straight to your dashboard, where Get approved asks for your exact services, a few business details and 2 to 3 agent references. Every field is required unless it says optional.</div>
       ${suSec(1,"About you",suPerson())}
       ${suSec(2,"Your business",suBiz())}
@@ -360,7 +360,7 @@ function signupView(m){
         <div class="knowrow"><span class="knowico" aria-hidden="true">✓</span><div class="insnote" id="su-insnote" aria-live="polite"><span class="strong">Insurance.</span> Pick your kinds of work above to see what insurance you'll need.</div></div></div>
       ${suSec(5,"Your login",`<div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}`)}
-      ${suSec(6,"Agree and join",suAgree("vendor"))}`}
+      ${suSec(6,"Agree and join",suAgree("vendor")+smsBox("su-sms"))}`}
       <p class="small" style="margin:0">Read how Orbyt handles your information in our <a href="${esc(new URL("privacy.html",portalHome()).href)}" target="_blank" rel="noopener">Privacy Policy</a>.</p>${authMsg()}
       <div class="actions"><button class="btn" type="submit">Join Orbyt</button><button class="btn ghost" type="button" data-act="authmode" data-m="signin">Back to sign in</button></div>
     </form></div></section>`;
@@ -481,7 +481,7 @@ document.addEventListener("submit",async e=>{
         [!fd.get("terms"),`Check the box to agree to the ${TERMS[m].title}.`,"#su-terms"],[false]];
       const hit=checks.find(c=>c[0]);
       if(hit){done(hit[1]);const el=hit[2]&&f.querySelector(hit[2]);if(el){el.scrollIntoView({block:"center"});try{el.focus({preventScroll:true})}catch(_){}}return}
-      const meta={ref:S.ref||"",role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300)};
+      const meta={ref:S.ref||"",role:m,full_name:first+" "+last,phone:String(fd.get("phone")||"").trim(),areas,terms_version:TERMS[m].version,user_agent:navigator.userAgent.slice(0,300),...smsMeta(fd)};
       if(m==="agent")meta.brokerage=String(fd.get("brokerage")||"").trim();
       else Object.assign(meta,bizData(fd),{marketing_opt_out:!!fd.get("optout"),company:String(fd.get("company")).trim(),services:svcs,service_details:fd.getAll("sub").map(String),heard_about:String(fd.get("heard")||"").trim(),
         closing_work:String(fd.get("closingwork")||""),signup_notes:fd.get("closingwork")==="some"?"Closing work: some. "+g("cwnote"):""});
@@ -584,6 +584,16 @@ const termsUrl=r=>new URL(TERMS[r].path,portalHome()).href;
 const termsLink=(r,label)=>`<a href="${esc(termsUrl(r))}" target="_blank" rel="noopener">${esc(label||TERMS[r].title)}</a>`;
 const myRole=()=>kind()==="vendor"?"vendor":kind()==="agent"?"agent":"";
 const myVendorId=()=>kind()==="vendor"?roleVal():"";
+/* Text message consent (TCPA). Optional and unchecked at sign-up; can be changed in My details.
+   The exact wording people agree to is saved with each change (SQL update 40). Change SMS.version if the wording changes. */
+const SMS={version:"sms-2026-11-25",text:"Text me about matches, bids and my account (optional). I agree to receive recurring automated texts from Orbyt LLC at the mobile number above. Consent isn't required to use Orbyt. Message frequency varies. Msg & data rates may apply. Reply STOP to opt out or HELP for help."};
+const smsBox=id=>`<label class="checkrow top smsbox"><input type="checkbox" id="${id}" name="sms"> <span>${esc(SMS.text)} See the ${termsLink(termsRoleFor())} and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>`;
+const termsRoleFor=()=>{if(S.uid&&myRole())return termsRole()||"agent";const m=S.authMode||"";return m==="partner"?"partner":m==="vendor"||S.teamToken?"vendor":"agent"};
+const smsMeta=fd=>({sms_consent:!!fd.get("sms"),sms_consent_text:fd.get("sms")?SMS.text:"",sms_consent_version:fd.get("sms")?SMS.version:""});
+const smsLatest=uid=>(D.sms_consents||[]).filter(x=>uid&&x.user_id===uid).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)))[0]||null;
+const smsOk=uid=>{const x=smsLatest(uid);return !!(x&&x.granted)};
+const smsLine=uid=>{if(!uid||!Array.isArray(D.sms_consents))return"";const x=smsLatest(uid);
+  return `<div class="small">${x&&x.granted?`OK to text${x.phone?" "+esc(x.phone):""} · agreed ${esc(fmtStamp(x.created_at))}`:x?`Opted out of texts ${esc(fmtStamp(x.created_at))}`:"Hasn't agreed to texts. Email, or call for something urgent"}${x&&x.granted&&kind()==="orbyt"?` · <button class="linkbtn" data-act="smsoptout" data-id="${esc(uid)}">They replied STOP</button>`:""}</div>`};
 const acceptancesFor=uid=>(D.terms_acceptances||[]).filter(a=>uid&&a.user_id===uid).sort((a,b)=>String(b.accepted_at).localeCompare(String(a.accepted_at)));
 const currentAcceptance=(uid,r)=>acceptancesFor(uid).find(a=>a.version===TERMS[r].version);
 function needsTerms(){const r=myRole();if(!r||!S.uid||!Array.isArray(D.terms_acceptances)||S.teamMember)return false;
@@ -713,10 +723,11 @@ function agreementLine(v){const t=v.userId&&currentAcceptance(v.userId,"vendor")
   if(t)rows.push(`<p class="small" style="margin:6px 0 0">Agreed to the ${termsLink("vendor","Vendor Terms of Use")} ${termsWhen(t)}</p>`);
   else if(v.userId)rows.push(`<p class="small warntext" style="margin:6px 0 0">${v.approved===false?"Hasn't agreed to the current Vendor Terms of Use. They'll be asked right after you approve them.":"Hasn't agreed to the current Vendor Terms of Use yet. They'll be asked when they next sign in."}</p>`);
   if(old)rows.push(`<p class="small" style="margin:6px 0 0">Earlier agreement signed ${esc(fmtStamp(old.signed_at))} by ${esc(old.signer_name)} · <button class="linkbtn" data-act="agview" data-id="${esc(old.id)}">View</button></p>`);
+  if(v.userId)rows.push(smsLine(v.userId).replace('<div class="small">','<div class="small" style="margin:6px 0 0">'));
   return rows.join("")}
 const agreementPill=v=>v.userId&&v.approved!==false&&Array.isArray(D.terms_acceptances)&&!currentAcceptance(v.userId,typeof isPartner==="function"&&isPartner(v)?"partner":"vendor")?' <span class="pill late">Terms not accepted</span>':"";
 const agentTermsLine=uid=>{if(!uid)return"";const t=currentAcceptance(uid,"agent");
-  return t?`<div class="small">Agreed to terms ${esc(fmtStamp(t.accepted_at))}</div>`:`<div class="small warntext">Hasn't agreed to terms yet</div>`};
+  return (t?`<div class="small">Agreed to terms ${esc(fmtStamp(t.accepted_at))}</div>`:`<div class="small warntext">Hasn't agreed to terms yet</div>`)+smsLine(uid)};
 const myAgreementBtn=()=>{const r=myRole();if(!r)return"";const old=r==="vendor"&&agreementsFor(myVendorId())[0];
   return `<button class="linkbtn" data-act="mydetails">My details</button>${old?`<button class="linkbtn" data-act="agview" data-id="${esc(old.id)}">Signed agreement</button>`:""}`};
 function printAgreement(html){
@@ -907,6 +918,9 @@ function myDetailsView(){
   return `<div class="scrim" data-act="mydetailsclose"></div><div class="vcard" role="dialog" aria-modal="true" aria-labelledby="md-title">
     <div class="vchead"><div><div class="eyebrow">Your account</div><h2 id="md-title" style="font-weight:500;margin-top:4px">My details</h2></div><button class="xbtn" data-act="mydetailsclose" aria-label="Close">×</button></div>
     ${personForm("mydetails","",d,r,false)}
+    ${Array.isArray(D.sms_consents)?`<form class="form inner" data-form="mysms" novalidate style="margin-top:18px"><h3 style="margin:0">Text messages</h3>
+      <p class="small" style="margin:0">${smsOk(S.uid)?`You're getting texts from Orbyt${smsLatest(S.uid).phone?" at "+esc(smsLatest(S.uid).phone):""}. Turn them off any time here, or reply STOP to any text.`:"You're not getting texts from Orbyt. Orbyt emails you instead."}</p>
+      ${smsOk(S.uid)?`<div class="actions"><button class="btn ghost sm" type="submit" name="sms" value="off">Stop texts</button></div>`:`${smsBox("md-sms")}<div class="actions"><button class="btn ghost sm" type="submit" name="sms" value="on">Save</button></div>`}</form>`:""}
     <form class="form inner" data-form="myemail" novalidate style="margin-top:18px"><h3 style="margin:0">Login email</h3>
       <p class="small" style="margin:0">You sign in with <b>${esc(S.email||me.email||"")}</b>. Changing brokerages or companies? Enter your new email and we'll send a confirmation link to it. Your login switches once you click it.</p>
       <label class="field"><span>New email</span><input type="email" id="md-email" name="email" autocomplete="email"></label>
@@ -923,6 +937,13 @@ function changeAgentBlock(p){
       <label class="field"><span>Mobile phone</span><input type="tel" name="phone" id="ca-phone-${esc(p.id)}"></label><label class="field"><span>Brokerage</span><input type="text" name="brokerage" id="ca-brok-${esc(p.id)}"></label></div>
     <p class="small" style="margin:0">The project moves to them with its vendors and bids. If they don't have an account yet, it links to them when they sign up with that email.</p>
     <div class="actions"><button class="btn sm" type="submit">Move project</button><button class="btn ghost sm" type="button" data-act="chagent" data-id="">Cancel</button></div></form>`}
+document.addEventListener("submit",e=>{const f=e.target.closest('form[data-form="mysms"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
+  const on=(e.submitter&&e.submitter.value)==="on";
+  if(on&&!(f.querySelector("#md-sms")||{}).checked){toast("Check the box to agree to texts first.");return}
+  const me=S.me||{},v=myRole()==="vendor"?vendorById(myVendorId()):null,phone=me.phone||(v&&v.phone)||"";
+  guard(async()=>{fail((await sb.rpc("sms_consent_set",{p_granted:on,p_phone:phone,p_wording:on?SMS.text:"Turned off texts in My details",p_version:SMS.version,p_user_agent:navigator.userAgent.slice(0,300)})).error,"texts");await S.db.reload()},on?"Texts are on. Reply STOP any time to turn them off.":"Texts are off.")},true);
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="smsoptout"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();
+  guard(async()=>{fail((await sb.rpc("sms_consent_admin_optout",{p_user:t.dataset.id})).error,"texts");await S.db.reload()},"Recorded. Don't text them again unless they opt back in.")},true);
 const okEmail=x=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x);
 const pfErr=(f,m)=>{const el=f.querySelector(".pferr");if(el){el.textContent=m;el.hidden=!m}};
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="mydetails"],[data-act="mydetailsclose"],[data-act="agedit"],[data-act="chagent"]');if(!t)return;const a=t.dataset.act;
@@ -1537,7 +1558,7 @@ function teamJoinView(card){const t=S.teamInvite||{};
         <label class="field"><span>Email</span><input type="email" id="tj-email" name="email" value="${esc(t.email)}" readonly></label></div>`)}
       ${suSec(2,"Your login",`<div class="grid"><label class="field"><span>Create a password</span><input type="password" id="su-pass" name="password" autocomplete="new-password" required></label>
         <label class="field"><span>Type it again</span><input type="password" id="su-pass2" name="password2" autocomplete="new-password" required></label></div>${pwRules()}${showPw("su-show")}`)}
-      ${suSec(3,"Agree and join",`<label class="checkrow top"><input type="checkbox" id="tj-terms" name="terms"> <span>I agree to the ${termsLink("vendor")}.</span></label>`)}
+      ${suSec(3,"Agree and join",`<label class="checkrow top"><input type="checkbox" id="tj-terms" name="terms"> <span>I agree to the ${termsLink("vendor")}.</span></label>${smsBox("tj-sms")}`)}
       <p class="small" style="margin:0">Already have an Orbyt login with this email? <button class="linkbtn" type="button" data-act="authmode" data-m="signin">Sign in</button>, then open the invite link again.</p>${authMsg()}
       <div class="actions"><button class="btn" type="submit">Join the team</button></div></form>`)}
 document.addEventListener("submit",async e=>{const f=e.target.closest('form[data-proto="teamjoin"]');if(!f)return;e.preventDefault();e.stopImmediatePropagation();
@@ -1547,7 +1568,7 @@ document.addEventListener("submit",async e=>{const f=e.target.closest('form[data
     [!!pwProblem(pass),pwProblem(pass),"#su-pass"],[pass!==String(fd.get("password2")||""),"Those passwords don't match. Type them again.","#su-pass2"],[!fd.get("terms"),"Check the box to agree to the terms.","#tj-terms"]].find(c=>c[0]);
   if(hit)return fail(hit[1],hit[2]);
   if(btn)btn.disabled=true;
-  const meta={role:"vendor",team_token:S.teamToken,full_name:g("first")+" "+g("last"),phone:g("phone"),terms_version:TERMS.vendor.version,user_agent:navigator.userAgent.slice(0,300)};
+  const meta={role:"vendor",team_token:S.teamToken,full_name:g("first")+" "+g("last"),phone:g("phone"),terms_version:TERMS.vendor.version,user_agent:navigator.userAgent.slice(0,300),...smsMeta(fd)};
   const{error}=await sb.auth.signUp({email:t.email,password:pass,options:{data:meta,emailRedirectTo:portalHome()}});
   if(error){if(btn)btn.disabled=false;return fail(/already|registered/i.test(error.message)?"You already have an Orbyt login with this email. Sign in, then open the invite link again.":error.message)}
   S.pendingEmail=t.email;S.pendingVendor=false;S.authMode="checkemail";S.authErr="";render()},true);
